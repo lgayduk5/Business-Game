@@ -124,7 +124,7 @@ export function licenseValue(g: GameState, inv: ActiveInvestment): number {
   if (!def.stages || inv.state !== 'ramp') return 0;
   let p = 1;
   for (let i = inv.stage; i < def.stages.length; i++) p *= def.stages[i].p;
-  return p * inv.upfront * 5 * g.macro.sentiment;
+  return p * inv.upfront * 14 * g.macro.sentiment;
 }
 export function licenseOut(g: GameState, uid: number): ActionResult {
   const inv = g.company.investments.find((i) => i.uid === uid);

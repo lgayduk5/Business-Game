@@ -469,5 +469,72 @@
       }
     ],
     "lesson": "The recovery is when share is won. Capacity and people take quarters to add; those who start early are ready when demand returns."
+  },
+  {
+    "id": "log_fuel",
+    "cat": "macro",
+    "title": "Diesel at a record high",
+    "text": "Fuel has gone up a quarter in a month. Most of your contracts were priced before it did.",
+    "cond": { "ind": ["logistics"], "minTurn": 3 },
+    "opts": [
+      {
+        "label": "Impose a fuel surcharge",
+        "hint": "Pass it on; some customers will resent it.",
+        "out": [{ "text": "Most customers accept the surcharge.", "fx": [["energyIdx", 25], ["special", "priceUp", 5], ["demand", -3, 4, "all"]] }]
+      },
+      {
+        "label": "Absorb it",
+        "hint": "Protect relationships, lose money for a while.",
+        "out": [{ "text": "Margins vanish until prices fall.", "fx": [["energyIdx", 25]] }]
+      },
+      {
+        "label": "Fuel-efficiency drive",
+        "hint": "Route optimisation and training.",
+        "out": [{ "text": "Consumption drops a little, for good.", "fx": [["energyIdx", 25], ["cost", 0.02, "ga"], ["inputs", -4, 12]] }]
+      }
+    ],
+    "lesson": "In a thin-margin business an input shock is a solvency question. Contracts that let you pass costs through are worth more than they look."
+  },
+  {
+    "id": "log_port_strike",
+    "cat": "macro",
+    "title": "Port strike",
+    "text": "Dock workers at the main port serving {region} have walked out. Containers are piling up.",
+    "cond": { "ind": ["logistics", "mfg"], "minTurn": 6 },
+    "bind": ["region"],
+    "opts": [
+      {
+        "label": "Reroute through other ports",
+        "hint": "Longer, dearer, moving.",
+        "out": [{ "text": "Freight keeps moving at a higher cost.", "fx": [["inputs", 10, 2], ["demand", 4, 2, "region"]] }]
+      },
+      {
+        "label": "Wait it out",
+        "hint": "Strikes end.",
+        "out": [{ "text": "Your trucks sit idle for six weeks.", "fx": [["capacity", -25, 1, "region"]] }]
+      }
+    ],
+    "lesson": "Networks are only as strong as their chokepoints. Alternatives cost money until the day they are the only way through."
+  },
+  {
+    "id": "energy_carbon",
+    "cat": "macro",
+    "title": "Carbon price jumps",
+    "text": "The carbon price has doubled after a new climate agreement. Fossil generators’ costs just jumped.",
+    "cond": { "ind": ["energy"], "minTurn": 8 },
+    "once": true,
+    "opts": [
+      {
+        "label": "Sell the news",
+        "hint": "Clean power is now the cheap option. Tell customers.",
+        "out": [{ "text": "Demand for clean contracts rises.", "fx": [["cost", 0.02, "sm"], ["market", 10, 12, "ind"], ["esg", 3]] }]
+      },
+      {
+        "label": "Raise prices",
+        "hint": "The market price of power rose; so does yours.",
+        "out": [{ "text": "Margins expand.", "fx": [["special", "priceUp", 6], ["market", 5, 12, "ind"]] }]
+      }
+    ],
+    "lesson": "Carbon pricing moves the cost curve. Low-cost producers benefit twice: their costs did not rise, and their competitors’ did."
   }
 ]

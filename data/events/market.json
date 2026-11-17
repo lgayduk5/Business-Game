@@ -365,5 +365,262 @@
       }
     ],
     "lesson": "This is what dependence costs. The time to negotiate was before they controlled the channel."
+  },
+  {
+    "id": "saas_enterprise",
+    "cat": "market",
+    "title": "An enterprise pilot",
+    "text": "One of the largest companies in {region} wants to roll your product out to forty thousand seats — if you build six features only they need.",
+    "cond": { "ind": ["saas"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Build what they ask",
+        "hint": "A quarter of engineering on one customer. Big account, a product that bends to it.",
+        "out": [
+          {
+            "w": 0.65,
+            "text": "They sign a three-year deal and tell their peers.",
+            "fx": [["cost", 0.06, "rd"], ["demand", 14, 8, "region"], ["brand", 2]]
+          },
+          { "w": 0.35, "text": "Their procurement team stalls for a year, then picks a rival anyway.", "fx": [["cost", 0.06, "rd"]] }
+        ]
+      },
+      {
+        "label": "Offer the standard product",
+        "hint": "Say no to custom work; they may still buy.",
+        "out": [{ "w": 0.35, "text": "They buy it as it is.", "fx": [["demand", 8, 8, "region"]] }, { "w": 0.65, "text": "They go elsewhere.", "fx": [] }]
+      },
+      { "label": "Decline politely", "hint": "Protect the roadmap.", "out": [{ "text": "You stay focused.", "fx": [] }] }
+    ],
+    "lesson": "Big customers are worth a lot and cost more than they appear: custom work becomes permanent maintenance. Price it in before you say yes."
+  },
+  {
+    "id": "saas_usage_pricing",
+    "cat": "market",
+    "title": "Charge by usage?",
+    "text": "Your head of product wants to switch from per-seat to usage-based pricing. Small customers would pay less; heavy users much more.",
+    "cond": { "ind": ["saas"], "minTurn": 3 },
+    "bind": ["office"],
+    "terms": ["pricingPower"],
+    "opts": [
+      {
+        "label": "Switch",
+        "hint": "Wider adoption, lumpier revenue.",
+        "out": [
+          { "w": 0.6, "text": "Adoption jumps and the heavy users pay up.", "fx": [["demand", 10, 8, "all"], ["special", "priceDown", 3]] },
+          { "w": 0.4, "text": "Heavy users optimise their usage and your revenue dips.", "fx": [["special", "priceDown", 8]] }
+        ]
+      },
+      { "label": "Keep per-seat", "hint": "Predictable, if dull.", "out": [{ "text": "Nothing changes.", "fx": [] }] }
+    ],
+    "lesson": "Pricing model is strategy: it decides which customers you attract and how revenue scales with the value you deliver."
+  },
+  {
+    "id": "saas_ai_copilot",
+    "cat": "market",
+    "title": "Every customer wants an AI assistant",
+    "text": "Three of your top ten customers asked about AI features this month. Two rivals have announced theirs.",
+    "cond": { "ind": ["saas"], "minTurn": 6 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Build it properly",
+        "hint": "Two quarters of your best engineers, plus inference costs.",
+        "out": [
+          {
+            "w": 0.6,
+            "text": "It works and customers love it.",
+            "fx": [["cost", 0.08, "rd"], ["tech", 5], ["demand", 6, 6, "all"], ["inputs", 4, 8]]
+          },
+          { "w": 0.4, "text": "It demos well and disappoints in use.", "fx": [["cost", 0.08, "rd"], ["tech", 1], ["inputs", 4, 8]] }
+        ]
+      },
+      {
+        "label": "Partner with a model provider",
+        "hint": "Faster and cheaper; they keep the data advantage.",
+        "out": [{ "text": "A decent feature in a quarter.", "fx": [["cost", 0.03, "rd"], ["tech", 2], ["inputs", 6, 8]] }]
+      },
+      {
+        "label": "Wait for the hype to settle",
+        "hint": "Most AI features are demos.",
+        "out": [
+          { "w": 0.4, "text": "Customers lose interest.", "fx": [] },
+          { "w": 0.6, "text": "Customers do not lose interest.", "fx": [["share", -5, "all"]] }
+        ]
+      }
+    ],
+    "lesson": "Features that every competitor can buy from the same supplier do not differentiate for long. Ask what you can build that they cannot."
+  },
+  {
+    "id": "retail_delivery_apps",
+    "cat": "market",
+    "title": "The delivery apps want a cut",
+    "text": "The two big delivery apps say a third of your customers now order through them. They want 30% commission.",
+    "cond": { "ind": ["retail"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "List on both apps",
+        "hint": "More orders at a much thinner margin.",
+        "out": [{ "text": "Orders climb; margins fall.", "fx": [["demand", 12, 8, "all"], ["inputs", 8, 8]] }]
+      },
+      {
+        "label": "Build your own ordering",
+        "hint": "Expensive, but the customer relationship stays yours.",
+        "out": [{ "text": "Fewer orders at first, but you keep the margin.", "fx": [["cost", 0.05, "sm"], ["demand", 4, 8, "all"]] }]
+      },
+      {
+        "label": "Stay off the apps",
+        "hint": "Your customers will come to you.",
+        "out": [{ "text": "Some will. Some will not.", "fx": [["demand", -6, 6, "all"]] }]
+      }
+    ],
+    "lesson": "Aggregators own the demand and rent it back to you. The more customers they control, the more of your margin they can take."
+  },
+  {
+    "id": "retail_viral_item",
+    "cat": "market",
+    "title": "A dish goes viral",
+    "text": "A video of one of your dishes in {city} has twenty million views. The queue is around the block.",
+    "cond": { "ind": ["retail"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Extend hours and hire temps",
+        "hint": "Serve the queue while it lasts.",
+        "out": [
+          {
+            "text": "Two extraordinary quarters.",
+            "fx": [["cost", 0.02, "cogs"], ["capacity", 20, 2, "office"], ["demand", 25, 2, "office"], ["brand", 3]]
+          }
+        ]
+      },
+      {
+        "label": "Raise the price of the dish",
+        "hint": "Let the queue pay for itself.",
+        "out": [{ "text": "People pay it.", "fx": [["special", "priceUp", 4], ["demand", 12, 2, "office"], ["brand", 2]] }]
+      }
+    ],
+    "lesson": "A demand spike is only worth what you can serve. Temporary capacity is expensive, but turning customers away is free advertising for your rivals."
+  },
+  {
+    "id": "mfg_order_squeeze",
+    "cat": "market",
+    "title": "The automaker wants more",
+    "text": "Your biggest customer is demanding another 8% off and faster delivery, or it moves the contract.",
+    "w": 0,
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Concede",
+        "hint": "Keep the volume.",
+        "out": [{ "text": "Margins on the contract go to almost nothing.", "fx": [["special", "priceDown", 3]] }]
+      },
+      { "label": "Refuse", "hint": "Lose the contract.", "out": [{ "text": "A third of your volume disappears.", "fx": [["share", -20, "office"]] }] }
+    ],
+    "lesson": "Customer concentration hands pricing power to the customer."
+  },
+  {
+    "id": "cons_invoice_dispute",
+    "cat": "market",
+    "title": "The client will not pay",
+    "text": "A client says your last project did not deliver what was promised and will not pay the final invoice.",
+    "cond": { "ind": ["consulting"], "minTurn": 3 },
+    "bind": ["office"],
+    "terms": ["workingCapital"],
+    "opts": [
+      { "label": "Negotiate a discount", "hint": "Get most of it.", "out": [{ "text": "You settle at 70%.", "fx": [["writeoff", 0.05]] }] },
+      {
+        "label": "Redo the work for free",
+        "hint": "Make it right.",
+        "out": [{ "text": "Costly, and the client stays.", "fx": [["prod", -6, 1, "office"], ["rep", 1]] }]
+      },
+      {
+        "label": "Sue",
+        "hint": "The contract is clear.",
+        "out": [
+          { "w": 0.5, "text": "You win and lose the client.", "fx": [["cost", 0.01, "other"], ["share", -3, "office"]] },
+          { "w": 0.5, "text": "You lose and lose the client.", "fx": [["cost", 0.02, "other"], ["writeoff", 0.08], ["share", -3, "office"]] }
+        ]
+      }
+    ],
+    "lesson": "Scope creep and vague promises turn into bad debts. Clear contracts are a working-capital tool."
+  },
+  {
+    "id": "bio_generic",
+    "cat": "market",
+    "title": "A generic challenge",
+    "text": "A generics manufacturer has challenged one of your patents, aiming to launch a copy before expiry.",
+    "cond": { "ind": ["biotech"], "minTurn": 12 },
+    "opts": [
+      {
+        "label": "Defend the patent",
+        "hint": "Years of litigation.",
+        "out": [
+          { "w": 0.6, "text": "The patent holds.", "fx": [["cost", 0.06, "other"]], "boost": ["flag", "patents", 1.8] },
+          {
+            "w": 0.4,
+            "text": "The patent falls. Prices collapse.",
+            "fx": [["cost", 0.06, "other"], ["special", "priceDown", 25], ["market", -20, 8, "ind"]]
+          }
+        ]
+      },
+      {
+        "label": "Settle and license",
+        "hint": "Let them launch later, for a fee.",
+        "out": [{ "text": "A delayed generic and a royalty.", "fx": [["cash", 0.1], ["special", "priceDown", 8]] }]
+      }
+    ],
+    "lesson": "Patent protection is the value of a drug. When it ends, the price can fall by 80% within a year."
+  },
+  {
+    "id": "analyst_downgrade",
+    "cat": "market",
+    "title": "Downgraded",
+    "text": "The most-followed analyst on your stock has cut it to \"sell\", citing slowing growth.",
+    "cond": { "isPublic": true },
+    "cool": 12,
+    "opts": [
+      {
+        "label": "Hold an investor day",
+        "hint": "Lay out the next five years.",
+        "out": [
+          { "w": 0.6, "text": "The market buys the story.", "fx": [["cost", 0.01, "ga"], ["valuation", 6, 4]] },
+          { "w": 0.4, "text": "The story does not land.", "fx": [["cost", 0.01, "ga"], ["valuation", -6, 4]] }
+        ]
+      },
+      {
+        "label": "Let the results speak",
+        "hint": "One quarter at a time.",
+        "out": [{ "text": "The shares fall and wait for evidence.", "fx": [["valuation", -8, 2]] }]
+      }
+    ],
+    "lesson": "Share prices move on expectations. A public company manages them whether it means to or not."
+  },
+  {
+    "id": "dividend_demand",
+    "cat": "market",
+    "title": "Shareholders want a dividend",
+    "text": "Your largest shareholders say the cash pile is \"lazy\" and want a regular dividend.",
+    "cond": { "isPublic": true, "minCashQ": 6 },
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Start a dividend",
+        "hint": "A steady payout signals confidence; cutting it later will hurt.",
+        "out": [{ "text": "A dividend is declared.", "fx": [["special", "startDividend"], ["valuation", 4, 4]] }]
+      },
+      {
+        "label": "Explain your plans for the cash",
+        "hint": "Growth is a better use.",
+        "out": [
+          { "w": 0.6, "text": "They accept, if the growth comes.", "fx": [] },
+          { "w": 0.4, "text": "They are not convinced.", "fx": [["valuation", -5, 4]] }
+        ]
+      }
+    ],
+    "lesson": "Cash not invested at a good return belongs to the shareholders. A dividend is a commitment the market will hold you to."
   }
 ]

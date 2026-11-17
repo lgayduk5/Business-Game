@@ -18,3 +18,5 @@ export * from './events';
 export * from './rivals';
 export * from './advisor';
 export * from './victory';
+export * from './scenarios';
+export * from './save';

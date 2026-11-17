@@ -78,7 +78,7 @@ modals.over = (g) => {
     <div class="kv" style="margin:12px 0"><div>Lasted</div><div><b class="serif">${turnLabel(o.turn)}</b></div>
     <div>Final valuation</div><div><b class="serif">${money(c.valuation)}</b></div>
     <div>Your stake</div><div><b class="serif">${pct(c.cap.founder / c.cap.shares, 1)}</b></div></div>
-    <div class="row end"><button class="btn" data-a="close">Look around</button>${o.kind === 'won' && g!.status === 'won' ? '<button class="btn" data-a="keepPlaying">Keep playing</button>' : ''}<button class="btn go" data-a="quit">Back to title</button></div>`;
+    <div class="row end"><button class="btn" data-a="postmortem">Read the review</button><button class="btn" data-a="close">Look around</button>${o.kind === 'won' && g!.status === 'won' ? '<button class="btn" data-a="keepPlaying">Keep playing</button>' : ''}<button class="btn go" data-a="quit">Back to title</button></div>`;
 };
 on('keepPlaying', () => {
   keepPlaying(ui.g!);

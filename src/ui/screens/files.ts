@@ -1,0 +1,142 @@
+// Saving, loading, importing and exporting games; title-screen entries for scenarios and saves.
+import { SCENARIOS, INDUSTRIES, CITIES, FOUNDERS, IND_LIST, hashSeed, startScenario, turnLabel, type GameState } from '@engine';
+import { esc } from '../kit';
+import { act, on, render, toast, ui } from '../store';
+import { modals } from '../shell';
+import { afterTurn, menuExtras } from './modals';
+import { startHooks, titleExtras } from './title';
+import { autosave, deleteSave, exportSave, importSave, listSaves, loadFrom, saveTo } from '../../storage/saves';
+import { sfx } from '../../audio';
+
+const ago = (t: number) => {
+  const m = Math.round((Date.now() - t) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+};
+export async function refreshSaves() {
+  ui.saves = await listSaves();
+}
+
+// autosave every quarter, and when a game starts
+afterTurn.push(async (g) => {
+  await autosave(g);
+});
+startHooks.push(() => {
+  if (ui.g) void autosave(ui.g).then(refreshSaves);
+});
+
+titleExtras.push(() => {
+  const last = ui.saves[0];
+  return `${last ? `<button class="btn go" data-a="loadSlot" data-slot="${esc(last.slot)}">Continue ${esc(last.name)}, ${esc(last.label)}</button>` : ''}
+    ${ui.saves.length ? `<button class="btn" data-a="loadMenu">Load a game</button>` : ''}
+    <button class="btn" data-a="scenarios">Scenario challenges</button>`;
+});
+menuExtras.push((g) => (g ? `<button class="btn" data-a="saveMenu">Save to a slot</button><button class="btn" data-a="export">Export save file</button>` : '') + `<button class="btn" data-a="loadMenu">Load a game</button><label class="btn" style="cursor:pointer">Import save file<input type="file" accept=".json,application/json" data-c="import" hidden></label>`);
+
+modals.load = () => `<div class="spread"><h2>Load a game</h2><button class="btn sm" data-a="close">Close</button></div>
+  ${ui.saves.length ? `<div class="choices" style="grid-template-columns:1fr">${ui.saves.map((s) => `<div class="choice" style="display:flex;gap:10px;align-items:center;justify-content:space-between">
+    <button class="linkish" style="text-align:left;text-decoration:none;flex:1" data-a="loadSlot" data-slot="${esc(s.slot)}"><b>${esc(s.name)}</b><span class="muted">${INDUSTRIES[s.industry as keyof typeof INDUSTRIES]?.name ?? ''}, ${esc(s.label)}. ${s.slot.startsWith('auto:') ? 'Autosave' : `Slot ${esc(s.slot.replace('slot', ''))}`}, ${ago(s.when)}.</span></button>
+    <button class="btn sm danger" data-a="delSlot" data-slot="${esc(s.slot)}" aria-label="Delete ${esc(s.name)}">Delete</button></div>`).join('')}</div>` : '<p class="muted">No saved games yet. Games save themselves at the end of every quarter.</p>'}
+  <p class="small muted" style="margin-top:12px">Saves live in this browser on this device. Export a save file to move a game to another device.</p>
+  <label class="btn" style="cursor:pointer">Import save file<input type="file" accept=".json,application/json" data-c="import" hidden></label>`;
+
+modals.saveSlots = (g) => `<div class="spread"><h2>Save to a slot</h2><button class="btn sm" data-a="close">Close</button></div>
+  <p class="muted">The game also saves itself every quarter. Slots are for keeping a moment you might want to come back to.</p>
+  <div class="choices" style="grid-template-columns:1fr">${[1, 2, 3].map((n) => {
+    const s = ui.saves.find((x) => x.slot === 'slot' + n);
+    return `<button class="choice" data-a="saveSlot" data-slot="slot${n}"><b>Slot ${n}</b><span class="muted">${s ? `${esc(s.name)}, ${esc(s.label)} — will be replaced` : 'Empty'}</span></button>`;
+  }).join('')}</div>${g ? `<p class="small muted">Saving ${esc(g.company.name)} at ${turnLabel(g.turn)}.</p>` : ''}`;
+
+modals.scenarios = () => `<div class="spread"><h2>Scenario challenges</h2><button class="btn sm" data-a="close">Close</button></div>
+  <p class="muted">A prepared situation, one goal, and a deadline.</p>
+  <div class="choices" style="grid-template-columns:1fr">${SCENARIOS.map((s) => `<button class="choice" data-a="scenario" data-id="${s.id}"><span class="glyph">${INDUSTRIES[s.industry].icon}</span><b>${esc(s.name)}</b>
+    <span class="muted">${esc(s.blurb)}</span><br><span class="small">${esc(s.goal.text)}</span></button>`).join('')}</div>`;
+modals.scenarioBrief = (_g, m) => {
+  const s = SCENARIOS.find((x) => x.id === m.id)!;
+  return `<h2>${esc(s.name)}</h2><p class="serif" style="font-size:1.08rem;line-height:1.5">${esc(s.brief)}</p>
+    <div class="note"><b>Goal</b><p>${esc(s.goal.text)}</p></div>
+    <div class="row end"><button class="btn" data-a="scenarios">Back</button><button class="btn go" data-a="startScenario" data-id="${s.id}">Take the challenge</button></div>`;
+};
+
+function enter(g: GameState) {
+  ui.g = g;
+  ui.screen = 'game';
+  ui.tab = 'hq';
+  ui.sub = {};
+  ui.sel = {};
+  ui.modal = null;
+  render(false);
+}
+on('loadMenu', async () => {
+  await refreshSaves();
+  ui.modal = { kind: 'load' };
+  render();
+});
+on('loadSlot', async (d) => {
+  const g = await loadFrom(d.slot!);
+  if (!g) return toast('That save could not be read.', true);
+  sfx.good();
+  enter(g);
+  toast(`Loaded ${g.company.name}, ${turnLabel(g.turn)}.`);
+});
+on('delSlot', async (d) => {
+  await deleteSave(d.slot!);
+  await refreshSaves();
+  render();
+});
+on('saveMenu', async () => {
+  await refreshSaves();
+  ui.modal = { kind: 'saveSlots' };
+  render();
+});
+on('saveSlot', async (d) => {
+  await saveTo(d.slot!, ui.g!);
+  await refreshSaves();
+  ui.modal = null;
+  act({ ok: true, msg: `Saved to slot ${d.slot!.replace('slot', '')}.` }, sfx.tick);
+});
+on('export', () => {
+  exportSave(ui.g!);
+  toast('Save file downloaded.');
+});
+on('import', async (_d, el) => {
+  const file = (el as HTMLInputElement).files?.[0];
+  if (!file) return;
+  try {
+    const g = await importSave(file);
+    await saveTo('auto:' + g.id, g);
+    await refreshSaves();
+    enter(g);
+    toast(`Imported ${g.company.name}, ${turnLabel(g.turn)}.`);
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+});
+on('scenarios', () => {
+  ui.modal = { kind: 'scenarios' };
+  render();
+});
+on('scenario', (d) => {
+  ui.modal = { kind: 'scenarioBrief', data: { id: d.id } };
+  render();
+});
+on('startScenario', (d) => {
+  const s = SCENARIOS.find((x) => x.id === d.id)!;
+  const names: Record<string, string> = { cash_crunch: 'Lakeshore Fabrication', rate_shock: 'Nordwind Energie', blitzscale: 'Rocketship Labs', turnaround: 'Bowery Dining Group', phase3: 'Charles River Therapeutics', network: 'Grachten Freight' };
+  enter(startScenario(s.id, names[s.id] ?? s.name));
+  for (const h of startHooks) h();
+  sfx.good();
+});
+
+// Seeded random start: industry, city and founder drawn from the seed.
+on('surprise', () => {
+  const w = ui.wizard!;
+  const seed = Math.random().toString(36).slice(2, 8);
+  let h = hashSeed(seed);
+  const next = () => ((h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0), h / 4294967296);
+  const ind = IND_LIST[Math.floor(next() * IND_LIST.length)];
+  const cities = CITIES.filter((c) => c.ind[ind.id] >= 0.9);
+  Object.assign(w, { industry: ind.id, city: cities[Math.floor(next() * cities.length)].id, founder: FOUNDERS[Math.floor(next() * FOUNDERS.length)].id, seed, step: 3 });
+  sfx.tick();
+  render(false);
+});
+void refreshSaves().then(() => ui.screen === 'title' && render(false));

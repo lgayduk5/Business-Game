@@ -369,5 +369,143 @@
       }
     ],
     "lesson": "Patchy enforcement is still enforcement."
+  },
+  {
+    "id": "retail_health_inspection",
+    "cat": "regulatory",
+    "title": "Surprise inspection",
+    "text": "Health inspectors have arrived unannounced at your {city} location.",
+    "cond": { "ind": ["retail"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Open the doors",
+        "hint": "Let them see everything.",
+        "out": [
+          { "w": 0.7, "text": "A clean bill of health.", "fx": [["rep", 1]], "boost": ["flag", "qms", 2] },
+          { "w": 0.3, "text": "A list of violations and a fine.", "fx": [["cost", 0.02, "other"], ["rep", -2]] }
+        ]
+      },
+      {
+        "label": "Ask them to come back",
+        "hint": "Buy a week to tidy up.",
+        "out": [
+          { "w": 0.4, "text": "They return and find nothing.", "fx": [] },
+          {
+            "w": 0.6,
+            "text": "They return suspicious, and look harder.",
+            "fx": [["cost", 0.04, "other"], ["rep", -4], ["capacity", -15, 1, "office"]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Standards you keep only for inspectors are not standards. A quality system turns inspections into non-events."
+  },
+  {
+    "id": "mfg_regulator",
+    "cat": "regulatory",
+    "title": "The safety regulator visits",
+    "text": "Following the accident, the safety regulator has inspected every plant you run.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Comply in full",
+        "hint": "Fix everything on the list.",
+        "out": [{ "text": "A fine and an expensive list of fixes.", "fx": [["cost", 0.08, "other"], ["capacity", -10, 2, "all"]] }]
+      }
+    ],
+    "lesson": "Regulators follow accidents. Systemic problems get systemic inspections."
+  },
+  {
+    "id": "energy_subsidy",
+    "cat": "regulatory",
+    "title": "Subsidy repeal",
+    "text": "The government in {region} has announced it will end feed-in support for new renewable projects next year.",
+    "cond": { "ind": ["energy"], "minTurn": 6 },
+    "bind": ["region"],
+    "opts": [
+      {
+        "label": "Rush projects in before the deadline",
+        "hint": "Build now, at any cost.",
+        "out": [{ "text": "Your pipeline is grandfathered.", "fx": [["cost", 0.05, "other"], ["market", 4, 8, "region"]] }]
+      },
+      {
+        "label": "Lobby against it",
+        "hint": "Join the industry campaign.",
+        "out": [
+          { "w": 0.4, "text": "The repeal is watered down.", "fx": [["cost", 0.02, "ga"]], "boost": ["flag", "lobby", 2.5] },
+          { "w": 0.6, "text": "The repeal goes through.", "fx": [["cost", 0.02, "ga"], ["market", -10, 12, "region"]] }
+        ]
+      },
+      {
+        "label": "Adapt",
+        "hint": "Projects that only work with subsidies should not be built.",
+        "out": [{ "text": "Demand for new contracts cools.", "fx": [["market", -10, 12, "region"]] }]
+      }
+    ],
+    "lesson": "Policy-dependent returns carry political risk. The best projects still make sense when the subsidy goes away."
+  },
+  {
+    "id": "energy_queue",
+    "cat": "regulatory",
+    "title": "Stuck in the connection queue",
+    "text": "Your next project is ready to connect, but the grid operator says the queue is two years long.",
+    "cond": { "ind": ["energy"], "minTurn": 6 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Pay for a private connection",
+        "hint": "Build the line yourself.",
+        "out": [{ "text": "You skip the queue at a price.", "fx": [["capex", 0.3]] }]
+      },
+      { "label": "Wait", "hint": "The asset sits idle.", "out": [{ "text": "The project waits.", "fx": [["capacity", -10, 6, "all"]] }] }
+    ],
+    "lesson": "Infrastructure bottlenecks, not technology, decide how fast clean energy gets built."
+  },
+  {
+    "id": "cons_conflict",
+    "cat": "regulatory",
+    "title": "Conflict of interest",
+    "text": "You are advising two companies that have just announced they are bidding for the same target.",
+    "cond": { "ind": ["consulting"], "minTurn": 6 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Resign one client",
+        "hint": "Keep the bigger one, explain to the other.",
+        "out": [{ "text": "One client lost, integrity intact.", "fx": [["share", -5, "office"], ["rep", 2]] }]
+      },
+      {
+        "label": "Build an information wall",
+        "hint": "Separate teams, separate floors.",
+        "out": [
+          { "w": 0.7, "text": "It holds.", "fx": [["cost", 0.01, "ga"]] },
+          { "w": 0.3, "text": "It does not, and it becomes a story.", "fx": [["rep", -10], ["share", -10, "all"]] }
+        ]
+      }
+    ],
+    "lesson": "In advisory work reputation is the asset. Conflicts that look manageable inside the firm look different on a front page."
+  },
+  {
+    "id": "bio_fast_track",
+    "cat": "regulatory",
+    "title": "Fast-track designation",
+    "text": "The regulator has granted your lead programme a fast-track designation for an unmet medical need.",
+    "cond": { "ind": ["biotech"], "minTurn": 6 },
+    "once": true,
+    "opts": [
+      {
+        "label": "Expand the trial",
+        "hint": "Spend more to finish sooner.",
+        "out": [{ "text": "Enrolment accelerates.", "fx": [["cost", 0.06, "rd"], ["valuation", 15, 6], ["tech", 2]] }]
+      },
+      {
+        "label": "Bank the news",
+        "hint": "Announce it and raise money on it.",
+        "out": [{ "text": "Investors take notice.", "fx": [["valuation", 12, 4], ["sentiment", 2]] }]
+      }
+    ],
+    "lesson": "Regulatory designations change the odds and the timeline. Markets price both immediately."
   }
 ]

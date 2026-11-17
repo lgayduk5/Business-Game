@@ -206,7 +206,7 @@ export interface ScenarioDef {
   difficulty: Difficulty;
   turns: number;
   seed: string;
-  goal: { kind: 'valuation' | 'survive' | 'revenue' | 'share' | 'cash' | 'ipo' | 'offices'; value: number; text: string; maxDilution?: number; noEquity?: boolean };
+  goal: { kind: 'valuation' | 'survive' | 'revenue' | 'share' | 'cash' | 'ipo' | 'offices' | 'profit'; value: number; text: string; maxDilution?: number; noEquity?: boolean };
   setup: string; // key into scenario setup functions
 }
 
@@ -455,7 +455,7 @@ export interface Office {
   gm?: string;
   integration: number; // quarters of acquisition integration left
   last?: OfficeResult;
-  hist: { rev: number; contrib: number; share: number }[];
+  hist: { rev: number; contrib: number; share: number; mkt?: number; px?: number }[]; // mkt: market value at reference price; px: price position
 }
 
 export interface Person {

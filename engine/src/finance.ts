@@ -96,8 +96,12 @@ export function refreshLoanOffers(g: GameState) {
   const id = () => 'lo' + nextUid(g);
   const tight = g.macro.phase === 'recession' ? 0.6 : 1;
 
-  if (!c.loans.some((l) => l.kind === 'revolver')) {
-    const limit = (0.7 * b.ar + 0.4 * b.inventory + 0.3 * ebitda) * tight;
+  // A revolver is a borrowing-base facility: its limit follows receivables and inventory every quarter.
+  const base = (0.7 * b.ar + 0.4 * b.inventory + 0.3 * ebitda) * tight;
+  const rv = c.loans.find((l) => l.kind === 'revolver');
+  if (rv) rv.limit = Math.max(rv.principal, Math.min(base, rv.limit * 1.5 + 100_000));
+  if (!rv) {
+    const limit = base;
     if (limit > 100_000) offers.push({ id: id(), kind: 'revolver', name: `${bank()} revolving credit line`, max: limit, spread: spread + 0.3, fixedRate: 0, floating: true, term: 12, amortizing: false, minCoverage: 1.5,
       note: 'Draw and repay as needed. Sized on your receivables and inventory. A 0.5% fee applies to the unused part.' });
   }
@@ -195,7 +199,7 @@ export function pipelineValue(g: GameState): number {
     if (!def?.stages || inv.state !== 'ramp') continue;
     let p = 1;
     for (let i = inv.stage; i < def.stages.length; i++) p *= def.stages[i].p;
-    v += p * inv.upfront * 14 * g.macro.sentiment;
+    v += p * inv.upfront * 40 * g.macro.sentiment;
   }
   return v;
 }
@@ -281,7 +285,9 @@ export function refreshEquityOffer(g: GameState) {
   const costs = last ? Math.max(1, last.pnl.revenue - last.ebitda) : 1;
   const runway = c.books.cash / costs;
   // Investors need a story — growth, a pipeline, or a young company with promise — and a reason you need the money.
-  const appetite = DIFF[g.difficulty].appetite + (s - 0.8) * 1.5 + clamp(growth - 0.1, -0.4, 1) * 1.1 + (g.turn < 8 ? 0.5 : 0) + (pipelineValue(g) > 0 ? 0.35 : 0) - (runway > 12 ? 0.6 : runway > 8 ? 0.25 : 0);
+  // a drug pipeline is a growth story in its own right
+  const story = pipelineValue(g) > 0.3 * Math.max(1, c.valuation) ? Math.max(growth, 0.35) : growth;
+  const appetite = DIFF[g.difficulty].appetite + (s - 0.8) * 1.5 + clamp(story - 0.1, -0.4, 1) * 1.1 + (g.turn < 8 ? 0.5 : 0) + (pipelineValue(g) > 0 ? 0.35 : 0) - (runway > 12 ? 0.6 : runway > 8 ? 0.25 : 0);
   if (appetite < 0.2) return;
   const enthusiasm = clamp(randRange(g, 0.85, 1.12) * (0.9 + 0.15 * Math.min(1, appetite)), 0.7, 1.25);
   // They price the business and take the cash at face value.

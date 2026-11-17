@@ -3,7 +3,7 @@ import { emptyBooks, emptyPnL, emptyTags } from './books';
 import { CITIES, CITY, FOUNDER, INDUSTRIES, NAMES, REGION_LIST, isCapital } from './content';
 import { refreshEquityOffer, refreshLoanOffers, revalue } from './finance';
 import { newMacro } from './macro';
-import { market, marketUnits, playerAttract, rivalAttract } from './market';
+import { market, marketUnits } from './market';
 import { prepOffice } from './people';
 import { refreshCandidates } from './actions';
 import { generateRivals } from './rivals';
@@ -36,7 +36,7 @@ export function makePerson(g: GameState, role: ExecRole, office?: Office, qualit
   const skill = clamp(Math.round(normal(g, 58 + quality, 11)), 30, 95);
   const ind = office ? INDUSTRIES[office.ind] : INDUSTRIES[g.company.primary];
   const cityWage = office ? CITY[office.city].wage : CITY[g.company.home].wage;
-  const base = role === 'GM' ? ind.wages.admin * 1.8 : ind.wages.admin * 2.0;
+  const base = role === 'GM' ? ind.wages.admin * 1.2 : ind.wages.admin * 2.0;
   return {
     id: 'p' + nextUid(g), name: `${pick(g, NAMES.first)} ${pick(g, NAMES.last)}`, role, skill, loyalty: randInt(g, 40, 85),
     salary: Math.round(base * 1000 * cityWage * (0.6 + skill / 100)), trait: pick(g, NAMES.traits), office: office?.id, hired: g.turn,
@@ -106,7 +106,7 @@ export function newGame(opts: NewGameOpts): GameState {
     const project = opts.industry === 'energy';
     c.loans.push({
       id: 'ln' + nextUid(g), kind: project ? 'project' : 'term', name: project ? 'Founding project loan' : 'Founding equipment loan', principal: b.debt, limit: 0,
-      spread: 3, fixedRate: 6.5, floating: !project, start: 0, maturity: project ? 60 : 24, amort: b.debt / (project ? 60 : 24), breaches: 0, waivedUntil: 4,
+      spread: 3, fixedRate: 6, floating: !project, start: 0, maturity: project ? 72 : 24, amort: b.debt / (project ? 72 : 24), breaches: 0, waivedUntil: 4,
     });
   }
   b.paidIn = b.cash + b.ppe - b.debt;
@@ -115,16 +115,16 @@ export function newGame(opts: NewGameOpts): GameState {
   for (const cd of CITIES) g.discovered[cd.id] = cd.id === opts.city ? 2 : cd.region === city.region || sandbox ? 1 : 0;
   g.rivals = generateRivals(g, opts.rivals ?? d.rivals);
 
-  // Start with a small customer base rather than from zero.
-  const prep = prepOffice(g, o);
+  // The company has been trading for a while: an established customer base that fills most of its
+  // capacity. Without enough sales effort to hold it, share drifts down towards what the team can sustain.
+  o.opened = -6;
   const D = marketUnits(g, o.city, o.ind);
-  const pa = playerAttract(g, o, D, 1);
-  let total = market(g, o.city, o.ind).f + pa.A;
-  for (const r of g.rivals) for (const ro of r.offices) if (ro.city === o.city && ro.ind === o.ind) total += rivalAttract(g, r, ro);
-  o.share = Math.min((pa.A / total) * 0.5, (prep.capacity / D) * 0.9);
+  const capUnits = prepOffice(g, o).capacity;
+  o.share = Math.min(0.12, (0.85 * capUnits) / D);
   o.lastDemand = o.share * D;
-
   revalue(g);
+  g.counters.startValuation = c.valuation;
+  g.counters.lastSentiment = g.macro.sentiment;
   refreshCandidates(g);
   refreshLoanOffers(g);
   refreshEquityOffer(g);

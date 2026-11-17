@@ -4,6 +4,7 @@ import { INDUSTRIES } from './content';
 import { founderStake } from './finance';
 import { globalShare, rivalGlobalShare } from './market';
 import { news } from './mods';
+import { checkScenario } from './scenarios';
 import type { Difficulty, GameState, VictoryId } from './types';
 import { clamp, money, pct } from './util';
 
@@ -76,6 +77,14 @@ export function checkEnd(g: GameState) {
     news(g, `${c.name} has filed for bankruptcy.`, 'bad');
     return;
   }
+  if (g.mode === 'scenario') {
+    // checked after the quarter is counted, so 'survive N quarters' means N completed quarters
+    const saved = g.turn;
+    g.turn = saved + 1;
+    const ended = checkScenario(g);
+    g.turn = saved;
+    if (ended) return;
+  }
   for (const v of victoryStatus(g)) {
     g.streaks[v.id] = v.met ? (g.streaks[v.id] ?? 0) + 1 : 0;
     if (v.enabled && v.met && g.streaks[v.id] >= v.need && !g.continued && g.mode !== 'scenario') {
@@ -87,7 +96,7 @@ export function checkEnd(g: GameState) {
   }
   if (g.turn + 1 >= g.maxTurns && !g.continued && g.mode !== 'scenario') {
     const best = Math.max(0, ...g.rivals.filter((r) => r.alive).map((r) => r.valuation));
-    const won = c.valuation >= best;
+    const won = c.valuation >= best && c.valuation >= capTarget(g) * 0.1; // surviving alone is not winning
     g.status = won ? 'won' : 'lost';
     g.outcome = won
       ? { kind: 'won', how: 'time', title: 'Top of the table', turn: g.turn, text: `After ${g.maxTurns / 4} years, ${c.name} is worth more than any rival. You own ${pct(founderStake(c), 0)} of it.` }

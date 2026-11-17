@@ -5,6 +5,8 @@ import { on, render, ui } from '../store';
 import { screens } from '../shell';
 import { capacityTip, headTip, moraleTip, runway, shareTip, stakeTip, valuationTip } from '../tips';
 
+export const hqExtras: ((g: GameState) => string)[] = [];
+
 export const BIND_TEXT: Record<string, [string, string]> = {
   demand: ['Limited by demand', 'You can deliver more than customers are asking for. Add sales people or marketing, sharpen the price, or improve quality.'],
   staff: ['Limited by staff', 'Customers want more than your team can deliver. Hire, or raise prices until demand fits.'],
@@ -77,7 +79,7 @@ function hq(g: GameState): string {
     <p style="margin-top:0"><b class="serif">${esc(best.name)}.</b> ${esc(best.desc)}</p><div class="meter"><i style="width:${best.progress * 100}%"></i></div><p class="small muted">${esc(best.detail)}</p></div>` : '';
   const news = `<div class="sheet"><h2>News</h2>${g.news.length ? `<ul class="feed">${g.news.slice(-8).reverse().map((n) => `<li class="${n.tone}"><span>${turnLabel(n.turn)}</span><span>${esc(n.text)}</span></li>`).join('')}</ul>` : '<p class="muted">Nothing to report yet.</p>'}</div>`;
   const economy = `<div class="sheet"><h2>Economy</h2>${macroLine(g)}</div>`;
-  return `${notes.join('')}<div class="grid2">${position}${chart}${offices}${goal}${economy}${news}</div>`;
+  return `${notes.join('')}<div class="grid2">${hqExtras.map((f) => f(g)).join('')}${position}${chart}${offices}${goal}${economy}${news}</div>`;
 }
 screens.hq = hq;
 

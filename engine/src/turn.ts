@@ -7,7 +7,7 @@ import { covenantStatus, refreshEquityOffer, refreshLoanOffers, revalue, service
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
-import { globalShare, localPrice, marketUnits, resolveMarkets } from './market';
+import { globalShare, localPrice, marketUnits, priceIndex, resolveMarkets } from './market';
 import { invSum, news, tempMod } from './mods';
 import { companyHeadcount, execBonus, headcount, payroll, personLeaves, prepOffice, stepKeyPeople, stepPeople, type Prep } from './people';
 import { refreshCandidates } from './actions';
@@ -181,7 +181,7 @@ export function endTurn(g: GameState): void {
     const bi = (byInd[o.ind] ??= { rev: 0, contrib: 0 });
     bi.rev += res.revenue;
     bi.contrib += res.contribution;
-    o.hist.push({ rev: res.revenue, contrib: res.contribution, share: o.share });
+    o.hist.push({ rev: res.revenue, contrib: res.contribution, share: o.share, mkt: res.market * localPrice(g, o.city, o.ind), px: priceIndex(g, o) });
     if (o.hist.length > 24) o.hist.shift();
     // regional partner takes a cut of sales
     const partner = c.policy[city.region].partner;
@@ -192,7 +192,8 @@ export function endTurn(g: GameState): void {
   }
 
   // ── corporate costs
-  const overhead = 25_000 * g.macro.cpi + 0.012 * revenue + (c.cap.isPublic ? 350_000 * g.macro.cpi + 0.003 * revenue : 0);
+  // Head-office cost: a small fixed part that grows with the organisation, plus a share of revenue; listing adds compliance.
+  const overhead = 25_000 * g.macro.cpi * clamp(companyHeadcount(c) / 50, 0.2, 1) + 0.012 * revenue + (c.cap.isPublic ? 350_000 * g.macro.cpi + 0.003 * revenue : 0);
   B.expense(c, 'ga', overhead, 'ap');
   apSpend += overhead;
   for (const p of c.people) B.expense(c, 'ga', p.salary * g.macro.wageIdx, 'cash');

@@ -134,3 +134,47 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     ≈ 80–90%, Hard ≈ 60–80%, Brutal ≈ 20–30%. The bots act on exact numbers every
     quarter, so they are stronger than a typical first-time player. Probe bots look for
     degenerate strategies; the report flags any that beat honest play.
+
+## M5 — all industries, 150+ events, advisor, saves
+
+41. **The founding company starts with an established customer base** that fills about
+    85% of its capacity. Without enough sales effort to hold it, share drifts down
+    towards what the team can sustain, at the industry's stickiness. Doing nothing is a
+    slow decline, not instant death. An earlier version bought the starting base with a
+    large up-front sales team, which thin-margin industries could not carry.
+42. **Head-office cost scales with the organisation** (20–100% of a fixed amount, plus
+    a share of revenue). A 15-person restaurant does not carry a corporate HQ.
+43. **Firm-level price elasticity is at least 1.25 everywhere.** Below 1, raising
+    prices increases revenue as well as margin, so the best price is always the
+    maximum. Consulting is 1.8 and biotech 1.25, so the profit-maximising price lands
+    near the market rate.
+44. **Plant can be financed against itself.** Project finance (70%, 18 years, energy)
+    and equipment finance (50%, 7 years, other plant) are offered at the moment of
+    building, because ordinary loans sized on EBITDA cannot fund an asset that costs
+    five years of revenue. This is how renewables are actually built.
+45. **The revolver is a borrowing-base facility.** Its limit follows receivables and
+    inventory each quarter, so working-capital-heavy businesses can grow without a
+    cash crunch from a stale credit line.
+46. **Drug pipelines are valued like real ones**: probability of reaching approval ×
+    programme cost × 40, and investors treat a pipeline as a growth story. Licensing a
+    programme out pays about a third of its risk-adjusted value.
+47. **Industry calibration target:** a starting company roughly breaks even with no
+    decisions, and growth is the way to profit. Each industry was tuned with the
+    harness until a competent bot can win in all seven, while Passive cannot.
+48. **The advisor explains, it does not decide.** Notes come from the CFO, COO, CMO,
+    CHRO, CTO and Chair, each tied to a cause (revenue bridge, cash versus profit,
+    covenant headroom, the office's binding constraint, rivals, the cycle) and linked
+    to glossary terms. It never tells you the right answer to an event.
+49. **Attribution splits value created into four buckets each quarter.** Market:
+    market growth and investor mood. Strategy: new offices, deals, price positioning
+    and the ramp-up of markets entered in the last two years. Luck: event and
+    investment outcomes minus their expected value. Execution: the remainder (share,
+    costs, margins). It is an approximation and the review says so.
+50. **Saves are versioned JSON** (`format`, `v`, `state`) with a migration step that
+    fills fields missing from older saves. One autosave per game, kept for the six most
+    recent games, plus three manual slots. Export and import move games between devices.
+51. **Scenarios are prepared states plus one goal and a deadline.** Each was tuned
+    with the bots so that doing nothing fails and good play can succeed. Scenario
+    rules (for example "no equity") are hard constraints that end the game if broken.
+52. **"Surprise me"** draws industry, city and founder from a random seed. The seed
+    also drives the world, so a surprise start can be shared and replayed.

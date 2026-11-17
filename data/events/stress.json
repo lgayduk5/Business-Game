@@ -311,5 +311,374 @@
       }
     ],
     "lesson": "Every funding round sells some control. Below half the votes, a founder serves at the board’s pleasure — and boards run out of pleasure after enough losing quarters."
+  },
+  {
+    "id": "retail_food_scare",
+    "cat": "stress",
+    "title": "Food-safety scare",
+    "text": "Several customers of your {city} location have reported food poisoning. A local reporter is calling.",
+    "cond": { "ind": ["retail"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Close, clean, and say so",
+        "hint": "Shut for a week, bring in inspectors, publish the results.",
+        "out": [{ "text": "Painful, and trusted.", "fx": [["capacity", -30, 1, "office"], ["cost", 0.02, "cogs"], ["rep", 1]] }]
+      },
+      {
+        "label": "Stay open, investigate quietly",
+        "hint": "It might not be you.",
+        "out": [
+          { "w": 0.5, "text": "It was a supplier problem elsewhere.", "fx": [] },
+          { "w": 0.5, "text": "It was you. It is on the evening news.", "fx": [["brand", -6], ["rep", -6], ["demand", -15, 3, "office"]] }
+        ]
+      }
+    ],
+    "lesson": "In consumer businesses trust is the product. Fast, visible action limits the damage; hoping it goes away multiplies it."
+  },
+  {
+    "id": "mfg_breakdown",
+    "cat": "stress",
+    "title": "The main press has failed",
+    "text": "The largest machine in your {city} plant has cracked a frame. The manufacturer quotes ten weeks for a replacement part.",
+    "cond": { "ind": ["mfg"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Pay for an emergency rebuild",
+        "hint": "A specialist crew, flown in, working nights.",
+        "out": [{ "text": "Back in two weeks, at a price.", "fx": [["cost", 0.05, "cogs"], ["capacity", -15, 1, "office"]] }]
+      },
+      {
+        "label": "Outsource production meanwhile",
+        "hint": "A rival plant makes your parts — and learns your customers.",
+        "out": [{ "text": "Customers are served; a competitor gets a look at your book.", "fx": [["cost", 0.04, "cogs"], ["rivalShare", 3]] }]
+      },
+      {
+        "label": "Wait for the part",
+        "hint": "Cheapest option, longest outage.",
+        "out": [{ "text": "A lost quarter in {city}.", "fx": [["capacity", -50, 1, "office"], ["share", -6, "office"]] }]
+      }
+    ],
+    "lesson": "Single points of failure in a plant are a capital-allocation question: spares and maintenance cost money every year; downtime costs it all at once."
+  },
+  {
+    "id": "mfg_recall",
+    "cat": "stress",
+    "title": "Defective batch",
+    "text": "A batch from your {city} plant has failed in the field. The customer wants every unit from the last two months replaced.",
+    "cond": { "ind": ["mfg"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Full recall",
+        "hint": "Replace everything, find the root cause.",
+        "out": [{ "text": "Expensive, thorough, and the customer stays.", "fx": [["cost", 0.1, "cogs"], ["rep", 1]] }]
+      },
+      {
+        "label": "Replace only failures",
+        "hint": "Most units are fine.",
+        "out": [
+          { "w": 0.5, "text": "Most were fine.", "fx": [["cost", 0.03, "cogs"]], "boost": ["flag", "qms", 2] },
+          {
+            "w": 0.5,
+            "text": "More fail. The customer leaves and tells others.",
+            "fx": [["cost", 0.06, "cogs"], ["share", -12, "office"], ["rep", -5]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Quality failures cost far more in the field than in the factory. A quality system is cheaper than one recall."
+  },
+  {
+    "id": "mfg_injury",
+    "cat": "stress",
+    "title": "Serious injury on the line",
+    "text": "An operator in {city} has been badly hurt by a machine whose guard had been removed to speed up production.",
+    "cond": { "ind": ["mfg"], "minTurn": 3, "minHead": 15 },
+    "bind": ["office"],
+    "cool": 24,
+    "opts": [
+      {
+        "label": "Stop the line, full investigation",
+        "hint": "Find out why the guard was off.",
+        "out": [
+          {
+            "text": "The investigation finds production targets were the reason. You change them.",
+            "fx": [["capacity", -20, 1, "office"], ["cost", 0.03, "other"], ["culture", 3], ["morale", 3, "office"]]
+          }
+        ]
+      },
+      {
+        "label": "Discipline the supervisor",
+        "hint": "Someone broke the rules.",
+        "out": [
+          {
+            "text": "The supervisor is fired. Everyone knows the targets have not changed.",
+            "fx": [["cost", 0.02, "other"], ["culture", -4], ["morale", -6, "office"]],
+            "chain": [["mfg_regulator", 3, 0.5]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Safety failures are usually incentive failures. Punishing individuals without changing the system guarantees the next accident."
+  },
+  {
+    "id": "log_contract_insource",
+    "cat": "stress",
+    "title": "They are doing it themselves",
+    "text": "The retailer has announced its own delivery network. Your contract ends in a quarter.",
+    "w": 0,
+    "bind": ["region"],
+    "opts": [
+      {
+        "label": "Redeploy the fleet",
+        "hint": "Hunt for new customers fast.",
+        "out": [{ "text": "A hard year rebuilding volume.", "fx": [["share", -25, "region"], ["cost", 0.04, "sm"]] }]
+      },
+      {
+        "label": "Sell them the depots",
+        "hint": "They need assets; you need cash.",
+        "out": [{ "text": "They buy the depots at a fair price.", "fx": [["share", -30, "region"], ["cash", 0.3]] }]
+      }
+    ],
+    "lesson": "A business built on one customer is that customer’s option, not yours."
+  },
+  {
+    "id": "log_crash",
+    "cat": "stress",
+    "title": "A serious crash",
+    "text": "One of your trucks was in a fatal collision near {city}. Early reports suggest the driver had been on the road for fourteen hours.",
+    "cond": { "ind": ["logistics"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 24,
+    "opts": [
+      {
+        "label": "Cooperate and compensate",
+        "hint": "Accept responsibility, review every schedule.",
+        "out": [{ "text": "A settlement and new rules on hours.", "fx": [["cost", 0.08, "other"], ["capacity", -6, 2, "all"], ["rep", -2]] }]
+      },
+      {
+        "label": "Fight liability",
+        "hint": "The driver broke your rules.",
+        "out": [
+          { "w": 0.4, "text": "The court agrees.", "fx": [["cost", 0.03, "other"], ["rep", -4]] },
+          { "w": 0.6, "text": "Your schedules are read out in court.", "fx": [["cost", 0.2, "other"], ["rep", -12], ["brand", -5]] }
+        ]
+      }
+    ],
+    "lesson": "Operational pressure shows up as safety risk. Schedules that only work if people break rules are the company’s choice, not the driver’s."
+  },
+  {
+    "id": "energy_storm",
+    "cat": "stress",
+    "title": "Storm damage",
+    "text": "A storm has torn through the region around {city}. Panels and blades are damaged.",
+    "cond": { "ind": ["energy"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Rebuild at once",
+        "hint": "Insurance pays most, eventually.",
+        "out": [{ "text": "Back at full output in a quarter.", "fx": [["cost", 0.06, "other"], ["capacity", -20, 1, "office"]] }]
+      },
+      {
+        "label": "Wait for the insurer",
+        "hint": "Let them pay before you spend.",
+        "out": [{ "text": "Two quarters of reduced output.", "fx": [["capacity", -35, 2, "office"]] }]
+      }
+    ],
+    "lesson": "Physical climate risk is now a balance-sheet item. Resilience costs money, and so does its absence."
+  },
+  {
+    "id": "cons_partner_exit",
+    "cat": "stress",
+    "title": "A partner is leaving — with clients",
+    "text": "{person}, one of your senior people in {city}, is starting a boutique. Three of your biggest clients have been invited to follow.",
+    "cond": { "ind": ["consulting"], "minTurn": 3 },
+    "bind": ["person", "office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Match the offer and more",
+        "hint": "Equity and a bigger title.",
+        "out": [
+          { "w": 0.6, "text": "{person} stays.", "fx": [["cost", 0.03, "ga"], ["dilute", 1], ["loyalty", 20]] },
+          { "w": 0.4, "text": "{person} goes anyway.", "fx": [["personLeave"], ["share", -10, "office"]] }
+        ]
+      },
+      {
+        "label": "Call the clients first",
+        "hint": "Reassure them before the partner does.",
+        "out": [
+          { "w": 0.6, "text": "Two of the three stay with you.", "fx": [["personLeave"], ["share", -4, "office"]], "boost": ["brand", 30, 1.6] },
+          { "w": 0.4, "text": "They follow the person, not the firm.", "fx": [["personLeave"], ["share", -12, "office"]] }
+        ]
+      },
+      {
+        "label": "Enforce the non-solicit",
+        "hint": "They signed it.",
+        "out": [
+          {
+            "text": "Lawyers write letters. Some clients follow anyway.",
+            "fx": [["cost", 0.02, "other"], ["personLeave"], ["share", -7, "office"], ["culture", -2]]
+          }
+        ]
+      }
+    ],
+    "lesson": "In professional services the relationship often belongs to the person, not the firm. Institutionalise client relationships before they walk out the door."
+  },
+  {
+    "id": "bio_adverse",
+    "cat": "stress",
+    "title": "Adverse event in the trial",
+    "text": "A patient in one of your trials has had a serious reaction. The safety board wants to pause enrolment.",
+    "cond": { "ind": ["biotech"], "minTurn": 3 },
+    "opts": [
+      {
+        "label": "Pause and investigate",
+        "hint": "Delay the programme; protect patients.",
+        "out": [{ "text": "Three months of delay; the trial resumes with new safeguards.", "fx": [["cost", 0.05, "rd"], ["rep", 2]] }]
+      },
+      {
+        "label": "Argue for continuing",
+        "hint": "One event may be unrelated.",
+        "out": [
+          { "w": 0.5, "text": "The board agrees; it was unrelated.", "fx": [] },
+          { "w": 0.5, "text": "A second event follows. Regulators halt the trial.", "fx": [["rep", -8], ["valuation", -25, 4]] }
+        ]
+      }
+    ],
+    "lesson": "In clinical development, safety signals are information. Ignoring them saves a quarter and can cost the programme."
+  },
+  {
+    "id": "bio_short",
+    "cat": "stress",
+    "title": "A short seller publishes",
+    "text": "A well-known short seller has published a report calling your lead programme \"statistically meaningless\".",
+    "cond": { "ind": ["biotech"], "minTurn": 3, "isPublic": true },
+    "opts": [
+      {
+        "label": "Rebut with data",
+        "hint": "Publish the full dataset.",
+        "out": [
+          { "w": 0.65, "text": "The rebuttal holds up; the shares recover.", "fx": [["valuation", 5, 2]], "boost": ["tech", 40, 1.5] },
+          { "w": 0.35, "text": "Analysts find the rebuttal unconvincing.", "fx": [["valuation", -20, 4]] }
+        ]
+      },
+      {
+        "label": "Ignore it",
+        "hint": "Short sellers profit from fear.",
+        "out": [{ "text": "The shares fall a fifth and drift.", "fx": [["valuation", -15, 4]] }]
+      }
+    ],
+    "lesson": "Markets price uncertainty. Transparent data narrows it; silence widens it."
+  },
+  {
+    "id": "global_supply",
+    "cat": "stress",
+    "title": "Global supply shock",
+    "text": "A closed shipping lane and a factory fire have created shortages of components everywhere at once.",
+    "cond": { "inventory": true, "minTurn": 8 },
+    "cool": 24,
+    "opts": [
+      {
+        "label": "Buy whatever is available",
+        "hint": "At any price.",
+        "out": [{ "text": "You keep shipping, at a cost.", "fx": [["inputs", 15, 3], ["commodity", 10]] }]
+      },
+      {
+        "label": "Ration to best customers",
+        "hint": "Serve the most profitable first.",
+        "out": [{ "text": "Some customers go short and some leave.", "fx": [["capacity", -15, 2, "all"], ["commodity", 10]] }]
+      }
+    ],
+    "lesson": "Lean supply chains are optimised for normal times. Resilience is what you pay for in the year that is not normal."
+  },
+  {
+    "id": "ransomware",
+    "cat": "stress",
+    "title": "Ransomware",
+    "text": "Every screen in the company is showing the same message: your files are encrypted, pay within 72 hours.",
+    "cond": { "minHead": 20, "minTurn": 6 },
+    "cool": 30,
+    "opts": [
+      {
+        "label": "Restore from backups",
+        "hint": "Days of disruption; no money to criminals.",
+        "out": [
+          { "w": 0.7, "text": "The backups work.", "fx": [["prod", -15, 1, "all"], ["cost", 0.03, "other"]], "boost": ["flag", "cyber", 2.5] },
+          { "w": 0.3, "text": "The backups were encrypted too.", "fx": [["prod", -35, 1, "all"], ["cost", 0.08, "other"], ["rep", -4]] }
+        ]
+      },
+      {
+        "label": "Pay the ransom",
+        "hint": "Fast, if they honour it.",
+        "out": [
+          { "w": 0.6, "text": "The keys work.", "fx": [["cost", 0.06, "other"]] },
+          { "w": 0.4, "text": "They ask for more.", "fx": [["cost", 0.1, "other"], ["prod", -20, 1, "all"]] }
+        ]
+      }
+    ],
+    "lesson": "Cyber resilience is backups, drills and segmentation, done before the attack. Paying ransoms funds the next one."
+  },
+  {
+    "id": "whistleblower",
+    "cat": "stress",
+    "title": "A whistleblower",
+    "text": "An employee has written to the board alleging that sales figures in one region were inflated to hit targets.",
+    "cond": { "minHead": 40, "minTurn": 8 },
+    "once": true,
+    "opts": [
+      {
+        "label": "Independent investigation",
+        "hint": "Outside lawyers, full access.",
+        "out": [
+          {
+            "w": 0.6,
+            "text": "The allegation is upheld; you fix it and restate quietly.",
+            "fx": [["cost", 0.03, "other"], ["valuation", -5, 2], ["culture", 3]]
+          },
+          { "w": 0.4, "text": "Nothing is found. The process is still respected.", "fx": [["cost", 0.03, "other"], ["culture", 2]] }
+        ]
+      },
+      {
+        "label": "Handle it internally",
+        "hint": "The regional head will look into it.",
+        "out": [
+          { "w": 0.5, "text": "It goes away.", "fx": [] },
+          { "w": 0.5, "text": "The whistleblower goes to the press.", "fx": [["rep", -10], ["valuation", -15, 4], ["culture", -5]] }
+        ]
+      }
+    ],
+    "lesson": "How a company treats its whistleblowers tells everyone inside it what is really expected."
+  },
+  {
+    "id": "activist",
+    "cat": "stress",
+    "title": "An activist investor",
+    "text": "A hedge fund has built a 6% stake and published a letter demanding cost cuts and a big buyback.",
+    "cond": { "isPublic": true, "minTurn": 12 },
+    "cool": 24,
+    "opts": [
+      {
+        "label": "Engage",
+        "hint": "Meet them and adopt the reasonable parts.",
+        "out": [{ "text": "A cost programme and a modest buyback.", "fx": [["special", "buyback10"], ["valuation", 5, 4]] }]
+      },
+      {
+        "label": "Fight",
+        "hint": "Your strategy is long-term.",
+        "out": [
+          { "w": 0.5, "text": "Shareholders back you.", "fx": [["cost", 0.03, "other"]] },
+          { "w": 0.5, "text": "They win two board seats.", "fx": [["cost", 0.03, "other"], ["culture", -3], ["valuation", -5, 4]] }
+        ]
+      }
+    ],
+    "lesson": "Public companies answer to their shareholders. Activists target companies whose share price lags what their assets could earn."
   }
 ]

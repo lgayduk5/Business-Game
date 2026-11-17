@@ -25,7 +25,7 @@ export function wizard(): string {
   const w = ui.wizard!;
   let body = '';
   if (w.step === 0) {
-    body = `<h1>What will you build?</h1><p class="muted">Each industry makes money — and goes broke — in its own way.</p><div class="choices">${IND_LIST.map((d) => `
+    body = `<div class="spread"><h1>What will you build?</h1><button class="btn sm" data-a="surprise">Surprise me</button></div><p class="muted">Each industry makes money — and goes broke — in its own way. Or let a random seed choose industry, city and founder for you.</p><div class="choices">${IND_LIST.map((d) => `
       <button class="choice" data-a="wz" data-k="industry" data-v="${d.id}" aria-pressed="${w.industry === d.id}"><span class="glyph">${d.icon}</span><b>${d.name}</b><span class="muted">${esc(d.blurb)}</span></button>`).join('')}</div>
       ${w.industry ? `<div class="sheet" style="margin-top:14px"><h3>How the money works</h3><p>${esc(INDUSTRIES[w.industry].economics)}</p><h3>How it usually ends</h3><p>${esc(INDUSTRIES[w.industry].failure)}</p>
         <p class="small muted">You start with ${money(INDUSTRIES[w.industry].start.cash * 1000)} in cash${INDUSTRIES[w.industry].start.debt ? `, ${money(INDUSTRIES[w.industry].start.debt * 1000)} of debt` : ''} and ${INDUSTRIES[w.industry].start.ops + INDUSTRIES[w.industry].start.sales + INDUSTRIES[w.industry].start.rnd + INDUSTRIES[w.industry].start.admin} people.</p></div>` : ''}`;

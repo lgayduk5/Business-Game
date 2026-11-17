@@ -1,5 +1,25 @@
 # Changelog
 
+## M5 — All industries, 150+ events, advisor, post-mortem, saves
+
+- All seven industries playable, each with distinct economics: SaaS, restaurants and
+  retail, manufacturing, logistics, clean energy, consulting, biotech. Calibrated with
+  the harness so each can be won and each can go broke in its own way.
+- Project and equipment finance for plant builds; borrowing-base credit lines.
+- Event deck expanded to 162 (119 in the random deck, the rest arriving as
+  consequences or rival moves), including six or more events specific to each industry.
+- Advisory board: quarterly notes from your executives explaining revenue moves, cash
+  versus profit, covenant headroom, capacity limits, morale, technology, rivals and
+  the cycle, with glossary links.
+- Glossary of 64 terms.
+- End-of-game review: attribution of value to market, strategy, execution and luck,
+  the moments that mattered, and lessons drawn from what happened in your game.
+- Six scenario challenges: Profitable and broke, The rate shock, Blitzscale, The
+  turnaround, Phase III, Build the network.
+- Seeded random start ("Surprise me").
+- Saves: IndexedDB autosave every quarter, three manual slots, export and import of
+  save files, continue from the title screen.
+
 ## M4 — Rivals, interactions, victory, difficulty
 
 - Four to six rival companies per game with distinct personalities: aggressive

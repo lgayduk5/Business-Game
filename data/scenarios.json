@@ -1,1 +1,91 @@
-[]
+[
+  {
+    "id": "cash_crunch",
+    "name": "Profitable and broke",
+    "blurb": "A growing manufacturer with full order books and an empty bank account.",
+    "brief": "Your Chicago plant is profitable and orders are pouring in. But customers pay in 55 days, your warehouse is full, the credit line is nearly drawn and payroll is due. Survive two years without selling a single share — the founders refuse to be diluted.",
+    "industry": "mfg",
+    "city": "chi",
+    "founder": "operator",
+    "difficulty": "normal",
+    "turns": 8,
+    "seed": "crunch",
+    "goal": { "kind": "survive", "value": 8, "text": "Stay solvent for 8 quarters without raising equity.", "noEquity": true },
+    "setup": "cashCrunch"
+  },
+  {
+    "id": "rate_shock",
+    "name": "The rate shock",
+    "blurb": "A wind developer financed on floating debt, just before the central bank turns.",
+    "brief": "You own a portfolio of wind farms around Berlin, built with cheap floating-rate project debt. Inflation is climbing and the central bank is about to raise rates hard. Keep the lenders happy and the company solvent for three years.",
+    "industry": "energy",
+    "city": "ber",
+    "founder": "finance",
+    "difficulty": "normal",
+    "turns": 12,
+    "seed": "rates",
+    "goal": { "kind": "survive", "value": 12, "text": "Stay solvent for 12 quarters as rates rise." },
+    "setup": "rateShock"
+  },
+  {
+    "id": "blitzscale",
+    "name": "Blitzscale",
+    "blurb": "Fifteen million dollars, five years, and a board that wants a rocket ship.",
+    "brief": "You have just closed a $15M Series A for a San Francisco software start-up. The board wants $32M of annual revenue within five years. They also know founders who sell too much of the company stop caring: keep at least a quarter of it.",
+    "industry": "saas",
+    "city": "sfo",
+    "founder": "serial",
+    "difficulty": "normal",
+    "turns": 20,
+    "seed": "blitz",
+    "goal": {
+      "kind": "revenue",
+      "value": 32000000,
+      "text": "Reach $32M of annual revenue within 20 quarters while still owning at least 25%.",
+      "maxDilution": 0.75
+    },
+    "setup": "blitzscale"
+  },
+  {
+    "id": "turnaround",
+    "name": "The turnaround",
+    "blurb": "Four restaurants, falling sales, and a team that has stopped believing.",
+    "brief": "You have taken over a New York restaurant group. It is losing money, morale is on the floor and the culture is worse. Make it profitable — two consecutive profitable quarters — within three years.",
+    "industry": "retail",
+    "city": "nyc",
+    "founder": "operator",
+    "difficulty": "normal",
+    "turns": 12,
+    "seed": "turn",
+    "goal": { "kind": "profit", "value": 2, "text": "Two consecutive quarters of positive net income within 12 quarters." },
+    "setup": "turnaround"
+  },
+  {
+    "id": "phase3",
+    "name": "Phase III",
+    "blurb": "One molecule in late-stage trials and six quarters of cash.",
+    "brief": "Your Boston biotech has a single drug candidate in Phase III and enough cash for about a year and a half. Get the company to a $50M valuation within four years — through approval, partnering or licensing.",
+    "industry": "biotech",
+    "city": "bos",
+    "founder": "scientist",
+    "difficulty": "normal",
+    "turns": 16,
+    "seed": "phase3",
+    "goal": { "kind": "valuation", "value": 50000000, "text": "Reach a $50M valuation within 16 quarters." },
+    "setup": "phase3"
+  },
+  {
+    "id": "network",
+    "name": "Build the network",
+    "blurb": "One Amsterdam depot. A continent of customers who want one supplier.",
+    "brief": "Your logistics company runs one depot in Amsterdam. Big shippers want a single partner across Europe and beyond. Run five offices and be profitable within five years.",
+    "industry": "logistics",
+    "city": "ams",
+    "founder": "operator",
+    "difficulty": "normal",
+    "turns": 20,
+    "seed": "network",
+    "goal": { "kind": "offices", "value": 5, "text": "Operate 5 offices and turn a profit (last 12 months) within 20 quarters." },
+    "setup": "network"
+  }
+]

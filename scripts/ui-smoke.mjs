@@ -61,6 +61,16 @@ try {
       for (let s = 1; s < subs; s++) { await page.locator('.subtabs button').nth(s).click(); await page.waitForTimeout(120); await shot(`09-${t}-${s}`); }
     }
     await page.evaluate(() => window.scrollTo(0, 600)); await shot('10-scrolled');
+    // saves: reload the page and continue from the autosave
+    await page.reload(); await page.waitForSelector('.title');
+    if (!(await page.locator('[data-a=loadSlot]').count())) errors.push(`${name}: no Continue button after reload (autosave missing)`);
+    else { await tap('[data-a=loadSlot]'); await page.waitForSelector('.shell'); await shot('11-continued'); }
+    // the review and the scenario picker
+    await tap('.tabs [data-v=intel]'); await tap('[data-a=sub][data-v=advisor]'); await shot('12-advisor');
+    await tap('[data-a=postmortem]'); await shot('13-review'); await page.keyboard.press('Escape');
+    await tap('[data-a=menu]'); await tap('[data-a=askQuit]'); await tap('.modal [data-a=quit]');
+    await tap('[data-a=scenarios]'); await shot('14-scenarios'); await tap('[data-a=scenario]'); await tap('[data-a=startScenario]');
+    await page.waitForSelector('.shell'); await shot('15-scenario-hq');
     await ctx.close();
   }
 } finally {

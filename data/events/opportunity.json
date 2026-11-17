@@ -217,5 +217,329 @@
       { "label": "Decline politely", "hint": "One market at a time.", "out": [{ "text": "You send your regrets.", "fx": [] }] }
     ],
     "lesson": "Information about new markets has a price. Occasionally someone else pays it for you."
+  },
+  {
+    "id": "saas_cert",
+    "cat": "opportunity",
+    "title": "Security certification",
+    "text": "Enterprise buyers keep asking for an independent security certification. The audit takes two quarters.",
+    "cond": { "ind": ["saas"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Get certified",
+        "hint": "Cost and disruption now; doors open later.",
+        "out": [
+          {
+            "text": "Certified. Procurement teams stop asking awkward questions.",
+            "fx": [["cost", 0.04, "ga"], ["prod", -3, 2, "all"], ["demand", 6, 12, "all"], ["flag", "certified", 40]]
+          }
+        ]
+      },
+      {
+        "label": "Not yet",
+        "hint": "You are still small.",
+        "out": [{ "text": "Some big deals stall at security review.", "fx": [["demand", -2, 6, "all"]] }]
+      }
+    ],
+    "lesson": "Compliance is a cost of selling to large customers. Done once, it becomes a moat against smaller rivals who have not."
+  },
+  {
+    "id": "saas_cloud_credits",
+    "cat": "opportunity",
+    "title": "Free cloud, with strings",
+    "text": "A cloud provider offers two years of hosting credits if you commit to running only on their platform.",
+    "cond": { "ind": ["saas"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Take the credits",
+        "hint": "Cheaper hosting now; harder to leave later.",
+        "out": [
+          {
+            "text": "Your hosting bill drops sharply, for now.",
+            "fx": [["inputs", -40, 8], ["flag", "cloudLock", 16]],
+            "chain": [["saas_cloud_renewal", 8]]
+          }
+        ]
+      },
+      {
+        "label": "Stay portable",
+        "hint": "Pay full price, keep your options.",
+        "out": [{ "text": "You keep your architecture portable.", "fx": [] }]
+      }
+    ],
+    "lesson": "Teaser pricing buys lock-in. The real price is what you will pay at renewal, when switching is expensive."
+  },
+  {
+    "id": "mfg_big_order",
+    "cat": "opportunity",
+    "title": "A huge order, at a thin price",
+    "text": "An automaker wants a two-year supply contract worth a third of your output — at 12% below your usual price.",
+    "cond": { "ind": ["mfg"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Take it",
+        "hint": "Full plant, thin margin, one dominant customer.",
+        "out": [
+          {
+            "text": "The plant runs flat out.",
+            "fx": [["demand", 20, 8, "office"], ["special", "priceDown", 4]],
+            "chain": [["mfg_order_squeeze", 6, 0.5]]
+          }
+        ]
+      },
+      {
+        "label": "Counter at 5% off",
+        "hint": "Meet them partway.",
+        "out": [
+          { "w": 0.5, "text": "They accept.", "fx": [["demand", 12, 8, "office"], ["special", "priceDown", 2]] },
+          { "w": 0.5, "text": "They go to a lower-cost supplier.", "fx": [] }
+        ]
+      },
+      { "label": "Decline", "hint": "You will not sell at that price.", "out": [{ "text": "They find another supplier.", "fx": [] }] }
+    ],
+    "lesson": "Marginal-cost pricing fills idle capacity profitably, but a customer that big will keep asking for the same discount."
+  },
+  {
+    "id": "mfg_reshoring",
+    "cat": "opportunity",
+    "title": "Customers want local supply",
+    "text": "After a year of disrupted shipping, several large buyers in {region} want suppliers with plants on their own continent.",
+    "cond": { "ind": ["mfg"], "minTurn": 6 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Pitch them hard",
+        "hint": "Sales effort aimed at the reshoring wave.",
+        "out": [{ "text": "Three new accounts sign.", "fx": [["cost", 0.03, "sm"], ["demand", 12, 8, "region"]] }]
+      },
+      {
+        "label": "Let them find you",
+        "hint": "You are already local.",
+        "out": [{ "text": "A couple of enquiries arrive on their own.", "fx": [["demand", 4, 8, "region"]] }]
+      }
+    ],
+    "lesson": "Supply-chain shocks redraw trade maps. Being on the right side of a structural shift is worth more than any efficiency gain."
+  },
+  {
+    "id": "log_big_contract",
+    "cat": "opportunity",
+    "title": "An e-commerce giant calls",
+    "text": "A large online retailer wants dedicated vehicles and depots for its deliveries in {region}. It would double your volume — and become half your business.",
+    "cond": { "ind": ["logistics"], "minTurn": 6 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Sign",
+        "hint": "Growth, scale, and one customer with a lot of power.",
+        "out": [{ "text": "You build out for them.", "fx": [["demand", 25, 12, "region"]], "chain": [["log_contract_insource", 8, 0.4]] }]
+      },
+      {
+        "label": "Take part of it",
+        "hint": "A quarter of their volume, no more.",
+        "out": [{ "text": "A smaller contract and a balanced book.", "fx": [["demand", 8, 12, "region"]] }]
+      },
+      {
+        "label": "Decline",
+        "hint": "They will build their own one day anyway.",
+        "out": [{ "text": "They sign with a rival.", "fx": [["rivalShare", 6]] }]
+      }
+    ],
+    "lesson": "Your customer may become your competitor. Customers who can bring a service in-house will, once you have shown them how."
+  },
+  {
+    "id": "log_autonomous",
+    "cat": "opportunity",
+    "title": "Driverless trucks",
+    "text": "A start-up wants to pilot autonomous trucks on your highway routes. They pay for the trucks; you supply the routes and the data.",
+    "cond": { "ind": ["logistics"], "minTurn": 10 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Run the pilot",
+        "hint": "Learn early; your drivers will be nervous.",
+        "out": [
+          { "w": 0.55, "text": "It works on motorways. You learn a lot.", "fx": [["tech", 4], ["morale", -4, "all"], ["prod", 4, 12, "all"]] },
+          { "w": 0.45, "text": "A near-miss ends the pilot and makes the news.", "fx": [["rep", -3], ["morale", -4, "all"]] }
+        ]
+      },
+      { "label": "Not yet", "hint": "Let someone else go first.", "out": [{ "text": "A rival takes the pilot.", "fx": [["rivalTech", 2]] }] }
+    ],
+    "lesson": "Automation pilots are options on the future. Their cost is uncertainty for the people they might replace — manage that or pay for it."
+  },
+  {
+    "id": "energy_ppa",
+    "cat": "opportunity",
+    "title": "A long-term power contract",
+    "text": "A data-centre operator wants to buy power from you for fifteen years at a fixed price — slightly below today’s market.",
+    "cond": { "ind": ["energy"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Sign the contract",
+        "hint": "Certain revenue, lower price, cheaper financing.",
+        "out": [{ "text": "Bankers love it.", "fx": [["demand", 10, 40, "all"], ["special", "priceDown", 3], ["flag", "ppa", 60]] }]
+      },
+      {
+        "label": "Stay merchant",
+        "hint": "Sell at market prices and take the swings.",
+        "out": [{ "text": "Your revenue stays tied to the market.", "fx": [] }]
+      }
+    ],
+    "lesson": "A long contract turns a risky asset into a bond. You give up upside for certainty — and certainty is what lowers your cost of capital."
+  },
+  {
+    "id": "cons_transformation",
+    "cat": "opportunity",
+    "title": "A transformation mandate",
+    "text": "A large company wants a two-year transformation programme. It would occupy a quarter of your consultants.",
+    "cond": { "ind": ["consulting"], "minTurn": 3 },
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Take it on",
+        "hint": "Big, steady, and absorbing.",
+        "out": [
+          { "w": 0.7, "text": "It goes well and the client renews.", "fx": [["demand", 15, 8, "office"], ["brand", 3]] },
+          { "w": 0.3, "text": "The programme struggles; the client blames you publicly.", "fx": [["demand", 8, 4, "office"], ["rep", -4]] }
+        ]
+      },
+      {
+        "label": "Bid for the strategy phase only",
+        "hint": "Smaller, higher margin, less risk.",
+        "out": [{ "text": "You win the strategy work.", "fx": [["demand", 6, 4, "office"], ["special", "priceUp", 2]] }]
+      }
+    ],
+    "lesson": "Large programmes give revenue stability and concentration risk at the same time. Scope is a risk decision."
+  },
+  {
+    "id": "bio_pharma_deal",
+    "cat": "opportunity",
+    "title": "Big pharma calls",
+    "text": "A global drug company wants to co-develop your lead programme: cash up front, milestones, and royalties — and control of the late-stage trials.",
+    "cond": { "ind": ["biotech"], "minTurn": 4 },
+    "opts": [
+      {
+        "label": "Take the deal",
+        "hint": "Money now, less upside, less risk.",
+        "out": [{ "text": "A large upfront payment lands.", "fx": [["cash", 1.2], ["valuation", 10, 4]] }]
+      },
+      {
+        "label": "Negotiate for more",
+        "hint": "They need pipeline as much as you need money.",
+        "out": [{ "w": 0.5, "text": "They improve the terms.", "fx": [["cash", 1.5]] }, { "w": 0.5, "text": "They walk.", "fx": [] }]
+      },
+      { "label": "Go it alone", "hint": "Keep the whole prize.", "out": [{ "text": "You keep control and the funding problem.", "fx": [] }] }
+    ],
+    "lesson": "Partnering trades upside for survival. For a cash-hungry developer, a good partner can be worth more than a bigger share of a smaller chance."
+  },
+  {
+    "id": "index_inclusion",
+    "cat": "opportunity",
+    "title": "Added to the index",
+    "text": "Your shares will be added to a major stock index. Index funds must buy them.",
+    "cond": { "isPublic": true, "minTurn": 12 },
+    "once": true,
+    "opts": [
+      {
+        "label": "Celebrate quietly",
+        "hint": "Enjoy the buying.",
+        "out": [{ "text": "The share price rises on the flows.", "fx": [["valuation", 8, 4], ["sentiment", 1]] }]
+      },
+      {
+        "label": "Sell new shares into the demand",
+        "hint": "Raise 5% at the higher price.",
+        "out": [{ "text": "Fresh capital at a good price.", "fx": [["equity", 5, 1.1]] }]
+      }
+    ],
+    "lesson": "Index inclusion changes who owns you, not what you are worth — but demand for shares is real money in the short run."
+  },
+  {
+    "id": "university",
+    "cat": "opportunity",
+    "title": "A university partnership",
+    "text": "A leading university proposes a joint research centre: their scientists, your problems, shared intellectual property.",
+    "cond": { "ind": ["saas", "biotech", "energy", "mfg"], "minTurn": 6 },
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Fund the centre",
+        "hint": "Long-term research and a recruiting pipeline.",
+        "out": [{ "text": "The centre opens.", "fx": [["cost", 0.04, "rd"], ["tech", 2], ["flag", "university", 40]] }]
+      },
+      {
+        "label": "Sponsor a few PhDs",
+        "hint": "Cheaper, smaller.",
+        "out": [{ "text": "Three students work on your problems.", "fx": [["cost", 0.01, "rd"], ["tech", 1]] }]
+      },
+      { "label": "Decline", "hint": "Universities move slowly.", "out": [{ "text": "You decline.", "fx": [] }] }
+    ],
+    "lesson": "Basic research rarely pays its own way inside one company. Partnerships share the cost and the knowledge."
+  },
+  {
+    "id": "remote_talent",
+    "cat": "opportunity",
+    "title": "Talent from anywhere",
+    "text": "A recruiter offers a team of experienced engineers in a lower-cost city, fully remote.",
+    "cond": { "minTurn": 4 },
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Hire them",
+        "hint": "Skilled, cheaper, far away.",
+        "out": [{ "text": "They join; coordination gets harder.", "fx": [["special", "addRnd", 4], ["culture", -1]] }]
+      },
+      { "label": "Pass", "hint": "You prefer people in the room.", "out": [{ "text": "You pass.", "fx": [] }] }
+    ],
+    "lesson": "Remote hiring widens the talent pool and narrows the shared context. Both effects are real."
+  },
+  {
+    "id": "swap_pitch",
+    "cat": "opportunity",
+    "title": "A clever financial product",
+    "text": "Your bank is pitching an interest-rate swap structure that \"pays you\" while rates stay low. The slides are glossy.",
+    "cond": { "hasDebt": true, "minTurn": 6 },
+    "once": true,
+    "opts": [
+      {
+        "label": "Sign up",
+        "hint": "Free money while rates stay where they are.",
+        "out": [
+          { "w": 0.5, "text": "Rates stay low; it pays a little.", "fx": [["cash", 0.02]] },
+          { "w": 0.5, "text": "Rates rise. The structure costs you a fortune.", "fx": [["cost", 0.2, "other"]] }
+        ]
+      },
+      {
+        "label": "Ask what happens if rates rise",
+        "hint": "Read the small print.",
+        "out": [{ "text": "The banker changes the subject. You pass.", "fx": [] }]
+      }
+    ],
+    "lesson": "If you cannot explain how a financial product makes money for the bank, it is making it from you."
+  },
+  {
+    "id": "charity_ask",
+    "cat": "opportunity",
+    "title": "A local cause asks for help",
+    "text": "A children’s hospital in {city} is raising money for a new wing and has asked for your support.",
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Make a significant gift",
+        "hint": "Visible, meaningful, expensive.",
+        "out": [{ "text": "Your name is on the wing.", "fx": [["cost", 0.02, "other"], ["rep", 3], ["esg", 2], ["morale", 2, "office"]] }]
+      },
+      {
+        "label": "Match employee donations",
+        "hint": "Let your people choose.",
+        "out": [{ "text": "Your people respond.", "fx": [["cost", 0.005, "other"], ["morale", 3, "office"], ["culture", 1]] }]
+      },
+      { "label": "Decline", "hint": "Not this year.", "out": [{ "text": "You decline.", "fx": [] }] }
+    ],
+    "lesson": "Corporate giving is part reputation, part culture. It works best when it is about the cause rather than the logo."
   }
 ]

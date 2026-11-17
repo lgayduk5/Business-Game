@@ -15,7 +15,7 @@ export const ui = {
   modal: null as Modal | null,
   wizard: null as Wizard | null,
   busy: '' as string,
-  saves: [] as { slot: string; name: string; turn: number; when: number; label: string }[],
+  saves: [] as { slot: string; name: string; turn: number; when: number; label: string; industry: string; gameId: string }[],
 };
 
 type Handler = (d: DOMStringMap, el: HTMLElement) => void | Promise<void>;

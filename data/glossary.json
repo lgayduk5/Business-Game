@@ -1,1 +1,386 @@
-[]
+[
+  {
+    "id": "revenue",
+    "term": "Revenue",
+    "def": "The value of what you sold in a period, recognised when the customer receives it — not when they pay.",
+    "why": "Revenue drives valuation, but it is not cash. Watch receivables grow with it."
+  },
+  {
+    "id": "netIncome",
+    "term": "Net income",
+    "def": "Revenue minus every cost: operating costs, depreciation, interest and tax. The bottom line.",
+    "why": "Profit is an accounting measure. A company can report net income and still run out of cash."
+  },
+  {
+    "id": "ebitda",
+    "term": "EBITDA",
+    "def": "Earnings before interest, tax, depreciation and amortisation: operating profit with the capital and financing decisions stripped out.",
+    "why": "Lenders size loans and covenants on EBITDA; investors use it to compare businesses with different capital structures."
+  },
+  {
+    "id": "grossMargin",
+    "term": "Gross margin",
+    "def": "Revenue minus the direct cost of delivering it, as a share of revenue.",
+    "why": "It is the money available to pay for everything else. Software keeps 80 cents of a dollar; a factory keeps 30."
+  },
+  {
+    "id": "contribution",
+    "term": "Contribution",
+    "def": "What an office earns after its own costs, before company-wide overhead, R&D programmes, interest and tax.",
+    "why": "If an office has negative contribution it destroys value every quarter it stays open, whatever it does for headline revenue."
+  },
+  {
+    "id": "opex",
+    "term": "Operating expenses",
+    "def": "The costs of running the business day to day: payroll, rent, marketing, materials.",
+    "why": "They hit the income statement immediately, unlike capex."
+  },
+  {
+    "id": "capex",
+    "term": "Capital expenditure",
+    "def": "Spending on long-lived assets — plant, equipment, buildings, capitalised projects. It goes on the balance sheet, not the income statement.",
+    "why": "Capex costs cash today and shows up as depreciation over years, which is why fast-growing capital-heavy companies look more profitable than their bank balance suggests."
+  },
+  {
+    "id": "depreciation",
+    "term": "Depreciation",
+    "def": "Spreading the cost of a long-lived asset over its useful life as a non-cash expense.",
+    "why": "It reduces profit without using cash, so it is added back in the cash-flow statement."
+  },
+  {
+    "id": "fixedCosts",
+    "term": "Fixed costs",
+    "def": "Costs that do not change with volume in the short run: rent, salaried staff, plant running costs.",
+    "why": "High fixed costs mean idle capacity is expensive and extra volume is very profitable."
+  },
+  {
+    "id": "operatingLeverage",
+    "term": "Operating leverage",
+    "def": "How much profit swings for a given change in revenue. High when most costs are fixed.",
+    "why": "Automation and big plants raise it: great in a boom, brutal in a recession."
+  },
+  {
+    "id": "workingCapital",
+    "term": "Working capital",
+    "def": "Cash tied up in running the business: receivables plus inventory, minus payables and deferred revenue.",
+    "why": "Growth consumes working capital. A profitable manufacturer growing 50% a year can run out of cash because customers pay in 55 days and materials are bought 60 days ahead."
+  },
+  {
+    "id": "receivables",
+    "term": "Accounts receivable",
+    "def": "Money customers owe you for things already delivered.",
+    "why": "Each sale on credit is an unsecured loan to the customer. In a recession they pay later, or not at all."
+  },
+  {
+    "id": "inventory",
+    "term": "Inventory",
+    "def": "Materials and goods bought or made but not yet sold, carried at cost.",
+    "why": "Inventory is cash sitting on a shelf. Too little loses sales; too much spoils or ties up money."
+  },
+  {
+    "id": "payables",
+    "term": "Accounts payable",
+    "def": "Money you owe suppliers for things already received.",
+    "why": "Paying suppliers later is free financing — until they stop extending you credit."
+  },
+  {
+    "id": "deferredRevenue",
+    "term": "Deferred revenue",
+    "def": "Cash customers paid in advance for something you still owe them. A liability.",
+    "why": "Subscription businesses collect before they deliver, which is why they can grow on their customers’ money."
+  },
+  {
+    "id": "balanceSheet",
+    "term": "Balance sheet",
+    "def": "What the company owns (assets) and owes (liabilities) at a moment, with the difference belonging to shareholders (equity).",
+    "why": "Assets always equal liabilities plus equity. If they do not, the books are wrong."
+  },
+  {
+    "id": "cashFlow",
+    "term": "Cash-flow statement",
+    "def": "Where cash came from and went in a period: operations, investing and financing.",
+    "why": "It reconciles profit to cash. The gap between the two is where most surprises live."
+  },
+  {
+    "id": "runway",
+    "term": "Runway",
+    "def": "How many quarters your cash lasts at the current rate of burn.",
+    "why": "Insolvency is a cash event. Raise money or cut costs while you still have runway to negotiate."
+  },
+  {
+    "id": "burnRate",
+    "term": "Burn rate",
+    "def": "How much cash the company consumes each quarter, after operations and capital spending.",
+    "why": "Burn is fine when it buys growth investors will pay for later; it is fatal when the money stops."
+  },
+  {
+    "id": "breakEven",
+    "term": "Break-even",
+    "def": "The volume at which revenue covers all costs.",
+    "why": "Below it, every quarter costs cash; above it, extra volume is mostly profit."
+  },
+  {
+    "id": "valuation",
+    "term": "Valuation",
+    "def": "What the company is worth to buyers of its shares: enterprise value plus cash minus debt.",
+    "why": "It decides how much of the company you give away when you raise money, and whether you can win."
+  },
+  {
+    "id": "multiple",
+    "term": "Valuation multiple",
+    "def": "Value expressed as a multiple of revenue or earnings. Growing, high-margin businesses earn higher multiples.",
+    "why": "The same revenue is worth six times more in software than in logistics, because of margins, growth and capital needs."
+  },
+  {
+    "id": "enterpriseValue",
+    "term": "Enterprise value",
+    "def": "The value of the operating business, regardless of how it is financed: equity value plus debt minus cash.",
+    "why": "It is what an acquirer really pays for the business."
+  },
+  {
+    "id": "dilution",
+    "term": "Dilution",
+    "def": "The reduction in existing owners’ percentage when new shares are issued.",
+    "why": "Every equity raise sells part of the company. Below 50% you no longer control it."
+  },
+  {
+    "id": "ipo",
+    "term": "Initial public offering",
+    "def": "Selling shares to the public for the first time and listing them on an exchange.",
+    "why": "It raises money and liquidity, and puts the company under quarterly scrutiny for ever after."
+  },
+  {
+    "id": "dividend",
+    "term": "Dividend",
+    "def": "Cash paid to shareholders out of profits.",
+    "why": "Markets treat a dividend as a promise: cutting one usually hurts the share price far more than starting one helped."
+  },
+  {
+    "id": "buyback",
+    "term": "Share buyback",
+    "def": "The company buying its own shares, reducing the number outstanding.",
+    "why": "It returns cash to shareholders and raises each remaining owner’s stake. Done at a high price, it destroys value."
+  },
+  {
+    "id": "sentiment",
+    "term": "Market sentiment",
+    "def": "How optimistic investors are, reflected in the multiples they will pay.",
+    "why": "The same company is worth far more in a bull market. Raise money when sentiment is high, if you can."
+  },
+  {
+    "id": "goodwill",
+    "term": "Goodwill",
+    "def": "The premium paid in an acquisition above the fair value of the assets bought.",
+    "why": "It is written down if the acquired business disappoints — a public admission of overpaying."
+  },
+  {
+    "id": "expectedValue",
+    "term": "Expected value",
+    "def": "The probability-weighted average of all possible outcomes.",
+    "why": "A bet can have a positive expected value and still be a bad idea if losing it would end the company."
+  },
+  {
+    "id": "leverage",
+    "term": "Leverage",
+    "def": "Debt relative to earnings, usually debt ÷ EBITDA.",
+    "why": "Debt magnifies returns in good times and losses in bad ones. Lenders set covenants on it."
+  },
+  {
+    "id": "covenant",
+    "term": "Covenant",
+    "def": "A condition in a loan agreement — maximum leverage, minimum interest cover, minimum cash. Breaking one lets the lender demand fees, a higher rate or repayment.",
+    "why": "Covenants hand control to lenders before the money runs out. Watch the headroom, not just the cash."
+  },
+  {
+    "id": "creditRating",
+    "term": "Credit rating",
+    "def": "A grade for how likely you are to repay debt. It sets your borrowing spread and how much anyone will lend.",
+    "why": "Size, profitability, leverage and track record drive it. Every breach is remembered."
+  },
+  {
+    "id": "interestRate",
+    "term": "Interest rate",
+    "def": "The price of borrowing. Floating-rate loans move with the central bank; fixed-rate loans do not.",
+    "why": "Rate rises hit floating-rate borrowers immediately, and capital-heavy businesses hardest of all."
+  },
+  {
+    "id": "projectFinance",
+    "term": "Project finance",
+    "def": "Debt secured on a single asset and repaid from its cash flows, typically over decades.",
+    "why": "It lets an energy developer build far more than its own equity could fund — and turns rate rises into an existential risk."
+  },
+  {
+    "id": "taxLoss",
+    "term": "Tax loss carryforward",
+    "def": "Past losses that can be set against future profits to reduce tax.",
+    "why": "They make early losses partly recoverable once the company becomes profitable."
+  },
+  {
+    "id": "businessCycle",
+    "term": "Business cycle",
+    "def": "The recurring swing of the economy between expansion and recession.",
+    "why": "Cyclical industries (consulting, manufacturing, logistics) swing hardest; subscriptions and contracted power barely move."
+  },
+  {
+    "id": "outputGap",
+    "term": "Output gap",
+    "def": "How far the economy is running above (overheating) or below (slack) its sustainable level.",
+    "why": "A positive gap pushes up wages and inflation; a negative one means weak demand and idle capacity."
+  },
+  {
+    "id": "inflation",
+    "term": "Inflation",
+    "def": "The rate at which prices rise.",
+    "why": "It is a test of pricing power: wages rise with it whether or not you can raise your prices."
+  },
+  {
+    "id": "fxRisk",
+    "term": "Currency risk",
+    "def": "The effect of exchange-rate moves on the value of foreign revenue and costs.",
+    "why": "Local costs are a natural hedge; what is exposed is your margin, translated back home."
+  },
+  {
+    "id": "hedging",
+    "term": "Hedging",
+    "def": "Using contracts to lock in future prices of currencies, fuel or commodities.",
+    "why": "It costs a little on average and buys a narrower range of outcomes — worth most to a company that cannot afford the bad tail."
+  },
+  {
+    "id": "marketShare",
+    "term": "Market share",
+    "def": "Your sales as a fraction of everything customers spend in a market.",
+    "why": "Share moves towards the share your offer deserves — reach, quality, brand and price — at a speed set by how sticky customers are."
+  },
+  {
+    "id": "elasticity",
+    "term": "Price elasticity",
+    "def": "How much demand changes when price changes. An elasticity of 2 means a 10% price rise costs about 20% of volume.",
+    "why": "Where elasticity is low, price rises are mostly profit; where it is high, they hand customers to rivals."
+  },
+  {
+    "id": "pricingPower",
+    "term": "Pricing power",
+    "def": "The ability to raise prices without losing much business.",
+    "why": "It is the best single test of a strong business, and it is what inflation exposes."
+  },
+  {
+    "id": "moat",
+    "term": "Moat",
+    "def": "A durable advantage that stops competitors taking your profits: scale, brand, network effects, switching costs, patents.",
+    "why": "Without one, high returns attract competitors until the returns are gone."
+  },
+  {
+    "id": "economiesOfScale",
+    "term": "Economies of scale",
+    "def": "Unit costs that fall as volume rises.",
+    "why": "Scale is a moat in commodity industries, where the low-cost producer survives the price war."
+  },
+  {
+    "id": "networkEffects",
+    "term": "Network effects",
+    "def": "A service becoming more valuable as more people or places use it.",
+    "why": "In logistics, each city added makes the whole network better; that is why regional density matters."
+  },
+  {
+    "id": "switchingCosts",
+    "term": "Switching costs",
+    "def": "What it costs a customer to change supplier — money, time, risk.",
+    "why": "High switching costs make customers sticky and give suppliers pricing power. Lock-in cuts both ways."
+  },
+  {
+    "id": "customerConcentration",
+    "term": "Customer concentration",
+    "def": "Dependence on a few large customers.",
+    "why": "Whoever needs the other less sets the price."
+  },
+  {
+    "id": "capacity",
+    "term": "Capacity",
+    "def": "How much an office can deliver in a quarter: the smaller of what its people can do and what its plant can do.",
+    "why": "Every office is limited by one thing at a time. Spending on anything else is wasted."
+  },
+  {
+    "id": "utilisation",
+    "term": "Utilisation",
+    "def": "Output as a share of capacity.",
+    "why": "Low utilisation means paying people to wait; above 95% quality slips and people burn out."
+  },
+  {
+    "id": "unitEconomics",
+    "term": "Unit economics",
+    "def": "Revenue and cost per unit sold, before fixed costs.",
+    "why": "If each unit loses money, growth makes things worse. If each unit earns, growth is the way to profit."
+  },
+  {
+    "id": "rd",
+    "term": "Research and development",
+    "def": "Spending to improve products and processes.",
+    "why": "Technology converges on what your R&D effort can sustain: stop investing and you drift back to the pack."
+  },
+  {
+    "id": "sunkCost",
+    "term": "Sunk cost",
+    "def": "Money already spent that cannot be recovered.",
+    "why": "It should never enter a decision about what to do next. Fund the next stage only if it is worth funding on its own."
+  },
+  {
+    "id": "realOption",
+    "term": "Real option",
+    "def": "The right, but not the obligation, to make a future investment — like funding the next stage of a project.",
+    "why": "Staging investments buys options: small bets first, bigger ones only after uncertainty is resolved."
+  },
+  {
+    "id": "dueDiligence",
+    "term": "Due diligence",
+    "def": "Investigating an investment or acquisition before committing to it.",
+    "why": "The seller always knows more than the buyer. Diligence is cheap compared with what it finds."
+  },
+  {
+    "id": "integration",
+    "term": "Integration",
+    "def": "Combining an acquired business with your own: systems, people, culture.",
+    "why": "Most of the value in acquisitions is made or lost after the deal closes."
+  },
+  {
+    "id": "morale",
+    "term": "Morale",
+    "def": "How people feel about working for you, 0–100.",
+    "why": "Low morale cuts productivity and raises attrition; layoffs leave scars that take a year to heal."
+  },
+  {
+    "id": "attrition",
+    "term": "Attrition",
+    "def": "The share of staff who leave each period.",
+    "why": "Every leaver costs recruiting fees and a quarter of lost productivity while the replacement ramps up."
+  },
+  {
+    "id": "culture",
+    "term": "Culture",
+    "def": "How the company works when nobody is checking, 0–100.",
+    "why": "It moves productivity, attrition and loyalty, and tilts the odds when a crisis arrives. Hiring too fast dilutes it."
+  },
+  {
+    "id": "keyPerson",
+    "term": "Key-person risk",
+    "def": "Dependence on a few individuals whose departure would hurt the business.",
+    "why": "You cannot stop people leaving; you can stop it being a crisis with successors and fair pay."
+  },
+  {
+    "id": "brand",
+    "term": "Brand",
+    "def": "How well known and well regarded you are, 0–100, built region by region.",
+    "why": "Brand multiplies the effect of everything else you do to win customers, and fades if you stop investing in it."
+  },
+  {
+    "id": "reputation",
+    "term": "Reputation",
+    "def": "How customers, regulators and future employees see you, 0–100.",
+    "why": "It is a reserve you draw on in a crisis. It also decides whether underwriters will take you public."
+  },
+  {
+    "id": "esg",
+    "term": "ESG",
+    "def": "Environmental, social and governance performance.",
+    "why": "Part cost, part option on future regulation, part brand. It is also one path to victory."
+  }
+]

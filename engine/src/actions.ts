@@ -51,18 +51,33 @@ export function setBackfill(g: GameState, officeId: string, on: boolean): Action
 export function expandCost(g: GameState, o: Office, units: number): number {
   return units * INDUSTRIES[o.ind].capPerUnit * 1000 * g.macro.cpi * (0.6 + 0.4 * CITY[o.city].rent);
 }
-export function expandCapacity(g: GameState, officeId: string, units: number): ActionResult {
+/** Share of a plant expansion lenders will finance against the new asset (project or equipment finance). */
+export const assetFinanceLTV = (ind: IndustryId) => (INDUSTRIES[ind].capPerUnit >= 10 ? 0.7 : 0.5);
+export function expandCapacity(g: GameState, officeId: string, units: number, financed = false): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
   if (!isCapital(o.ind)) return no('This business has no plant to expand — capacity is people.');
   units = Math.max(0, Math.round(units));
   const cost = expandCost(g, o, units);
   if (units <= 0) return no('Choose how much to build.');
-  if (cost > g.company.books.cash) return no(`That costs ${money(cost)} and you have ${money(g.company.books.cash)}.`);
-  B.capex(g.company, cost, o);
+  const c = g.company;
   const def = INDUSTRIES[o.ind];
+  const ltv = assetFinanceLTV(o.ind);
+  const lent = financed ? cost * ltv : 0;
+  if (financed && c.negCashTurns > 0) return no('Lenders will not finance new assets while you are overdrawn.');
+  if (cost - lent > c.books.cash) return no(`You need ${money(cost - lent)} of your own money for this${financed ? ' (lenders cover the rest)' : ''}; you have ${money(c.books.cash)}.`);
+  if (lent > 0) {
+    const project = def.capPerUnit >= 10;
+    const rate = Math.round((g.macro.rate + (project ? 2.2 : 3) + g.macro.spread * 0.5 + (c.ratingScore < 46 ? 1.5 : 0)) * 20) / 20;
+    const term = project ? 72 : 28;
+    c.loans.push({ id: 'ln' + (++g.uid), kind: project ? 'project' : 'equipment', name: `${CITY[o.city].name} ${project ? 'project' : 'equipment'} finance`, principal: lent, limit: 0, spread: 0, fixedRate: rate, floating: false,
+      start: g.turn, maturity: g.turn + term, amort: lent / term, minCoverage: 1.2, breaches: 0, waivedUntil: g.turn + def.buildQ + 2 });
+    B.borrow(c, lent);
+    B.expense(c, 'other', lent * 0.01, 'cash');
+  }
+  B.capex(c, cost, o);
   o.building.push({ units, ready: g.turn + def.buildQ, cost });
-  return ok(`Building ${units.toLocaleString()} units of capacity for ${money(cost)}. Ready in ${def.buildQ} quarters.`);
+  return ok(`Building ${units.toLocaleString()} units of capacity for ${money(cost)}${lent ? `, ${money(lent)} of it borrowed against the new asset` : ''}. Ready in ${def.buildQ} quarters.`);
 }
 export function sellCapacity(g: GameState, officeId: string, units: number): ActionResult {
   const o = officeById(g, officeId);

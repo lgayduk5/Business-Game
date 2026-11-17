@@ -329,6 +329,12 @@ export const SPECIALS: Record<string, Special> = {
     return `${money(n * co.cap.price)} of shares bought back cheaply`;
   },
 };
+SPECIALS.startDividend = (g) => {
+  const c = g.company;
+  const amt = Math.max(10_000, Math.round((c.valuation * 0.02) / 4 / 10_000) * 10_000);
+  c.cap.dividend = Math.max(c.cap.dividend, amt);
+  return `A dividend of ${money(amt)} a quarter`;
+};
 SPECIALS.payAmount = (g, ctx, arg) => {
   const amt = (ctx.amount ?? 0.1 * scaleS(g)) * (arg || 1);
   B.expense(g.company, 'other', amt, 'cash');

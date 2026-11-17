@@ -597,8 +597,10 @@ Object.assign(SPECIALS, {
   rivalExit: (g: GameState, ctx: EventCtx) => {
     const r = rivalById(g, ctx.rival);
     if (!r || r.offices.length < 2) return null;
-    r.offices = r.offices.filter((ro) => ro.city !== ctx.city);
-    return `${r.name} withdraws from ${CITY[ctx.city ?? ''].name}`;
+    const city = ctx.city && r.offices.some((ro) => ro.city === ctx.city) ? ctx.city : r.offices.find((ro) => g.company.offices.some((o) => o.city === ro.city))?.city;
+    if (!city) return null;
+    r.offices = r.offices.filter((ro) => ro.city !== city);
+    return `${r.name} withdraws from ${CITY[city].name}`;
   },
   cartel: (g: GameState, ctx: EventCtx) => {
     const r = rivalById(g, ctx.rival);

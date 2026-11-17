@@ -469,5 +469,264 @@
       }
     ],
     "lesson": "The cost of a defect multiplies at every stage it survives. Being seen to fix it generously is the cheapest option left once it is out."
+  },
+  {
+    "id": "saas_cloud_renewal",
+    "cat": "operational",
+    "title": "The credits have run out",
+    "text": "Your cloud provider has sent the renewal quote. It is not the price you were paying before the credits.",
+    "w": 0,
+    "opts": [
+      { "label": "Pay it", "hint": "Migration is worse.", "out": [{ "text": "Hosting costs rise.", "fx": [["inputs", 25, 12]] }] },
+      {
+        "label": "Migrate",
+        "hint": "A painful year, then freedom.",
+        "out": [{ "text": "The migration takes two quarters of engineering.", "fx": [["cost", 0.06, "rd"], ["prod", -5, 2, "all"]] }]
+      }
+    ],
+    "lesson": "This is what lock-in costs."
+  },
+  {
+    "id": "retail_lease",
+    "cat": "operational",
+    "title": "The landlord wants more",
+    "text": "The lease on your busiest {city} location is up. The landlord wants 60% more rent, knowing you have nowhere else to go on that street.",
+    "cond": { "ind": ["retail"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 20,
+    "opts": [
+      { "label": "Sign", "hint": "Keep the best site in town.", "out": [{ "text": "You sign. Occupancy costs jump.", "fx": [["wages", 3, 12]] }] },
+      {
+        "label": "Move to a cheaper street",
+        "hint": "Lose some walk-in trade, save the rent.",
+        "out": [
+          {
+            "text": "The move costs a quarter of disruption.",
+            "fx": [["capacity", -25, 1, "office"], ["demand", -6, 4, "office"], ["cost", 0.02, "other"]]
+          }
+        ]
+      },
+      {
+        "label": "Negotiate hard",
+        "hint": "Threaten to leave.",
+        "out": [
+          { "w": 0.5, "text": "You settle at 20% more.", "fx": [["wages", 1, 12]] },
+          { "w": 0.5, "text": "He lets a rival sign instead.", "fx": [["capacity", -40, 2, "office"], ["cost", 0.03, "other"]] }
+        ]
+      }
+    ],
+    "lesson": "Location-dependent businesses carry landlord risk. A long lease is protection and an obligation at the same time."
+  },
+  {
+    "id": "retail_holiday_rush",
+    "cat": "operational",
+    "title": "Holiday rush",
+    "text": "The busiest season of the year is coming. Your managers need to know how many temporary staff to hire.",
+    "cond": { "ind": ["retail"], "minTurn": 3 },
+    "bind": ["office"],
+    "cool": 8,
+    "opts": [
+      {
+        "label": "Staff up generously",
+        "hint": "Never turn a customer away.",
+        "out": [
+          {
+            "text": "Every customer served, a lot of idle temps in the quiet hours.",
+            "fx": [["cost", 0.03, "cogs"], ["capacity", 15, 1, "all"], ["demand", 6, 1, "all"]]
+          }
+        ]
+      },
+      {
+        "label": "Run lean",
+        "hint": "The regular team can handle it.",
+        "out": [{ "text": "Queues, tired staff, but a good margin.", "fx": [["morale", -4, "all"], ["demand", 3, 1, "all"]] }]
+      }
+    ],
+    "lesson": "Seasonal demand forces a trade-off between lost sales and idle cost. The right answer depends on your margin per extra sale."
+  },
+  {
+    "id": "log_driver_shortage",
+    "cat": "operational",
+    "title": "No drivers",
+    "text": "Half your vacancies for drivers have been open three months. Trucks are parked for want of people to drive them.",
+    "cond": { "ind": ["logistics"], "minTurn": 3 },
+    "opts": [
+      {
+        "label": "Raise driver pay 10%",
+        "hint": "The market rate has moved; move with it.",
+        "out": [{ "text": "Applications come back.", "fx": [["special", "payUp", 10], ["attrition", -20, 6]] }]
+      },
+      {
+        "label": "Fund a driving school",
+        "hint": "Train your own; they stay longer.",
+        "out": [{ "text": "A pipeline of new drivers in two quarters.", "fx": [["cost", 0.03, "ga"], ["capacity", -8, 2, "all"], ["skill", 2, "all"]] }]
+      },
+      {
+        "label": "Run with what you have",
+        "hint": "Turn down work.",
+        "out": [{ "text": "Customers wait, and some leave.", "fx": [["capacity", -12, 3, "all"]] }]
+      }
+    ],
+    "lesson": "When a labour market is tight, the price of labour is set by the market, not by you. Fighting it costs more than paying it."
+  },
+  {
+    "id": "energy_curtailment",
+    "cat": "operational",
+    "title": "The grid says no",
+    "text": "On sunny, windy days the grid operator in {region} is ordering your plants to switch off. Power you could sell is going to waste.",
+    "cond": { "ind": ["energy"], "minTurn": 8 },
+    "bind": ["region"],
+    "opts": [
+      {
+        "label": "Add storage",
+        "hint": "Batteries to shift output to the evening.",
+        "out": [{ "text": "Less curtailment, a big cheque.", "fx": [["capex", 0.4], ["capacity", 8, 12, "region"]] }]
+      },
+      {
+        "label": "Accept it",
+        "hint": "Some waste is normal.",
+        "out": [{ "text": "A tenth of your output is curtailed.", "fx": [["capacity", -10, 6, "region"]] }]
+      }
+    ],
+    "lesson": "Intermittent assets are only as valuable as the grid’s ability to take their output. Storage and location decide realised value."
+  },
+  {
+    "id": "cons_bench",
+    "cat": "operational",
+    "title": "Too many people on the bench",
+    "text": "A third of your consultants have no billable work this month. The pipeline looks thin.",
+    "cond": { "ind": ["consulting"], "minTurn": 3 },
+    "opts": [
+      {
+        "label": "Discount to fill the bench",
+        "hint": "Win work at 20% off.",
+        "out": [{ "text": "The bench empties at lower rates.", "fx": [["special", "priceDown", 5], ["demand", 10, 2, "all"]] }]
+      },
+      {
+        "label": "Invest the time",
+        "hint": "Train them and build reusable methods.",
+        "out": [{ "text": "Skills up, cash down.", "fx": [["skill", 3, "all"], ["tech", 1]] }]
+      },
+      {
+        "label": "Cut the bench",
+        "hint": "Lay off the least utilised.",
+        "out": [{ "text": "Costs fall; the firm notices.", "fx": [["staff", -12, "ops"], ["morale", -6, "all"], ["culture", -3]] }]
+      }
+    ],
+    "lesson": "Utilisation is the profit lever in professional services. Discounting to fill capacity trains clients to expect discounts."
+  },
+  {
+    "id": "cons_promotions",
+    "cat": "operational",
+    "title": "Promotion round",
+    "text": "Your best managers expect to make partner this year. There are more candidates than there is partner economics to go round.",
+    "cond": { "ind": ["consulting"], "minTurn": 3, "minHead": 20 },
+    "bind": ["office"],
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Promote them all",
+        "hint": "Keep everyone; dilute partner pay.",
+        "out": [{ "text": "Delight now; partner economics thin out.", "fx": [["wages", 4, 12], ["morale", 6, "all"], ["loyalty", 10]] }]
+      },
+      {
+        "label": "Up or out",
+        "hint": "Promote the best, help the rest leave.",
+        "out": [{ "text": "Hard conversations; a sharper firm.", "fx": [["staff", -6, "ops"], ["skill", 3, "all"], ["culture", 1]] }]
+      },
+      {
+        "label": "Delay a year",
+        "hint": "Not this year.",
+        "out": [{ "text": "Several of them leave.", "fx": [["attrition", 30, 4], ["morale", -5, "all"]] }]
+      }
+    ],
+    "lesson": "The partnership pyramid depends on growth: without enough new work, promotions dilute the people already at the top."
+  },
+  {
+    "id": "bio_cmo",
+    "cat": "operational",
+    "title": "Contamination at your contract manufacturer",
+    "text": "The contract manufacturer that makes your product has found contamination in a production lot.",
+    "cond": { "ind": ["biotech"], "minTurn": 3 },
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Qualify a second manufacturer",
+        "hint": "Expensive insurance.",
+        "out": [{ "text": "A second source in two quarters.", "fx": [["cost", 0.06, "cogs"], ["capacity", -20, 2, "all"], ["flag", "resilient", 20]] }]
+      },
+      {
+        "label": "Wait for them to fix it",
+        "hint": "They are the best in the field.",
+        "out": [{ "text": "Two quarters of shortages.", "fx": [["capacity", -40, 2, "all"], ["rep", -3]] }]
+      }
+    ],
+    "lesson": "Outsourced production moves the work, not the risk."
+  },
+  {
+    "id": "heatwave",
+    "cat": "operational",
+    "title": "Heatwave",
+    "text": "Record temperatures across {region}. Air conditioning is failing and people are working half-days.",
+    "bind": ["region"],
+    "cool": 12,
+    "opts": [
+      {
+        "label": "Give people time off",
+        "hint": "Shorter days until it breaks.",
+        "out": [{ "text": "Output dips; people are grateful.", "fx": [["prod", -8, 1, "region"], ["morale", 3, "region"]] }]
+      },
+      {
+        "label": "Keep full hours",
+        "hint": "Fans and cold water.",
+        "out": [{ "text": "Output holds; tempers do not.", "fx": [["morale", -6, "region"], ["attrition", 10, 2]] }]
+      }
+    ],
+    "lesson": "Climate is an operating condition now. Productivity, morale and safety all move with the thermometer."
+  },
+  {
+    "id": "office_politics",
+    "cat": "operational",
+    "title": "Two of your leaders are at war",
+    "text": "Your heads of sales and of operations no longer speak. Their teams have picked sides.",
+    "cond": { "minHead": 30 },
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Mediate",
+        "hint": "Lock them in a room until they agree.",
+        "out": [
+          { "w": 0.6, "text": "They agree on a truce.", "fx": [["morale", 2, "all"]], "boost": ["culture", 55, 1.6] },
+          { "w": 0.4, "text": "One of them leaves.", "fx": [["morale", -3, "all"], ["culture", -2]] }
+        ]
+      },
+      {
+        "label": "Pick a side",
+        "hint": "Back the one with the better argument.",
+        "out": [{ "text": "The other team feels the loss.", "fx": [["morale", -4, "all"], ["culture", -2]] }]
+      }
+    ],
+    "lesson": "Conflict between functions is often a conflict between incentives. Change the incentives and the people follow."
+  },
+  {
+    "id": "layoff_rumour",
+    "cat": "operational",
+    "title": "Layoff rumours",
+    "text": "A rumour that layoffs are coming is racing through the company. It is not true.",
+    "cond": { "minHead": 25, "maxMorale": 60 },
+    "cool": 16,
+    "opts": [
+      {
+        "label": "All-hands with the numbers",
+        "hint": "Show people the plan.",
+        "out": [{ "text": "The rumour dies.", "fx": [["morale", 3, "all"], ["culture", 1]] }]
+      },
+      {
+        "label": "Ignore it",
+        "hint": "Rumours fade.",
+        "out": [{ "text": "Some of your best people take recruiter calls.", "fx": [["attrition", 15, 2], ["morale", -3, "all"]] }]
+      }
+    ],
+    "lesson": "In the absence of information people assume the worst. Transparency is cheaper than attrition."
   }
 ]

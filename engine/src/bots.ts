@@ -4,8 +4,11 @@ import * as A from './actions';
 import * as B from './books';
 import { CITIES, CITY, EVENT, INDUSTRIES, INV, isCapital } from './content';
 import { evalCond, optionEV, resolveEvent } from './events';
+import { scenarioDef } from './scenarios';
+const noEquity = (g: GameState) => !!scenarioDef(g)?.goal.noEquity;
 import * as F from './finance';
-import { diligence, invAvailable, startInvestment } from './invest';
+import { diligence, invAvailable, invCost, startInvestment } from './invest';
+const invCostOf = (g: GameState, id: string, scope?: string) => invCost(g, INV[id], scope);
 import { localPrice, marketUnits } from './market';
 import { companyHeadcount, exec } from './people';
 import { bidForRival, bidOdds, bidPrice, improveRelations, poachTalent, proposeTruce, sueRival, truceOdds } from './rivals';
@@ -48,6 +51,13 @@ const quarterlyCosts = (g: GameState) => {
   const q = lastQ(g);
   return q ? Math.max(1, q.pnl.revenue - q.ebitda + q.pnl.interest) : 150_000;
 };
+/** Cash to keep in hand: half a quarter of costs, plus the runway the strategy insists on at the current burn. */
+const reserve = (g: GameState, p: BotParams) => {
+  const q = lastQ(g);
+  const burn = q ? Math.max(0, -(q.cf.cfo + q.cf.capex)) : quarterlyCosts(g) * 0.3;
+  return quarterlyCosts(g) * 1.0 + burn * Math.min(p.runway, 12);
+};
+const spare = (g: GameState, p: BotParams) => g.company.books.cash - reserve(g, p);
 const runwayQ = (g: GameState) => {
   const q = lastQ(g);
   const burn = q ? -(q.cf.cfo + q.cf.capex) : 0;
@@ -60,6 +70,7 @@ function answerEvents(g: GameState) {
     let best = -1, bestV = -Infinity;
     def.opts.forEach((o, i) => {
       if (!evalCond(g, o.req, pe.ctx)) return;
+      if (noEquity(g) && o.out.some((x) => (x.fx ?? []).some((f) => f[0] === 'equity'))) return; // the challenge forbids selling shares
       const v = optionEV(g, pe, i);
       if (v > bestV) { bestV = v; best = i; }
     });
@@ -67,31 +78,46 @@ function answerEvents(g: GameState) {
   }
 }
 
+/** How much R&D an industry rewards, relative to software. */
+const RD_WEIGHT: Record<IndustryId, number> = { saas: 1, biotech: 1, mfg: 0.4, energy: 0.2, logistics: 0.2, consulting: 0.25, retail: 0.1 };
+
 function staff(g: GameState, o: Office, p: BotParams) {
+  const c = g.company;
   const def = INDUSTRIES[o.ind];
   const hint = A.staffingHint(g, o);
   const l = o.last;
   const growing = !l || l.bind !== 'demand' ? 1.15 : 1.05;
-  A.setReqs(g, o.id, 'ops', Math.max(0, Math.ceil(hint.ops * growing) - o.staff.ops.n));
+  const plant = isCapital(o.ind) ? Math.ceil((o.cap * 1.05) / (def.opsOut * (l?.prodMult ?? 1))) : Infinity;
+  // where people are the capacity, staff to the work you have, not the work you hope for
+  const idle = !isCapital(o.ind) && l && l.util < 0.82;
+  A.setReqs(g, o.id, 'ops', idle ? 0 : Math.max(0, Math.min(Math.ceil(hint.ops * growing), plant) - o.staff.ops.n));
   if (l && l.util < 0.55 && o.staff.ops.n > 2 && g.turn - o.opened > 4) A.fire(g, o.id, 'ops', Math.floor(o.staff.ops.n * 0.15));
-  // sales: grow coverage towards the target while it pays and cash allows
+  // sales: add reps while the office has idle capacity, earns a contribution, and cash allows
   const D = marketUnits(g, o.city, o.ind);
   const need = Math.max(1, D / def.salesCover);
   const cover = o.staff.sales.n / need;
-  const ok = runwayQ(g) > p.runway && (lastQ(g)?.ebitda ?? 0) > -0.5 * (lastQ(g)?.pnl.revenue ?? 1) || g.company.books.cash > quarterlyCosts(g) * 8;
-  const want = cover < p.sales && ok && (!l || l.bind === 'demand') ? Math.max(1, Math.round(need * 0.04)) : 0;
+  const earning = !l || l.contribution > -0.05 * l.revenue;
+  const ok = spare(g, p) > 0 && earning && (runwayQ(g) > p.runway || (lastQ(g)?.ebitda ?? 0) > 0);
+  const want = cover < p.sales && ok && (!l || (l.bind === 'demand' && l.util < 0.95)) ? Math.max(1, Math.round(need * 0.03)) : 0;
   A.setReqs(g, o.id, 'sales', want);
-  // R&D people: sized to the R&D share of the office's revenue
+  // R&D people: sized to what the industry rewards, once the office pays its way (software and biotech invest from day one)
+  const w = RD_WEIGHT[o.ind];
   const rdWage = A.marketWage(g, o, 'rnd');
-  const rdWant = Math.floor(((l?.revenue ?? 0) * p.rd) / rdWage);
-  A.setReqs(g, o.id, 'rnd', Math.max(0, Math.min(rdWant - o.staff.rnd.n, 4)));
+  const rdWant = w >= 1 || (l && l.contribution > 0) ? Math.floor(((l?.revenue ?? 0) * p.rd * w) / rdWage) : 0;
+  A.setReqs(g, o.id, 'rnd', Math.max(0, Math.min(rdWant - o.staff.rnd.n, 3)));
+  if (o.staff.rnd.n > rdWant + 2 && w < 1) A.fire(g, o.id, 'rnd', o.staff.rnd.n - rdWant - 1);
   A.setReqs(g, o.id, 'admin', Math.max(0, hint.admin - o.staff.admin.n));
-  if (isCapital(o.ind) && l && l.bind === 'facility' && o.building.length === 0) {
-    const units = Math.round(o.cap * 0.3);
-    if (A.expandCost(g, o, units) < g.company.books.cash - quarterlyCosts(g) * p.runway) A.expandCapacity(g, o.id, units);
+  // plant: build when the plant is the limit and customers want more
+  if (isCapital(o.ind) && l && l.bind === 'facility' && l.target > o.share * 1.05 && o.building.length === 0) {
+    const units = Math.max(10, Math.round(o.cap * 0.3));
+    const cost = A.expandCost(g, o, units);
+    const own = cost * (1 - A.assetFinanceLTV(o.ind));
+    if (cost < spare(g, p)) A.expandCapacity(g, o.id, units);
+    else if ((p.debt || def.capPerUnit >= 10) && own < spare(g, p) && B.ttm(c, (q) => q.ebitda) > 0) A.expandCapacity(g, o.id, units, true);
   }
   if (p.special !== 'gouge') A.setPay(g, o.id, o.morale < 45 ? 1.1 : 1.0);
-  A.setTraining(g, o.id, p.invest && g.turn > 6 ? 1 : 0);
+  A.setTraining(g, o.id, p.invest && g.turn > 6 && (lastQ(g)?.ebitda ?? 0) > 0 ? 1 : 0);
+  void c;
 }
 
 function priceAndMarketing(g: GameState, p: BotParams) {
@@ -127,8 +153,9 @@ function expand(g: GameState, p: BotParams) {
   const ind = c.primary;
   const settled = c.offices.every((o) => g.turn - o.opened > (p.special === 'empire' ? 1 : 4));
   if (!settled) return;
-  const rich = c.books.cash > quarterlyCosts(g) * (p.runway + 2);
-  if (!rich) return;
+  if (spare(g, p) <= 0) return;
+  // a new office loses money for a year or so: only expand from a profitable base (venture-funded strategies excepted)
+  if (!(p.equity && p.runway <= 3) && B.ttm(c, (q) => q.ebitda) <= 0) return;
   const cands = CITIES.filter((x) => !c.offices.some((o) => o.city === x.id && o.ind === ind)).sort((a, b) => cityScore(g, b.id, ind) - cityScore(g, a.id, ind));
   const best = cands[0];
   if (!best) return;
@@ -137,7 +164,7 @@ function expand(g: GameState, p: BotParams) {
     return;
   }
   const cost = A.openOfficeCost(g, best.id, ind).total;
-  if (cost < c.books.cash - quarterlyCosts(g) * p.runway) A.openOffice(g, best.id, ind);
+  if (cost * 2 + quarterlyCosts(g) * 0.5 < spare(g, p)) A.openOffice(g, best.id, ind);
 }
 
 function finance(g: GameState, p: BotParams) {
@@ -145,6 +172,7 @@ function finance(g: GameState, p: BotParams) {
   const rw = runwayQ(g);
   const rv = g.loanOffers.find((o) => o.kind === 'revolver');
   if (rv && (p.debt || rw < 4)) F.takeLoan(g, rv.id, rv.max);
+  if (noEquity(g)) g.equityOffer = undefined;
   if (g.equityOffer && p.equity && (p.special === 'flipper' || rw < p.runway + 4 || (p.name === 'Blitz' && F.founderStake(c) > 0.3))) F.raiseEquity(g, p.special === 'flipper' ? g.equityOffer.maxPct : 0.15);
   if (g.equityOffer && !p.equity && rw < 2.5) F.raiseEquity(g, 0.12); // survival beats pride
   if (p.debt && c.offices.length < p.expand) {
@@ -173,7 +201,7 @@ function people(g: GameState) {
 const GOOD_INV = ['sales_academy', 'training_academy', 'cyber', 'culture_program', 'quality_system', 'succession', 'pricing_engine', 'loyalty_program', 'reliability', 'process_innovation', 'telematics', 'knowledge_platform', 'rd_lab', 'erp', 'platform', 'drug', 'storage', 'automation', 'delivery_app', 'hedging', 'sustainability', 'foundation'];
 function invest(g: GameState, p: BotParams) {
   const c = g.company;
-  if (!p.invest || c.books.cash < quarterlyCosts(g) * (p.runway + 3)) return;
+  if (!p.invest || spare(g, p) < quarterlyCosts(g) || B.ttm(c, (q) => q.ebitda) <= 0) return;
   for (const id of GOOD_INV) {
     const def = INV[id];
     if (!def) continue;
@@ -181,6 +209,7 @@ function invest(g: GameState, p: BotParams) {
     if (!invAvailable(g, def, scope).ok) continue;
     if (!c.diligence[id] && (def.risk || def.trap)) diligence(g, id, scope);
     if (def.trap && c.diligence[id] && def.truth) continue;
+    if (invCostOf(g, id, scope) * 2 > spare(g, p)) continue;
     const r = startInvestment(g, id, scope);
     if (r.ok) return; // one a quarter
   }
@@ -202,6 +231,17 @@ function diplomacy(g: GameState, p: BotParams) {
   }
 }
 
+/** Biotech lives on its pipeline: keep two candidates in trials and raise money against them. */
+function biotech(g: GameState, p: BotParams) {
+  const c = g.company;
+  if (!c.divisions.includes('biotech')) return;
+  const live = c.investments.filter((i) => i.def === 'drug' && i.state === 'ramp').length;
+  const def = INV.drug;
+  if (def && live < 2 && c.books.cash > (live ? 0.6 : 0.25) * def.base * 1000 * g.macro.cpi * 2.7) startInvestment(g, 'drug');
+  if (g.equityOffer && runwayQ(g) < 8) F.raiseEquity(g, 0.2);
+  void p;
+}
+
 /** One quarter of decisions for a bot. Call before endTurn. */
 export function botTurn(g: GameState, p: BotParams) {
   answerEvents(g);
@@ -209,11 +249,12 @@ export function botTurn(g: GameState, p: BotParams) {
   for (const o of g.company.offices) staff(g, o, p);
   priceAndMarketing(g, p);
   if (p.special !== 'gouge' && p.special !== 'flipper') expand(g, p);
+  biotech(g, p);
   finance(g, p);
   people(g);
   invest(g, p);
   diplomacy(g, p);
-  if (p.special === 'flipper' && g.company.books.cash > quarterlyCosts(g) * 12) {
+  if (p.special === 'flipper' && spare(g, p) > quarterlyCosts(g) * 6) {
     const t = INV.treasury;
     if (t && invAvailable(g, t).ok) startInvestment(g, 'treasury');
   }

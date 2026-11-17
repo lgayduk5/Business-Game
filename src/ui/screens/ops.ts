@@ -1,6 +1,6 @@
 // Offices: staffing, pay, capacity — and the regional levers that shape demand.
 import {
-  CITY, INDUSTRIES, REGIONS, ROLES, expandCapacity, expandCost, fire, gmOf, headcount, isCapital, marketWage, money, officeById, pct, priceIndex, sellCapacity,
+  CITY, INDUSTRIES, REGIONS, ROLES, assetFinanceLTV, hasInventory, expandCapacity, expandCost, fire, gmOf, headcount, isCapital, marketWage, money, officeById, pct, priceIndex, sellCapacity,
   setBackfill, setMarketing, setPay, setPrice, setReqs, setTraining, severanceCost, staffingHint, unitVarCost, closeOffice,
   type GameState, type Office, type RegionId, type Role, type IndustryId,
 } from '@engine';
@@ -48,6 +48,7 @@ function officeView(g: GameState): string {
       <div>Capacity used</div><div>${capacityTip(g, o)}</div>
       <div>Quality</div><div>${qualityTip(g, o)}</div>
       <div>Unit cost <span class="sub">vs price ${money(l.price)}</span></div><div>${$(l.unitCost, 'Unit cost', 'Materials, operations payroll and facility cost per unit sold. The gap to price is your gross margin per unit; idle capacity raises it because payroll is paid whether or not there is work.', [['Variable cost per unit', money(unitVarCost(g, o))], ['Gross margin per unit', money(l.price - l.unitCost)]], ['grossMargin', 'fixedCosts'])}</div>
+      ${hasInventory(o.ind) ? `<div>Inventory <span class="sub">${Math.round(o.inventory).toLocaleString()} units</span></div><div>${$(o.invValue, 'Inventory', `Goods made or bought but not yet sold, at cost. You hold about ${def.dio} days of stock; ${pct(def.spoil)} of anything unsold is lost each quarter.`, [['Produced last quarter', Math.round(l.produced).toLocaleString()], ['Sold last quarter', Math.round(l.sold).toLocaleString()]], ['inventory', 'workingCapital'])}</div>` : ''}
       <div>Contribution</div><div>${$(l.contribution, 'Office contribution', 'What this office earns after its own costs, before corporate overhead, R&D programs, interest and tax.', [['Revenue', money(l.revenue)], ['Materials / hosting / fuel', money(-l.materials)], ['Payroll', money(-(l.wages.ops + l.wages.sales + l.wages.rnd + l.wages.admin))], ['Rent', money(-l.rent)], ['Facility', money(-l.facility)], ['Marketing', money(-l.marketing)], ['Hiring and training', money(-(l.hiring + l.training))], ['Contribution', money(l.contribution), true]], ['contribution'])}</div>
     </div></div>` : '';
 
@@ -100,6 +101,7 @@ function plantView(g: GameState, o: Office): string {
     <div>Under construction</div><div>${o.building.length ? o.building.map((b) => `${Math.round(b.units).toLocaleString()} (ready in ${b.ready - g.turn} qtr)`).join(', ') : 'nothing'}</div></div>
     ${slider({ label: 'Build more', act: 'buildAmt', attrs: `data-office="${o.id}"`, min: step, max: step * 40, step, value: pending, fmt: 'x', help: `${money(expandCost(g, o, pending))} now, ready in ${def.buildQ} quarters. Then depreciated over ${def.deprQ / 4} years.` })}
     <div class="row"><button class="btn primary" data-a="build" data-office="${o.id}" data-units="${pending}">Build ${pending.toLocaleString()} units for ${money(expandCost(g, o, pending))}</button>
+    <button class="btn" data-a="buildFin" data-office="${o.id}" data-units="${pending}">${tip(`Finance ${Math.round(assetFinanceLTV(o.ind) * 100)}% against the asset`, explain(INDUSTRIES[o.ind].capPerUnit >= 10 ? 'Project finance' : 'Equipment finance', `Lenders fund ${Math.round(assetFinanceLTV(o.ind) * 100)}% of the build, secured on the new asset, at a fixed rate over ${INDUSTRIES[o.ind].capPerUnit >= 10 ? 18 : 7} years. You put in ${money(expandCost(g, o, pending) * (1 - assetFinanceLTV(o.ind)))}. The loan carries a coverage covenant: EBITDA must stay above 1.2× interest.`, undefined, ['leverage', 'covenant']), 'plain')}</button>
     ${o.cap > step ? `<button class="btn sm danger" data-a="sellCap" data-office="${o.id}" data-units="${step}">Sell ${step} units</button>` : ''}</div></div>`;
 }
 
@@ -130,6 +132,7 @@ on('buildAmt', (d) => {
   render();
 });
 on('build', (d) => void act(expandCapacity(ui.g!, d.office!, Number(d.units)), sfx.build));
+on('buildFin', (d) => void act(expandCapacity(ui.g!, d.office!, Number(d.units), true), sfx.build));
 on('sellCap', (d) => void act(sellCapacity(ui.g!, d.office!, Number(d.units))));
 on('askLayoff', (d) => {
   ui.modal = { kind: 'layoff', data: { office: d.office, role: d.role, n: 1 } };
