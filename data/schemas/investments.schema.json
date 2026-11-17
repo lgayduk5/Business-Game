@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Investments",
+  "description": "data/investments.json",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "description": "" },
+      "name": { "type": "string", "description": "" },
+      "cat": { "enum": ["office", "rd", "automation", "brand", "training", "systems", "esg", "financial", "people", "supply"], "description": "" },
+      "scope": { "enum": ["corp", "office", "region"], "description": "" },
+      "desc": { "type": "string", "description": "" },
+      "pitch": { "type": "string", "description": "What you are told" },
+      "truth": { "type": "string", "description": "What due diligence reveals" },
+      "trap": { "type": "boolean", "description": "Hidden risk" },
+      "inds": {
+        "type": "array",
+        "items": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"], "description": "" },
+        "description": "Restrict to industries"
+      },
+      "base": { "type": "number", "description": "Minimum upfront cost, $K" },
+      "perRev": { "type": "number", "description": "Upfront as a fraction of annual revenue in scope" },
+      "capex": { "type": "number", "description": "Share capitalised, 0..1" },
+      "cat2": { "enum": ["cogs", "sm", "rd", "ga", "other"], "description": "P&L line for expensed part" },
+      "ongoing": { "type": "number", "description": "Quarterly cost as a fraction of upfront" },
+      "ramp": { "type": "number", "description": "Quarters before payoff" },
+      "life": { "type": "number", "description": "Quarters of payoff; 0 = permanent" },
+      "curve": { "enum": ["steady", "backloaded", "decaying", "risky"], "description": "Payoff curve" },
+      "fx": {
+        "type": "object",
+        "description": "Effects at full payoff: prod, demand, quality, inputCost, wageCost, salesEff, capacity, attrition, hirePool, rdEff (%); brand, regionBrand, culture, skill, rep, esg, loyalty (points/quarter); morale (level); tech (one-off points); income (fraction of upfront per quarter); intel (0..1)"
+      },
+      "stages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "description": "" },
+            "q": { "type": "number", "description": "Quarters" },
+            "cost": { "type": "number", "description": "Multiple of base cost" },
+            "p": { "type": "number", "description": "Probability of passing" }
+          },
+          "required": ["name", "q", "cost", "p"],
+          "additionalProperties": false
+        },
+        "description": "Staged R&D gates"
+      },
+      "risk": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "number", "description": "True per-quarter failure chance" },
+          "shownP": { "type": "number", "description": "Chance shown before diligence" },
+          "event": { "type": "string", "description": "Event fired on failure" },
+          "text": { "type": "string", "description": "" },
+          "fx": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Effect tuple: [kind, ...args]. See docs/content-guide.md for the full list.",
+              "prefixItems": [{ "type": "string", "description": "Effect kind" }]
+            },
+            "description": ""
+          }
+        },
+        "required": ["p", "shownP", "text"],
+        "additionalProperties": false
+      },
+      "hit": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "number", "description": "Per-quarter chance of a payoff" },
+          "mult": { "type": "number", "description": "Payoff as a multiple of upfront" },
+          "text": { "type": "string", "description": "" }
+        },
+        "required": ["p", "mult", "text"],
+        "additionalProperties": false
+      },
+      "flag": { "type": "string", "description": "Flag set while active" },
+      "minRev": { "type": "number", "description": "$K annual revenue required" },
+      "unique": { "type": "boolean", "description": "One at a time per scope" },
+      "lesson": { "type": "string", "description": "" },
+      "moonshot": { "type": "boolean", "description": "Counts toward the innovation victory" }
+    },
+    "required": ["id", "name", "cat", "scope", "desc", "pitch", "base", "perRev", "capex", "cat2", "ongoing", "ramp", "life", "curve", "fx", "lesson"],
+    "additionalProperties": false
+  }
+}

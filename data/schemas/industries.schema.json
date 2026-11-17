@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Industries",
+  "description": "data/industries.json — one entry per industry",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"], "description": "Stable identifier" },
+      "name": { "type": "string", "description": "Display name" },
+      "short": { "type": "string", "description": "Short label" },
+      "icon": { "type": "string", "description": "Single glyph used as a logo mark" },
+      "blurb": { "type": "string", "description": "One-line pitch" },
+      "economics": { "type": "string", "description": "How the money works" },
+      "failure": { "type": "string", "description": "Typical ways to go broke" },
+      "marketBase": { "type": "number", "description": "Units ($K of sales at reference price) per quarter in a reference city (5M people, income 1.0)" },
+      "trend": { "type": "number", "description": "Annual real market growth" },
+      "cyc": { "type": "number", "description": "Sensitivity to the business cycle" },
+      "elast": { "type": "number", "description": "Firm-level price elasticity" },
+      "mktElast": { "type": "number", "description": "Market-level price elasticity" },
+      "wq": { "type": "number", "description": "Weight of quality in customer choice" },
+      "wb": { "type": "number", "description": "Weight of brand" },
+      "stick": { "type": "number", "description": "Share of the gap to target share closed each quarter", "minimum": 0, "maximum": 1 },
+      "fringe": { "type": "number", "description": "Strength of unnamed local incumbents" },
+      "organic": { "type": "number", "description": "Demand pull from simply being present" },
+      "wages": {
+        "type": "object",
+        "properties": {
+          "ops": { "type": "number", "description": "$K per quarter at wage index 1" },
+          "sales": { "type": "number", "description": "$K per quarter at wage index 1" },
+          "rnd": { "type": "number", "description": "$K per quarter at wage index 1" },
+          "admin": { "type": "number", "description": "$K per quarter at wage index 1" }
+        },
+        "required": ["ops", "sales", "rnd", "admin"],
+        "additionalProperties": false
+      },
+      "opsOut": { "type": "number", "description": "Units one operations employee delivers per quarter" },
+      "varCost": { "type": "number", "description": "Variable cost as a fraction of reference price" },
+      "inputKey": { "enum": ["commodity", "energy", "cloud", "none"], "description": "Which macro input index drives variable cost" },
+      "capPerUnit": { "type": "number", "description": "Capex $K per unit of quarterly capacity; 0 = asset-light" },
+      "buildQ": { "type": "number", "description": "Quarters to build capacity" },
+      "deprQ": { "type": "number", "description": "Depreciation life in quarters" },
+      "fixedPerCap": { "type": "number", "description": "Facility running cost per capacity unit per quarter, $K" },
+      "seatRent": { "type": "number", "description": "Office rent per employee per quarter, $K" },
+      "dso": { "type": "number", "description": "Days sales outstanding" },
+      "dio": { "type": "number", "description": "Days inventory" },
+      "dpo": { "type": "number", "description": "Days payables" },
+      "deferred": { "type": "number", "description": "Deferred revenue as a multiple of quarterly revenue" },
+      "spoil": { "type": "number", "description": "Share of unsold inventory lost each quarter" },
+      "salesCover": { "type": "number", "description": "Market units one sales person can cover" },
+      "mktEff": { "type": "number", "description": "Marketing dollars vs sales people efficiency" },
+      "baseAttr": { "type": "number", "description": "Baseline quarterly attrition" },
+      "rdCost": { "type": "number", "description": "$K of program spend per research point" },
+      "techGain": { "type": "number", "description": "Tech gained per research point (scaled)" },
+      "techDecay": { "type": "number", "description": "Tech points lost per quarter" },
+      "revMult": { "type": "number", "description": "EV / revenue at reference growth and margin" },
+      "targetMargin": { "type": "number", "description": "Mature EBITDA margin" },
+      "regSens": { "type": "number", "description": "Sensitivity to regulation" },
+      "scale": { "type": "number", "description": "Maximum unit-cost saving from scale" },
+      "startTech": { "type": "number", "description": "Tech level a new entrant starts with" },
+      "capTarget": { "type": "number", "description": "Multiplier on the market-cap victory threshold" },
+      "local": { "type": "number", "description": "How strongly prices follow local wages, 0..1" },
+      "techW": { "type": "number", "description": "Weight of technology in perceived quality, 0..1" },
+      "start": {
+        "type": "object",
+        "properties": {
+          "cash": { "type": "number", "description": "$K" },
+          "ops": { "type": "number", "description": "" },
+          "sales": { "type": "number", "description": "" },
+          "rnd": { "type": "number", "description": "" },
+          "admin": { "type": "number", "description": "" },
+          "cap": { "type": "number", "description": "Capacity units" },
+          "debt": { "type": "number", "description": "$K opening term loan" }
+        },
+        "required": ["cash", "ops", "sales", "rnd", "admin", "cap", "debt"],
+        "additionalProperties": false
+      },
+      "roles": {
+        "type": "object",
+        "properties": {
+          "ops": { "type": "string", "description": "Role label" },
+          "sales": { "type": "string", "description": "Role label" },
+          "rnd": { "type": "string", "description": "Role label" },
+          "admin": { "type": "string", "description": "Role label" }
+        },
+        "required": ["ops", "sales", "rnd", "admin"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["id", "name", "marketBase", "wages", "opsOut", "start", "roles"],
+    "additionalProperties": false
+  }
+}

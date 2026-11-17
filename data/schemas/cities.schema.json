@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "World",
+  "description": "data/cities.json — regions and cities",
+  "type": "object",
+  "required": ["regions", "cities"],
+  "properties": {
+    "regions": { "type": "object", "description": "Region id → {name, short, blurb}" },
+    "cities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Stable identifier" },
+          "name": { "type": "string", "description": "" },
+          "region": { "enum": ["nae", "naw", "latam", "europe", "mea", "apac"], "description": "" },
+          "x": { "type": "number", "description": "Map x, 0..1000" },
+          "y": { "type": "number", "description": "Map y, 0..560" },
+          "pop": { "type": "number", "description": "Metro population, millions" },
+          "income": { "type": "number", "description": "Income per head vs reference" },
+          "wage": { "type": "number", "description": "Wage index" },
+          "rent": { "type": "number", "description": "Rent index" },
+          "reg": { "type": "number", "description": "Regulatory burden 0..1", "minimum": 0, "maximum": 1 },
+          "tax": { "type": "number", "description": "Corporate tax rate" },
+          "talent": { "type": "number", "description": "Talent pool depth 0..100" },
+          "talentQ": { "type": "number", "description": "Average skill of the pool" },
+          "growth": { "type": "number", "description": "Annual real growth %" },
+          "risk": { "type": "number", "description": "Instability 0..1" },
+          "ind": {
+            "type": "object",
+            "properties": {
+              "saas": { "type": "number", "description": "Demand multiplier" },
+              "retail": { "type": "number", "description": "Demand multiplier" },
+              "mfg": { "type": "number", "description": "Demand multiplier" },
+              "logistics": { "type": "number", "description": "Demand multiplier" },
+              "energy": { "type": "number", "description": "Demand multiplier" },
+              "consulting": { "type": "number", "description": "Demand multiplier" },
+              "biotech": { "type": "number", "description": "Demand multiplier" }
+            },
+            "required": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"],
+            "additionalProperties": false
+          },
+          "tal": { "type": "object", "description": "Talent specialisation multipliers by industry" },
+          "blurb": { "type": "string", "description": "" }
+        },
+        "required": ["id", "name", "region", "x", "y", "pop", "income", "wage", "rent", "reg", "tax", "talent", "talentQ", "growth", "risk", "ind"],
+        "additionalProperties": false
+      },
+      "description": ""
+    }
+  }
+}

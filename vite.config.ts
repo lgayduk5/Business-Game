@@ -1,0 +1,69 @@
+import { defineConfig, type Plugin } from 'vite';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
+
+/**
+ * Emits dist/sw.js after the bundle is written. The worker precaches every
+ * file in dist (hashed bundle + manifest + icons) so the game runs fully
+ * offline once it has been opened a single time.
+ */
+function serviceWorker(): Plugin {
+  let outDir = 'dist';
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((f) => {
+      const p = join(dir, f);
+      return statSync(p).isDirectory() ? walk(p) : [p];
+    });
+  return {
+    name: 'going-concern-sw',
+    apply: 'build',
+    configResolved(c) {
+      outDir = c.build.outDir;
+    },
+    closeBundle() {
+      const files = walk(outDir)
+        .map((p) => relative(outDir, p).split('\\').join('/'))
+        .filter((f) => f !== 'sw.js' && !f.endsWith('.map'));
+      const hash = createHash('sha1');
+      for (const f of files.sort()) hash.update(f).update(readFileSync(join(outDir, f)));
+      const version = hash.digest('hex').slice(0, 12);
+      const sw = `// Generated at build time — do not edit.
+const VERSION = 'gc-${version}';
+const ASSETS = ${JSON.stringify(['./', ...files.map((f) => './' + f)])};
+self.addEventListener('install', (e) => {
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)));
+});
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('gc-') && k !== VERSION).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
+  );
+});
+self.addEventListener('message', (e) => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
+});
+self.addEventListener('fetch', (e) => {
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  e.respondWith(
+    caches.match(req, { ignoreSearch: true }).then((hit) => {
+      if (hit) return hit;
+      return fetch(req).catch(() => (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()));
+    }),
+  );
+});
+`;
+      writeFileSync(join(outDir, 'sw.js'), sw);
+    },
+  };
+}
+
+export default defineConfig({
+  // Relative base so the build works from any sub-path (GitHub Pages project sites).
+  base: './',
+  plugins: [serviceWorker()],
+  build: { target: 'es2020', assetsInlineLimit: 0, chunkSizeWarningLimit: 1500 },
+  test: { include: ['tests/**/*.test.ts'], environment: 'node' },
+} as any);

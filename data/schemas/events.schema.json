@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Events",
+  "description": "data/events/*.json — each file is an array of events",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "description": "Unique id" },
+      "cat": { "enum": ["macro", "market", "operational", "regulatory", "opportunity", "stress", "rival"], "description": "" },
+      "title": { "type": "string", "description": "" },
+      "text": { "type": "string", "description": "Body. Templates: {city} {office} {rival} {person} {ind} {region} {company}" },
+      "w": { "type": "number", "description": "Draw weight; 0 = only via chain or AI" },
+      "cond": { "type": "object", "description": "Conditions; all must hold. See Cond in engine/src/types.ts." },
+      "bind": {
+        "type": "array",
+        "items": { "enum": ["office", "rival", "person", "loan", "region"], "description": "" },
+        "description": "Context the event needs"
+      },
+      "once": { "type": "boolean", "description": "Fire at most once per game" },
+      "cool": { "type": "number", "description": "Cooldown in quarters" },
+      "opts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "label": { "type": "string", "description": "Button text" },
+            "hint": { "type": "string", "description": "The trade-off, shown before choosing" },
+            "req": { "type": "object", "description": "Conditions; all must hold. See Cond in engine/src/types.ts." },
+            "out": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "w": { "type": "number", "description": "Weight (default 1)" },
+                  "text": { "type": "string", "description": "What happened" },
+                  "fx": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "minItems": 1,
+                      "description": "Effect tuple: [kind, ...args]. See docs/content-guide.md for the full list.",
+                      "prefixItems": [{ "type": "string", "description": "Effect kind" }]
+                    },
+                    "description": "Effects"
+                  },
+                  "chain": {
+                    "type": "array",
+                    "items": { "type": "array", "minItems": 2, "maxItems": 3 },
+                    "description": "Follow-up events: [id, delay in quarters, probability?]"
+                  },
+                  "boost": {
+                    "type": "array",
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "description": "[stat, threshold, weight multiplier] — a stat check that tilts the odds"
+                  }
+                },
+                "required": ["text"],
+                "additionalProperties": false
+              },
+              "description": "Weighted outcomes",
+              "minItems": 1
+            }
+          },
+          "required": ["label", "hint", "out"],
+          "additionalProperties": false
+        },
+        "description": "Responses",
+        "minItems": 1
+      },
+      "lesson": { "type": "string", "description": "What the advisor says afterwards" },
+      "terms": { "type": "array", "items": { "type": "string", "description": "" }, "description": "Glossary ids" }
+    },
+    "required": ["id", "cat", "title", "text", "opts", "lesson"],
+    "additionalProperties": false
+  }
+}
