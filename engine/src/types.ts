@@ -83,6 +83,17 @@ export interface IndustryDef {
   scale: number; // max unit-cost saving from economies of scale
   startTech: number;
   capTarget: number; // market-cap victory multiplier
+  local: number; // how strongly prices follow local wages (haircuts vs software)
+  techW: number; // weight of technology (vs people and process) in perceived quality
+  start: { cash: number; ops: number; sales: number; rnd: number; admin: number; cap: number; debt: number };
+  roles: Record<Role, string>;
+}
+
+export interface GlossaryEntry {
+  id: string;
+  term: string;
+  def: string;
+  why: string; // why it matters in the game
 }
 
 export interface FounderDef {
@@ -217,7 +228,8 @@ export type Fx =
   | ['tech', number]
   | ['skill', number, Scope?]
   | ['loyalty', number]
-  | ['demand', number, number, Scope?] // %, quarters
+  | ['demand', number, number, Scope?] // %, quarters — your own pull with customers
+  | ['market', number, number, Scope?] // %, quarters — the whole market, rivals included
   | ['wages', number, number] // %, quarters
   | ['inputs', number, number] // %, quarters
   | ['capacity', number, number, Scope?] // %, quarters
@@ -621,6 +633,8 @@ export interface Company {
   regionBrand: Record<RegionId, number>;
   policy: Record<RegionId, RegionPolicy>;
   books: Books;
+  open: Books; // balance sheet at the start of the current quarter
+  techInfo: Partial<Record<IndustryId, { rp: number; target: number }>>;
   loans: Loan[];
   cap: CapTable;
   people: Person[];
@@ -705,7 +719,7 @@ export interface Macro {
 }
 
 export interface TempMod {
-  kind: 'demand' | 'wages' | 'inputs' | 'capacity' | 'prod' | 'attrition' | 'valuation' | 'quality';
+  kind: 'demand' | 'market' | 'wages' | 'inputs' | 'capacity' | 'prod' | 'attrition' | 'valuation' | 'quality';
   pct: number;
   until: number; // last turn it applies
   office?: string;

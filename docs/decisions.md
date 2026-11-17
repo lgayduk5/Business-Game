@@ -29,3 +29,27 @@ Design decisions made while building, newest milestone last. Each entry: what, a
 11. **Milestone data gating.** The engine is written generally from the start, but
     `/data` only contains what each milestone promises (M1: SaaS and one region), so
     every milestone is tested against exactly what it ships.
+
+## M1 — engine core and first playable
+
+12. **Visual identity: "the desk and the board".** Financial screens are green-bar ledger
+    paper (alternating pale bands are the row structure, not decoration); the world is a
+    board with tokens. Ink navy for type, ledger red for losses (with accounting
+    parentheses in statements), and one loud colour — highlighter yellow — reserved for
+    the thing you should look at next. The quarterly report arrives as a continuous-form
+    printout with sprocket holes; that is the one flourish, everything else stays quiet.
+13. **System fonts only**, chosen deliberately: an old-style serif stack (Iowan Old
+    Style / Palatino / Noto Serif) for headings and figures, the platform sans for
+    labels. Nothing to download, renders instantly offline.
+14. **Technology converges to what your R&D effort sustains** (`target = floor +
+    slope × log10(1 + research points)`) instead of accumulating forever. Each tenfold
+    increase in R&D buys roughly the same step, which gives the Red Queen effect:
+    stop investing and you drift back.
+15. **Acquisitions are asset purchases** (property + goodwill, no acquired working
+    capital). Keeps the indirect cash-flow statement exact; the acquired business then
+    has to fund its own receivables, which is realistic.
+16. **Prices are relative to a market reference that inflates automatically.** The
+    player sets a position (90%, 110%…), not a dollar price, so inflation never forces
+    busywork but still squeezes margins through wages and inputs.
+17. **`endTurn` runs in a web worker from M1**, with a main-thread fallback, so the
+    architecture does not change when rival AI arrives.

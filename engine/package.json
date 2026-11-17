@@ -1,0 +1,9 @@
+{
+  "name": "@going-concern/engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic, headless simulation engine for Going Concern. No DOM, no I/O.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts"
+}

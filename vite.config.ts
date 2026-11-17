@@ -1,7 +1,10 @@
 import { defineConfig, type Plugin } from 'vite';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('.', import.meta.url));
 
 /**
  * Emits dist/sw.js after the bundle is written. The worker precaches every
@@ -63,6 +66,8 @@ self.addEventListener('fetch', (e) => {
 export default defineConfig({
   // Relative base so the build works from any sub-path (GitHub Pages project sites).
   base: './',
+  resolve: { alias: { '@engine': resolve(root, 'engine/src/index.ts') } },
+  worker: { format: 'es' },
   plugins: [serviceWorker()],
   build: { target: 'es2020', assetsInlineLimit: 0, chunkSizeWarningLimit: 1500 },
   test: { include: ['tests/**/*.test.ts'], environment: 'node' },

@@ -46,37 +46,34 @@ function png(size, rgba) {
 }
 
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
-const INK = [10, 31, 26];
-const GREEN = [18, 58, 47];
-const BRASS = [214, 170, 88];
-const BRASS_HI = [244, 214, 140];
-const MINT = [126, 214, 170];
+const PAPER = [247, 250, 244];
+const BAR = [222, 237, 224];
+const INK = [21, 34, 56];
+const HI = [255, 227, 77];
 
-/** Colour of the icon at unit coordinates (0..1). `pad` shrinks the art for maskable icons. */
+/** Colour of the icon at unit coordinates (0..1): green-bar ledger paper, four ink bars,
+ *  the last one highlighted, and the accountant's double rule under the total. */
 function shade(u, v, pad, rounded) {
-  // rounded-square mask (skipped for maskable/apple icons, which the OS masks itself)
   if (rounded) {
     const r = 0.22;
     const dx = Math.max(Math.abs(u - 0.5) - (0.5 - r), 0);
     const dy = Math.max(Math.abs(v - 0.5) - (0.5 - r), 0);
     if (Math.hypot(dx, dy) > r) return null;
   }
-  let col = mix(GREEN, INK, Math.min(1, Math.hypot(u - 0.3, v - 0.2) * 1.05));
+  let col = Math.floor(v * 6) % 2 === 0 ? PAPER : BAR;
   const x = (u - 0.5) / (1 - pad * 2) + 0.5;
   const y = (v - 0.5) / (1 - pad * 2) + 0.5;
-  // brass ring
-  const d = Math.hypot(x - 0.5, y - 0.5);
-  if (d > 0.385 && d < 0.425) col = mix(BRASS, BRASS_HI, Math.max(0, 0.5 - y) * 1.6);
-  // four rising bars
-  const bars = [0.2, 0.31, 0.27, 0.44];
+  const bars = [0.16, 0.27, 0.22, 0.42];
+  const base = 0.7;
   for (let i = 0; i < 4; i++) {
-    const bx = 0.275 + i * 0.118;
-    if (x > bx && x < bx + 0.085 && y < 0.7 && y > 0.7 - bars[i]) {
-      col = i === 3 ? mix(BRASS, BRASS_HI, (0.7 - y) / bars[i]) : mix(MINT, GREEN, 0.35 + (y - 0.3) * 0.5);
+    const bx = 0.2 + i * 0.158;
+    const w = 0.118;
+    if (x > bx && x < bx + w && y < base && y > base - bars[i]) {
+      const edge = Math.min(x - bx, bx + w - x, y - (base - bars[i])) < 0.018;
+      col = i === 3 ? (edge ? INK : HI) : INK;
     }
   }
-  // baseline
-  if (x > 0.25 && x < 0.75 && y > 0.715 && y < 0.735) col = BRASS;
+  if (x > 0.17 && x < 0.83 && ((y > 0.725 && y < 0.75) || (y > 0.775 && y < 0.8))) col = INK;
   return col;
 }
 
