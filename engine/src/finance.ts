@@ -1,7 +1,7 @@
 // Corporate finance: valuation, credit rating, debt and covenants, equity rounds, IPO, share price.
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, INV, NAMES } from './content';
-import { news, tempMod } from './mods';
+import { invSum, news, tempMod } from './mods';
 import { DIFF } from './difficulty';
 import { companyHeadcount, exec, execBonus } from './people';
 import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer } from './types';
@@ -13,27 +13,46 @@ const RATINGS: [number, string, number, number][] = [
 ];
 export const ratingRow = (score: number) => RATINGS.find((r) => score >= r[0])!;
 
-export function creditRating(g: GameState): { score: number; rating: string; spread: number; maxLev: number; parts: Record<string, number> } {
-  const c = g.company;
-  const rev = B.ttm(c, (q) => q.pnl.revenue);
-  const ebitda = B.ttm(c, (q) => q.ebitda);
-  const int = B.ttm(c, (q) => q.pnl.interest);
-  const debt = c.books.debt;
-  const lev = debt <= 0 ? 0 : ebitda > 0 ? debt / ebitda : 9;
-  const cov = int > 0 ? ebitda / int : 20;
+export interface CreditInputs { rev: number; ebitda: number; interest: number; debt: number; cash: number; breaches: number; cfo: number }
+export interface Credit { score: number; rating: string; spread: number; maxLev: number; parts: Record<string, number> }
+
+/** How lenders score any company — the player or a rival — from its last twelve months. */
+export function scoreCredit(x: CreditInputs): Credit {
+  const lev = x.debt <= 0 ? 0 : x.ebitda > 0 ? x.debt / x.ebitda : 9;
+  const cov = x.interest > 0 ? x.ebitda / x.interest : 20;
   const parts: Record<string, number> = {
     Base: 50,
-    Size: clamp(Math.log10(Math.max(rev, 1e5) / 1e6) * 10, -10, 30),
-    Profitability: rev > 0 ? clamp((ebitda / rev) * 60, -20, 20) : -15,
+    Size: clamp(Math.log10(Math.max(x.rev, 1e5) / 1e6) * 10, -10, 30),
+    Profitability: x.rev > 0 ? clamp((x.ebitda / x.rev) * 60, -20, 20) : -15,
     Leverage: -Math.min(40, lev * 7),
     'Interest cover': clamp((cov - 2) * 2, -10, 12),
-    Liquidity: clamp((c.books.cash / Math.max(1, rev / 4)) * 4, -6, 8),
-    'Track record': -6 * c.loans.reduce((s, l) => s + l.breaches, 0),
-    CFO: execBonus(c, 'CFO') * 10,
+    Liquidity: clamp((x.cash / Math.max(1, x.rev / 4)) * 4, -6, 8),
+    'Track record': -6 * x.breaches,
+    CFO: x.cfo * 10,
   };
   const score = Object.values(parts).reduce((a, b) => a + b, 0);
   const row = ratingRow(score);
   return { score, rating: row[1], spread: row[2], maxLev: row[3], parts };
+}
+
+export function creditRating(g: GameState): Credit {
+  const c = g.company;
+  return scoreCredit({
+    rev: B.ttm(c, (q) => q.pnl.revenue), ebitda: B.ttm(c, (q) => q.ebitda), interest: B.ttm(c, (q) => q.pnl.interest), debt: c.books.debt, cash: c.books.cash,
+    breaches: c.loans.reduce((s, l) => s + l.breaches, 0), cfo: execBonus(c, 'CFO'),
+  });
+}
+
+/** What lenders will advance against a borrowing base (receivables, stock, a little cash flow) and against cash flow itself. */
+export function debtCapacity(g: GameState, x: { ar: number; inventory: number; ebitda: number; debt: number; maxLev: number }): { base: number; cashFlow: number } {
+  const tight = g.macro.phase === 'recession' ? 0.6 : 1;
+  const ebitda = Math.max(0, x.ebitda);
+  return { base: (0.7 * x.ar + 0.4 * x.inventory + 0.3 * ebitda) * tight, cashFlow: Math.max(0, x.maxLev * ebitda - x.debt) * tight };
+}
+
+/** Investors' appetite for a private company's shares: market mood, a growth story, and whether it actually needs the money. */
+export function equityAppetite(sentiment: number, story: number, runway: number): number {
+  return (sentiment - 0.8) * 1.5 + clamp(story - 0.1, -0.4, 1) * 1.1 - (runway > 12 ? 0.6 : runway > 8 ? 0.25 : 0);
 }
 
 export const loanRate = (g: GameState, l: Loan | LoanOffer) => (l.floating ? g.macro.rate + l.spread : l.fixedRate);
@@ -95,9 +114,10 @@ export function refreshLoanOffers(g: GameState) {
   const offers: LoanOffer[] = [];
   const id = () => 'lo' + nextUid(g);
   const tight = g.macro.phase === 'recession' ? 0.6 : 1;
+  const cap = debtCapacity(g, { ar: b.ar, inventory: b.inventory, ebitda, debt: b.debt, maxLev: r.maxLev });
 
   // A revolver is a borrowing-base facility: its limit follows receivables and inventory every quarter.
-  const base = (0.7 * b.ar + 0.4 * b.inventory + 0.3 * ebitda) * tight;
+  const base = cap.base;
   const rv = c.loans.find((l) => l.kind === 'revolver');
   if (rv) rv.limit = Math.max(rv.principal, Math.min(base, rv.limit * 1.5 + 100_000));
   if (!rv) {
@@ -105,7 +125,7 @@ export function refreshLoanOffers(g: GameState) {
     if (limit > 100_000) offers.push({ id: id(), kind: 'revolver', name: `${bank()} revolving credit line`, max: limit, spread: spread + 0.3, fixedRate: 0, floating: true, term: 12, amortizing: false, minCoverage: 1.5,
       note: 'Draw and repay as needed. Sized on your receivables and inventory. A 0.5% fee applies to the unused part.' });
   }
-  const cashFlowCap = Math.max(0, r.maxLev * ebitda - b.debt) * tight;
+  const cashFlowCap = cap.cashFlow;
   if (cashFlowCap > 200_000) offers.push({ id: id(), kind: 'term', name: `${bank()} term loan`, max: cashFlowCap, spread, fixedRate: 0, floating: true, term: 20, amortizing: true,
     maxLeverage: Math.round((r.maxLev + 1) * 10) / 10, minCoverage: r.score >= 58 ? 2.5 : 1.8,
     note: 'Floating rate, repaid in equal instalments over five years. Covenants are tested every quarter.' });
@@ -178,18 +198,23 @@ function revenueMix(c: Company): Partial<Record<IndustryId, number>> {
   return out;
 }
 
-export function revenueGrowth(c: Company): number {
-  const qs = c.quarters;
-  if (qs.length < 5) {
-    if (qs.length < 2) return 0.3;
-    const a = qs[0].pnl.revenue, b = qs[qs.length - 1].pnl.revenue;
-    return a > 0 ? clamp((b / a) ** (4 / (qs.length - 1)) - 1, -0.5, 2) : 0.3;
+/**
+ * Year-on-year growth from a run of quarterly revenues. With two years of history: the last four quarters
+ * against the four before. With less, the run is annualised from its first quarter to its last (comparing
+ * a year against a single earlier quarter would understate it).
+ */
+export function growthOf(revs: number[]): number {
+  if (revs.length < 8) {
+    if (revs.length < 2) return 0.3;
+    const a = revs[0], b = revs[revs.length - 1];
+    return a > 0 ? clamp((b / a) ** (4 / (revs.length - 1)) - 1, -0.5, 2) : 0.3;
   }
-  const last = qs.slice(-4).reduce((s, q) => s + q.pnl.revenue, 0);
-  const prevQ = qs.slice(-8, -4);
-  const prev = (prevQ.reduce((s, q) => s + q.pnl.revenue, 0) * 4) / prevQ.length;
+  const last = revs.slice(-4).reduce((s, x) => s + x, 0);
+  const prevQ = revs.slice(-8, -4);
+  const prev = (prevQ.reduce((s, x) => s + x, 0) * 4) / prevQ.length;
   return prev > 0 ? clamp(last / prev - 1, -0.5, 2) : 0.3;
 }
+export const revenueGrowth = (c: Company): number => growthOf(c.quarters.map((q) => q.pnl.revenue));
 
 /** Risk-adjusted value of staged R&D still in progress (mostly matters for biotech). */
 export function pipelineValue(g: GameState): number {
@@ -204,34 +229,70 @@ export function pipelineValue(g: GameState): number {
   return v;
 }
 
-/** Transparent multiples-based valuation. Returns equity value and every factor that went into it. */
-export function valuation(g: GameState): { equity: number; parts: Record<string, number> } {
-  const c = g.company;
-  const b = c.books;
-  const rev = B.ttm(c, (q) => q.pnl.revenue);
-  const ebitda = B.ttm(c, (q) => q.ebitda);
-  const growth = revenueGrowth(c);
-  const margin = rev > 0 ? ebitda / rev : -1;
-  const mix = revenueMix(c);
+export interface ValueInputs {
+  rev: number; // last twelve months
+  ebitda: number; // last twelve months
+  growth: number; // revenue growth, year on year
+  mix: Partial<Record<IndustryId, number>>; // revenue weights by industry
+  tech: number;
+  brand: number;
+  reputation: number;
+  sentiment: number; // market mood (and anything else that scales every multiple)
+  rate: number; // central-bank rate, %
+  cash: number;
+  debt: number;
+  pipeline?: number; // risk-adjusted R&D still in progress
+  promise?: number; // what a young company is worth on its story alone
+  assets?: number; // what the assets would fetch
+}
+
+/**
+ * Transparent multiples-based valuation, used for the player and every rival alike. Fast growers are
+ * priced on revenue; as growth slows below about 25% a year investors increasingly price the profits
+ * instead, with an EBITDA multiple that agrees with the revenue multiple for a company earning its
+ * industry's typical margin. Higher interest rates lower every multiple.
+ */
+export function valueCompany(x: ValueInputs): { equity: number; parts: Record<string, number> } {
   let mult = 0, target = 0;
-  for (const [k, w] of Object.entries(mix)) {
+  for (const [k, w] of Object.entries(x.mix)) {
     mult += w! * INDUSTRIES[k as IndustryId].revMult;
     target += w! * INDUSTRIES[k as IndustryId].targetMargin;
   }
-  const growthF = clamp(1 + 1.6 * (growth - 0.1), 0.4, 3.2);
+  const margin = x.rev > 0 ? x.ebitda / x.rev : -1;
+  const growthF = clamp(1 + 1.6 * (x.growth - 0.1), 0.4, 3.2);
   const marginF = clamp(1 + 2 * (margin - target), 0.35, 1.8);
-  const qualityF = (1 + ((c.tech[c.primary] ?? 40) - 50) / 250) * (1 + (c.brand - 30) / 300) * (0.9 + (0.2 * c.reputation) / 100);
-  const sentiment = g.macro.sentiment * tempMod(g, 'valuation') * (c.cap.isPublic ? 1 : FOUNDER[c.founder].valuation);
-  const ops = rev * mult * growthF * marginF * qualityF * sentiment;
-  const pipeline = pipelineValue(g);
-  const promise = 2.2e6 * g.macro.cpi * sentiment * (1 + companyHeadcount(c) / 40) * Math.exp(-g.turn / 24);
-  const assets = 0.5 * (b.ppe - b.accDep) + 0.6 * b.ar + 0.4 * b.inventory;
+  const ebitdaMult = mult / Math.max(0.05, target);
+  const byRev = x.rev * mult * growthF * marginF;
+  const byEbitda = Math.max(0, x.ebitda) * ebitdaMult * growthF;
+  const ebitdaW = clamp((0.25 - x.growth) / 0.25, 0, 0.8);
+  const qualityF = (1 + (x.tech - 50) / 250) * (1 + (x.brand - 30) / 300) * (0.9 + (0.2 * x.reputation) / 100);
+  const rateF = clamp(1 - 0.04 * (x.rate - 3), 0.75, 1.15);
+  const ops = ((1 - ebitdaW) * byRev + ebitdaW * byEbitda) * qualityF * x.sentiment * rateF;
+  const pipeline = x.pipeline ?? 0, promise = x.promise ?? 0, assets = x.assets ?? 0;
   const ev = Math.max(ops + pipeline, promise, assets);
-  const equity = Math.max(0, ev + b.cash + b.securities - b.debt);
+  const equity = Math.max(0, ev + x.cash - x.debt);
   return {
     equity,
-    parts: { rev, mult, growth, growthF, margin, target, marginF, qualityF, sentiment, ops, pipeline, promise, assets, ev, cash: b.cash + b.securities, debt: b.debt },
+    parts: { rev: x.rev, ebitda: x.ebitda, mult, growth: x.growth, growthF, margin, target, marginF, byRev, byEbitda, ebitdaMult, ebitdaW, qualityF, sentiment: x.sentiment, rate: x.rate, rateF, ops, pipeline, promise, assets, ev, cash: x.cash, debt: x.debt },
   };
+}
+
+/** Private companies trade at a discount for illiquidity — on the business, not on the cash in the bank. */
+export const PRIVATE_DISCOUNT = 0.8;
+export const privateValue = (equity: number, cash: number, debt: number) => Math.max(0, PRIVATE_DISCOUNT * (equity - (cash - debt)) + (cash - debt));
+
+/** The player's company, valued. Returns equity value and every factor that went into it. */
+export function valuation(g: GameState): { equity: number; parts: Record<string, number> } {
+  const c = g.company;
+  const b = c.books;
+  const sentiment = g.macro.sentiment * tempMod(g, 'valuation') * (c.cap.isPublic ? 1 : FOUNDER[c.founder].valuation);
+  return valueCompany({
+    rev: B.ttm(c, (q) => q.pnl.revenue), ebitda: B.ttm(c, (q) => q.ebitda), growth: revenueGrowth(c), mix: revenueMix(c),
+    tech: c.tech[c.primary] ?? 40, brand: c.brand, reputation: c.reputation, sentiment, rate: g.macro.rate,
+    cash: b.cash + b.securities, debt: b.debt, pipeline: pipelineValue(g),
+    promise: 2.2e6 * g.macro.cpi * sentiment * (1 + companyHeadcount(c) / 40) * Math.exp(-g.turn / 24),
+    assets: 0.5 * (b.ppe - b.accDep) + 0.6 * b.ar + 0.4 * b.inventory,
+  });
 }
 
 export const founderStake = (c: Company) => c.cap.founder / c.cap.shares;
@@ -254,10 +315,8 @@ export function revalue(g: GameState) {
     c.valParts.surprise = surprise;
     c.valuation = cap.price * cap.shares;
   } else {
-    // Private companies trade at a discount for illiquidity — on the business, not on the cash in the bank.
-    const net = v.parts.cash - v.parts.debt;
-    c.valParts.discount = 0.8;
-    c.valuation = Math.max(0, 0.8 * (v.equity - net) + net);
+    c.valParts.discount = PRIVATE_DISCOUNT;
+    c.valuation = privateValue(v.equity, v.parts.cash, v.parts.debt);
     cap.price = c.valuation / cap.shares;
   }
 }
@@ -287,7 +346,7 @@ export function refreshEquityOffer(g: GameState) {
   // Investors need a story — growth, a pipeline, or a young company with promise — and a reason you need the money.
   // a drug pipeline is a growth story in its own right
   const story = pipelineValue(g) > 0.3 * Math.max(1, c.valuation) ? Math.max(growth, 0.35) : growth;
-  const appetite = DIFF[g.difficulty].appetite + (s - 0.8) * 1.5 + clamp(story - 0.1, -0.4, 1) * 1.1 + (g.turn < 8 ? 0.5 : 0) + (pipelineValue(g) > 0 ? 0.35 : 0) - (runway > 12 ? 0.6 : runway > 8 ? 0.25 : 0);
+  const appetite = DIFF[g.difficulty].appetite + equityAppetite(s, story, runway) + (g.turn < 8 ? 0.5 : 0) + (pipelineValue(g) > 0 ? 0.35 : 0);
   if (appetite < 0.2) return;
   const enthusiasm = clamp(randRange(g, 0.85, 1.12) * (0.9 + 0.15 * Math.min(1, appetite)), 0.7, 1.25);
   // They price the business and take the cash at face value.
@@ -335,7 +394,7 @@ export function ipoChecklist(g: GameState): { ok: boolean; items: { label: strin
   const min = DIFF[g.difficulty].ipoMinRev * g.macro.cpi * Math.min(1, INDUSTRIES[c.primary].capTarget);
   const items = [
     { label: `Revenue of at least ${money(min)} a year`, ok: rev >= min, tip: 'Public investors want scale. Smaller listings get no analyst coverage and trade poorly.' },
-    { label: 'Two years of quarterly accounts', ok: c.quarters.length >= 8 || g.turn >= 8, tip: 'Regulators require audited history.' },
+    { label: 'Two years of quarterly accounts', ok: g.turn >= 8, tip: 'Regulators require audited history.' },
     { label: 'A Chief Financial Officer', ok: !!exec(c, 'CFO'), tip: 'Nobody will underwrite a listing without a CFO to sign the accounts.' },
     { label: 'Reputation of 40 or better', ok: c.reputation >= 40, tip: 'Underwriters will not attach their name to a company with a bad one.' },
     { label: 'An open IPO window (market sentiment ≥ 0.85)', ok: g.macro.sentiment >= 0.85, tip: 'In bear markets, new listings simply do not get done.' },
@@ -369,7 +428,12 @@ export function stepIPO(g: GameState) {
     return;
   }
   const v = valuation(g);
-  const price = (v.equity / cap.shares) * 0.88; // the IPO discount
+  const intrinsic = v.equity / cap.shares;
+  // Bankers price below fair value so the deal clears; how far below, and how the first day trades, depends on the mood.
+  const s = g.macro.sentiment;
+  const discount = clamp(0.88 + 0.12 * (s - 1) + normal(g, 0, 0.03), 0.75, 0.97);
+  const pop = clamp(normal(g, 0.1 + 0.4 * (s - 1), 0.12), -0.25, 0.8);
+  const price = intrinsic * discount;
   const newShares = (cap.shares * 0.18) / 0.82;
   const gross = newShares * price;
   B.issueEquity(c, gross * 0.93);
@@ -378,14 +442,14 @@ export function stepIPO(g: GameState) {
   cap.isPublic = true;
   cap.ipoTurn = g.turn;
   cap.ipoStage = 0;
-  cap.premium = 1;
-  cap.price = price / 0.88;
+  cap.premium = clamp(discount * (1 + pop), 0.5, 1.8);
+  cap.price = intrinsic * cap.premium;
   cap.lastPost = cap.price * cap.shares;
   const last = c.quarters[c.quarters.length - 1];
   cap.expectedEps = last ? last.ni / cap.shares : 0;
   c.valuation = cap.price * cap.shares;
   g.counters.equityRaised = (g.counters.equityRaised ?? 0) + gross;
-  news(g, `${c.name} is now a public company. Shares priced at $${price.toFixed(2)} and closed the first day at $${cap.price.toFixed(2)}. ${money(gross * 0.93)} raised after fees.`, 'good');
+  news(g, `${c.name} is now a public company. Shares priced at $${price.toFixed(2)} and closed the first day at $${cap.price.toFixed(2)} (${pop >= 0 ? '+' : '−'}${Math.abs(pop * 100).toFixed(0)}%). ${money(gross * 0.93)} raised after fees.`, 'good');
 }
 
 export function followOn(g: GameState, pct: number): ActionResult {
@@ -435,14 +499,49 @@ export function buyBack(g: GameState, amount: number): ActionResult {
   return { ok: true, msg: `Bought back ${Math.round(n).toLocaleString()} shares${n < want - 1 ? ' — as many as holders would sell' : ''}. You now own ${(founderStake(c) * 100).toFixed(1)}%.` };
 }
 
-/** Company-wide effective tax rate: revenue-weighted across office cities. */
-export function taxRate(g: GameState): number {
-  const c = g.company;
-  let w = 0, t = 0;
-  for (const o of c.offices) {
-    const r = o.last?.revenue ?? 0;
-    w += r;
-    t += r * CITY[o.city].tax;
+/** Profit made locally in one country this quarter: office contribution less office depreciation. */
+export interface LocalProfit { rev: number; pre: number; taxW: number }
+
+/** Add tax losses to a country's pool (and the total shown on the books). */
+export function addNol(c: Company, country: string, amt: number) {
+  c.nolBy[country] = Math.max(0, (c.nolBy[country] ?? 0) + amt);
+  c.nol = Object.values(c.nolBy).reduce((a, b) => a + b, 0);
+}
+
+/**
+ * Corporate tax, country by country. Each country taxes what was earned there: its offices' own profit
+ * plus a revenue-weighted share of head-office costs, R&D programmes, interest and one-offs. A loss in one
+ * country is carried forward there and shelters nothing anywhere else (up to 80% of a later year's profit).
+ */
+export function countryTax(local: Map<string, LocalProfit>, pretax: number, nolBy: Record<string, number>, home: { country: string; rate: number }, adj = 1) {
+  const rows = local.size ? [...local.entries()] : [[home.country, { rev: 0, pre: 0, taxW: 0 }] as [string, LocalProfit]];
+  const totRev = rows.reduce((s, [, x]) => s + x.rev, 0);
+  const central = pretax - rows.reduce((s, [, x]) => s + x.pre, 0);
+  const nol = { ...nolBy };
+  const by: Record<string, { pre: number; tax: number }> = {};
+  let tax = 0;
+  for (const [k, x] of rows) {
+    const p = x.pre + central * (totRev > 0 ? x.rev / totRev : 1 / rows.length);
+    const rate = x.rev > 0 ? x.taxW / x.rev : home.rate;
+    let t = 0;
+    if (p > 0) {
+      const use = Math.min(nol[k] ?? 0, p * 0.8);
+      nol[k] = (nol[k] ?? 0) - use;
+      t = (p - use) * rate * adj;
+    } else nol[k] = (nol[k] ?? 0) - p;
+    tax += t;
+    by[k] = { pre: p, tax: t };
   }
-  return w > 0 ? t / w : CITY[c.home].tax;
+  for (const k of Object.keys(nol)) if (nol[k] < 1) delete nol[k];
+  return { tax, nolBy: nol, by };
+}
+
+export function payTaxes(g: GameState, pretax: number, local: Map<string, LocalProfit>): number {
+  const c = g.company;
+  const t = countryTax(local, pretax, c.nolBy, { country: CITY[c.home].country, rate: CITY[c.home].tax }, Math.max(0.2, 1 + invSum(g, 'tax') / 100));
+  c.nolBy = t.nolBy;
+  c.nol = Object.values(t.nolBy).reduce((a, b) => a + b, 0);
+  c.taxBy = t.by;
+  if (t.tax > 0) B.tax(c, t.tax);
+  return t.tax;
 }

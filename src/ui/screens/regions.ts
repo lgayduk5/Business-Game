@@ -1,6 +1,6 @@
 // Regions: pricing, marketing, supply chain and partners for everything you run in a region.
 import {
-  CITY, INDUSTRIES, PARTNER, REGIONS, REGION_LIST, endPartner, money, partnerCost, setSupply, signPartner,
+  CITIES, CITY, INDUSTRIES, PARTNER, REGIONS, REGION_LIST, endPartner, money, partnerCost, setSupply, signPartner,
   type GameState, type RegionId, type SupplyMode,
 } from '@engine';
 import { $, N, esc, explain, seg, slider, type Row } from '../kit';
@@ -27,7 +27,7 @@ function regions(g: GameState): string {
         <div>Revenue <span class="sub">last quarter</span></div><div>${$(rev, 'Regional revenue', 'Sales from every office in the region.', offs.map((o): Row => [o.name, money(o.last?.revenue ?? 0)]))}</div>
         <div>Contribution</div><div>${$(contrib, 'Regional contribution', 'Revenue less the offices’ own costs, before corporate overhead.', offs.map((o): Row => [o.name, money(o.last?.contribution ?? 0)]), ['contribution'])}</div>
         <div>Brand</div><div>${N(c.regionBrand[r].toFixed(0), 'Regional brand', 'How well known you are here, 0–100. Marketing and market share build it; it fades about 3.5% a quarter.', [['Company-wide brand', c.brand.toFixed(0)]], ['brand'])}</div>
-        <div>Currency</div><div>${N(g.macro.fx[r].toFixed(2), 'Exchange rate', 'Value of the local currency against your reporting currency (1.00 at the start). Local revenue and local costs both move with it, so what moves is the dollar value of your margin.', undefined, ['fxRisk'])}</div>
+        <div>Currency</div><div>${N(g.macro.fx[r].toFixed(2), 'Exchange rate', 'Value of the local currency against your reporting currency (1.00 at the start). Local revenue and local costs both move with it, so what moves is the dollar value of your margin.', CITIES.filter((x) => x.region === r && x.fx).map((x): Row => [`${x.name} (own currency)`, (g.macro.fx[x.fx!] ?? 1).toFixed(2)]), ['fxRisk'])}</div>
       </div>
       <h3>Price</h3>
       ${inds.map((k) => slider({ label: `${INDUSTRIES[k].short} price vs market`, act: 'price', attrs: `data-region="${r}" data-ind="${k}"`, min: 0.6, max: 1.6, step: 0.02, value: pol.price[k] ?? 1, fmt: 'pct',

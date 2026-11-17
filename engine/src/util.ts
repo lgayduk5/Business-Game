@@ -61,7 +61,7 @@ export const sum = (a: number[]) => a.reduce((s, x) => s + x, 0);
 export const nextUid = (g: GameState) => ++g.uid;
 
 export const yearOf = (turn: number) => 1 + Math.floor(turn / 4);
-export const quarterOf = (turn: number) => (turn % 4) + 1;
+export const quarterOf = (turn: number) => (((turn % 4) + 4) % 4) + 1; // turns before the game starts are negative
 export const turnLabel = (turn: number) => `Y${yearOf(turn)} Q${quarterOf(turn)}`;
 
 // ── formatting

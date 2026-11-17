@@ -3,11 +3,23 @@ import {
   buyBack, covenantStatus, drawRevolver, followOn, founderStake, ipoChecklist, loanRate, money, pct, raiseEquity, repayLoan, setAutoRevolver, setDividend,
   startIPO, takeLoan, ttm, turnLabel, type GameState,
 } from '@engine';
-import { $, N, esc, explain, seg, slider, tip, x2 } from '../kit';
+import { $, N, esc, explain, seg, slider, tip, x2, type Row } from '../kit';
 import { act, on, render, ui } from '../store';
 import { corpTabs, corpViews } from './corp';
 import { ratingTip, stakeTip, valuationTip } from '../tips';
 import { sfx } from '../../audio';
+
+const COUNTRY: Record<string, string> = { US: 'United States', CA: 'Canada', MX: 'Mexico', BR: 'Brazil', GB: 'United Kingdom', NL: 'Netherlands', DE: 'Germany', NG: 'Nigeria', AE: 'UAE', IN: 'India', SG: 'Singapore', CN: 'China', JP: 'Japan', AU: 'Australia' };
+
+/** Tax by country: losses carried forward, and last quarter's taxable profit and tax. */
+function taxRows(g: GameState): Row[] {
+  const c = g.company;
+  const keys = [...new Set([...Object.keys(c.nolBy ?? {}), ...Object.keys(c.taxBy ?? {})])];
+  return keys.map((k): Row => {
+    const t = c.taxBy?.[k];
+    return [COUNTRY[k] ?? k, `${money(c.nolBy?.[k] ?? 0)} carried${t ? ` · last quarter ${money(t.pre)} taxable, ${money(t.tax)} tax` : ''}`];
+  });
+}
 
 function capital(g: GameState): string {
   const c = g.company;
@@ -62,7 +74,7 @@ function capital(g: GameState): string {
         <div>Debt</div><div>${$(c.books.debt, 'Total debt', 'Everything owed to lenders.', [['EBITDA, last 12 months', money(ebitda)], ['Debt / EBITDA', cov.lev > 50 ? 'n/a' : x2(cov.lev, 1) + '×']], ['leverage'])}</div>
         <div>Valuation</div><div>${valuationTip(g)}</div>
         <div>Your stake</div><div>${stakeTip(g)}</div>
-        <div>Tax losses carried forward</div><div>${$(c.nol, 'Tax loss carryforward', 'Past losses you can set against future profits. They shelter up to 80% of each quarter’s taxable income until used up.')}</div>
+        <div>Tax losses carried forward</div><div>${$(c.nol, 'Tax loss carryforward', 'Past losses you can set against future profits in the same country. They shelter up to 80% of each quarter’s taxable income there until used up; a loss in one country does nothing for profits in another.', taxRows(g))}</div>
       </div>
       <div class="field" style="margin-top:12px"><div class="lab"><span>Draw on the credit line automatically when cash runs short</span></div>${seg('autoRev', [['1', 'Yes'], ['0', 'No']], c.autoRevolver ? '1' : '0')}</div>
       ${c.cap.isPublic || c.cap.dividend > 0 ? slider({ label: 'Dividend per quarter', act: 'dividend', min: 0, max: Math.max(100_000, Math.round(Math.max(0, ebitda) / 4 / 10_000) * 10_000), step: 10_000, value: c.cap.dividend, fmt: 'money', help: 'Income investors like a steady dividend and punish a cut.' }) : ''}

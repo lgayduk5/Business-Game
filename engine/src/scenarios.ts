@@ -5,6 +5,7 @@ import { founderStake } from './finance';
 import { startInvestment } from './invest';
 import { news } from './mods';
 import { newGame } from './newgame';
+import { seedHistory } from './history';
 import type { GameState, NewGameOpts, ScenarioDef } from './types';
 import { money, pct } from './util';
 
@@ -123,8 +124,10 @@ export function startScenario(id: string, name: string): GameState {
   const opts: NewGameOpts = { name, industry: s.industry, city: s.city, founder: s.founder, difficulty: s.difficulty, seed: s.seed, mode: 'scenario', scenario: s.id };
   const g = newGame(opts);
   SETUPS[s.setup]?.(g);
+  seedHistory(g);
   g.maxTurns = 100;
   g.counters.scenarioEnd = s.turns;
+  g.counters.startValuation = g.company.valuation;
   g.counters.scenarioStartValuation = g.company.valuation;
   news(g, s.goal.text, 'info');
   return g;
@@ -159,11 +162,12 @@ export function scenarioStatus(g: GameState, turn = g.turn): ScenarioStatus | un
       detail = `Worth ${money(c.valuation)} of the ${money(target)} needed${atEnd ? ' at the deadline' : ''}.`;
       break;
     }
-    case 'revenue': progress = Math.min(1, rev / goal.value); met = rev >= goal.value && c.quarters.length >= 2; detail = `${money(rev)} of ${money(goal.value)} annual revenue.`; break;
+    case 'revenue': progress = Math.min(1, rev / goal.value); met = rev >= goal.value && turn >= 2; detail = `${money(rev)} of ${money(goal.value)} annual revenue.`; break;
     case 'profit': {
-      const qs = c.quarters.slice(-goal.value);
-      const n = qs.length === goal.value && qs.every((q) => q.ni > 0) ? goal.value : c.quarters.slice().reverse().findIndex((q) => q.ni <= 0);
-      const streak = n < 0 ? c.quarters.length : n;
+      const played = c.quarters.filter((q) => q.turn >= 0); // the history before the game starts does not count
+      const qs = played.slice(-goal.value);
+      const n = qs.length === goal.value && qs.every((q) => q.ni > 0) ? goal.value : played.slice().reverse().findIndex((q) => q.ni <= 0);
+      const streak = n < 0 ? played.length : n;
       progress = Math.min(1, streak / goal.value);
       met = streak >= goal.value;
       detail = `${Math.min(streak, goal.value)} of ${goal.value} profitable quarters in a row.`;
@@ -172,7 +176,7 @@ export function scenarioStatus(g: GameState, turn = g.turn): ScenarioStatus | un
     case 'offices': {
       const prof = B.ttm(c, (q) => q.ni) > 0;
       progress = Math.min(1, c.offices.length / goal.value) * (prof ? 1 : 0.9);
-      met = c.offices.length >= goal.value && prof && c.quarters.length >= 4;
+      met = c.offices.length >= goal.value && prof && turn >= 4;
       detail = `${c.offices.length} of ${goal.value} offices; ${prof ? 'profitable' : 'not yet profitable'} over the last year.`;
       break;
     }

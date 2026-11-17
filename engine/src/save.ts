@@ -4,10 +4,11 @@
 // older save, bump SAVE_VERSION and add a step to MIGRATIONS that turns a version N state into N + 1.
 // Steps run in order, so a save from any older version is brought all the way forward. Additions that
 // only need a default value go in fillDefaults(), which runs after the steps on every load.
+import { CITY } from './content';
 import type { GameState } from './types';
 
 export const SAVE_FORMAT = 'going-concern-save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export interface SaveFile { format: string; v: number; saved: number; name: string; turn: number; state: GameState }
 
@@ -40,6 +41,26 @@ export const MIGRATIONS: Record<number, Step> = {
     const outside = cap.holders.reduce((s, h) => s + h.shares, 0);
     const room = Math.max(0, cap.shares - cap.founder);
     if (outside > room + 1 && outside > 0) for (const h of cap.holders) h.shares *= room / outside;
+  },
+  // v2 → v3: tax losses are pooled by country (the old single pool belonged to the home country), Toronto
+  // trades in its own currency, and rivals keep full accounts (EBITDA, working capital, credit, equity raised).
+  2: (g) => {
+    const c = g.company;
+    c.nolBy ??= c.nol > 0 ? { [CITY[c.home]?.country ?? 'US']: c.nol } : {};
+    g.macro.fx.cad ??= 1;
+    for (const r of g.rivals ?? []) {
+      const margin = r.rev > 0 ? Math.max(-0.5, Math.min(0.6, r.profit / r.rev / 0.75)) : 0.1;
+      r.ebitda ??= r.rev * margin;
+      r.ebitdaTTM ??= (r.revTTM ?? []).map((x) => x * margin);
+      r.ar ??= r.rev * 0.5;
+      r.inv ??= 0;
+      r.wc ??= r.ar * 0.6;
+      r.nolBy ??= {};
+      r.spread ??= 3.5;
+      r.rating ??= 'BB';
+      r.raised ??= 0;
+      r.lastRaise ??= -99;
+    }
   },
 };
 

@@ -18,6 +18,9 @@ export const REGION_IDS: RegionId[] = ['nae', 'naw', 'latam', 'europe', 'mea', '
 
 // ───────────────────────── static definitions ─────────────────────────
 
+/** A currency: one per region, plus the Canadian dollar (Toronto shares a region with the US but not a currency). */
+export type FxZone = RegionId | 'cad';
+
 export interface CityDef {
   id: string;
   name: string;
@@ -30,6 +33,8 @@ export interface CityDef {
   rent: number; // rent index
   reg: number; // regulatory burden 0..1
   tax: number; // corporate tax rate
+  country: string; // tax jurisdiction: profits and losses are pooled per country
+  fx?: FxZone; // own currency, when it is not the region's
   talent: number; // talent pool depth 0..100
   talentQ: number; // average skill of the pool
   growth: number; // annual real growth %
@@ -645,7 +650,9 @@ export interface Company {
   cap: CapTable;
   people: Person[];
   investments: ActiveInvestment[];
-  nol: number;
+  nol: number; // tax losses carried forward, all countries
+  nolBy: Record<string, number>; // …by country
+  taxBy?: Record<string, { pre: number; tax: number }>; // last quarter's taxable profit and tax by country
   intel: number;
   quarters: Quarter[]; // most recent last, capped
   pnl: PnL; // accumulating for the current quarter
@@ -696,7 +703,17 @@ export interface Rival {
   grievances: number; // player aggressions not yet answered
   rev: number; // last quarter
   profit: number;
-  revTTM: number[];
+  ebitda: number; // last quarter
+  revTTM: number[]; // last eight quarters
+  ebitdaTTM: number[]; // last eight quarters
+  ar: number; // receivables
+  inv: number; // inventory
+  wc: number; // working capital tied up: receivables + stock − payables − deferred revenue
+  nolBy: Record<string, number>; // tax losses carried forward, by country
+  spread: number; // what lenders charge over the policy rate
+  rating: string;
+  raised: number; // equity raised from investors since the game began
+  lastRaise: number; // turn of the last raise
   valuation: number;
   distress: number;
   known: boolean; // discovered by player
@@ -721,7 +738,7 @@ export interface Macro {
   shock: { gap: number; infl: number; rate: number }; // one-off shocks queued by events
   indIdx: Record<IndustryId, number>;
   regionGap: Record<RegionId, number>;
-  fx: Record<RegionId, number>;
+  fx: Record<FxZone, number>; // value of each currency against the reporting currency
   hist: { gap: number; infl: number; rate: number; sentiment: number }[];
 }
 

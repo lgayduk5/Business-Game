@@ -22,6 +22,8 @@
           "rent": { "type": "number", "description": "Rent index" },
           "reg": { "type": "number", "description": "Regulatory burden 0..1", "minimum": 0, "maximum": 1 },
           "tax": { "type": "number", "description": "Corporate tax rate" },
+          "country": { "type": "string", "description": "Tax jurisdiction (ISO country code). Profits and losses are pooled per country." },
+          "fx": { "type": "string", "enum": ["cad"], "description": "The city's own currency, when it is not the region's" },
           "talent": { "type": "number", "description": "Talent pool depth 0..100" },
           "talentQ": { "type": "number", "description": "Average skill of the pool" },
           "growth": { "type": "number", "description": "Annual real growth %" },
@@ -43,7 +45,7 @@
           "tal": { "type": "object", "description": "Talent specialisation multipliers by industry" },
           "blurb": { "type": "string", "description": "" }
         },
-        "required": ["id", "name", "region", "x", "y", "pop", "income", "wage", "rent", "reg", "tax", "talent", "talentQ", "growth", "risk", "ind"],
+        "required": ["id", "name", "region", "x", "y", "pop", "income", "wage", "rent", "reg", "tax", "talent", "talentQ", "growth", "risk", "ind", "country"],
         "additionalProperties": false
       },
       "description": ""

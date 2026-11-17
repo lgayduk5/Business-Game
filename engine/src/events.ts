@@ -1,7 +1,7 @@
 // Event engine: conditions, context binding, weighted outcomes with stat checks, effects, chains.
 import * as B from './books';
 import { CITIES, CITY, EVENT, EVENTS, INDUSTRIES, INV, REGIONS, hasInventory, isCapital } from './content';
-import { dilute, founderStake, outsideShares, retireShares } from './finance';
+import { addNol, dilute, founderStake, outsideShares, retireShares } from './finance';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news, setFlag } from './mods';
 import { DIFF } from './difficulty';
@@ -370,7 +370,7 @@ export function applyFx(g: GameState, fx: Fx[], ctx: EventCtx): string[] {
       case 'flat': B.expense(co, f[2] ?? 'other', f[1] * 1000 * g.macro.cpi, 'cash'); say(`${money(f[1] * 1000 * g.macro.cpi)} spent`); break;
       case 'capex': B.capex(co, f[1] * S); say(`${money(f[1] * S)} invested in equipment`); break;
       case 'tax': B.tax(co, f[1] * S); say(`${money(f[1] * S)} tax bill`); break;
-      case 'nol': co.nol += f[1] * S; say(`${money(f[1] * S)} of tax losses to carry forward`); break;
+      case 'nol': addNol(co, CITY[co.home].country, f[1] * S); say(`${money(f[1] * S)} of tax losses to carry forward`); break;
       case 'morale': for (const o of targets(g, f[2], ctx)) o.morale = clamp(o.morale + f[1], 0, 100); say(`Morale ${sg(f[1])}${where(g, f[2], ctx)}`); break;
       case 'skill': for (const o of targets(g, f[2], ctx)) for (const r of ROLES) o.staff[r].skill = clamp(o.staff[r].skill + f[1], 15, 95); say(`Skill ${sg(f[1])}${where(g, f[2], ctx)}`); break;
       case 'culture': co.culture = clamp(co.culture + f[1], 0, 100); say(`Culture ${sg(f[1])}`); break;

@@ -3,7 +3,7 @@ import { advise, trackAttribution } from './advisor';
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, REGION_LIST, EVENT, hasInventory } from './content';
 import { drawEvents, queueEvent } from './events';
-import { covenantStatus, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, taxRate } from './finance';
+import { covenantStatus, payTaxes, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
@@ -128,6 +128,7 @@ export function endTurn(g: GameState): void {
   const growing = prevQ && c.quarters.length >= 2 ? prevQ.pnl.revenue / Math.max(1, c.quarters[c.quarters.length - 2].pnl.revenue) - 1 : 0.05;
   let revenue = 0, apSpend = 0, arTarget = 0, defTarget = 0, dpoW = 0;
   const byInd: Quarter['byInd'] = {};
+  const local = new Map<string, LocalProfit>(); // profit earned in each tax jurisdiction
   const slow = 1 + Math.max(0, -g.macro.gap) * 0.05; // customers pay late in downturns
   for (const o of c.offices) {
     const def = INDUSTRIES[o.ind];
@@ -180,6 +181,8 @@ export function endTurn(g: GameState): void {
     arTarget += (res.revenue * def.dso * slow) / 90;
     defTarget += res.revenue * def.deferred;
     dpoW += res.revenue * def.dpo;
+    const lp = local.get(city.country) ?? { rev: 0, pre: 0, taxW: 0 };
+    local.set(city.country, { rev: lp.rev + res.revenue, pre: lp.pre + res.contribution - dep, taxW: lp.taxW + res.revenue * city.tax });
     const bi = (byInd[o.ind] ??= { rev: 0, contrib: 0 });
     bi.rev += res.revenue;
     bi.contrib += res.contribution;
@@ -217,11 +220,7 @@ export function endTurn(g: GameState): void {
   serviceDebt(g);
   const p = c.pnl;
   const pretax = p.revenue - p.cogs - p.sm - p.rd - p.ga - p.other - p.da - p.interest + p.gains;
-  if (pretax > 0) {
-    const use = Math.min(c.nol, pretax * 0.8);
-    c.nol -= use;
-    B.tax(c, (pretax - use) * taxRate(g) * Math.max(0.2, 1 + invSum(g, 'tax') / 100));
-  } else c.nol += -pretax;
+  payTaxes(g, pretax, local);
   if (c.cap.dividend > 0 && c.books.cash > c.cap.dividend) B.dividend(c, c.cap.dividend);
 
   // ── liquidity

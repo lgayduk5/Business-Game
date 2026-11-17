@@ -74,17 +74,18 @@ describe('corporate finance', () => {
   });
   it('loans land on the balance sheet, accrue interest and amortise', () => {
     const g = newGame(opts());
-    const offer = g.loanOffers[0];
+    const offer = g.loanOffers.find((o) => o.kind !== 'revolver')!; // a credit line is not drawn when opened
     expect(offer).toBeTruthy();
     expect(takeLoan(g, offer.id, offer.max).ok).toBe(true);
     expect(g.company.books.debt).toBeGreaterThan(0);
     const twin = newGame(opts());
     endTurn(g);
     endTurn(twin);
+    const q = g.company.quarters[g.company.quarters.length - 1], tq = twin.company.quarters[twin.company.quarters.length - 1];
     // interest is net of what cash earns, so compare with the same game without the loan
-    expect(g.company.quarters[0].pnl.interest).toBeGreaterThan(twin.company.quarters[0].pnl.interest);
-    expect(g.company.quarters[0].cf.debtOut).toBeLessThan(0);
-    expect(Math.abs(g.company.quarters[0].check.bs)).toBeLessThan(1);
+    expect(q.pnl.interest).toBeGreaterThan(tq.pnl.interest);
+    expect(q.cf.debtOut).toBeLessThan(0);
+    expect(Math.abs(q.check.bs)).toBeLessThan(1);
   });
   it('raising the price lowers the share you are heading for', () => {
     const a = newGame(opts({ seed: 'p' })), b = newGame(opts({ seed: 'p' }));

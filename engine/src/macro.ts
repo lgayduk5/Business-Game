@@ -4,10 +4,11 @@
 import { CITIES, CITY, IND_LIST, INDUSTRIES, REGION_LIST } from './content';
 import { DIFF } from './difficulty';
 import { news } from './mods';
-import type { GameState, IndustryId, Macro, RegionId } from './types';
+import type { FxZone, GameState, IndustryId, Macro, RegionId } from './types';
 import { chance, clamp, normal, randInt } from './util';
 
-const FX_VOL: Record<RegionId, number> = { nae: 0, naw: 0, latam: 0.045, europe: 0.02, mea: 0.035, apac: 0.022 };
+const FX_VOL: Record<FxZone, number> = { nae: 0, naw: 0, latam: 0.045, europe: 0.02, mea: 0.035, apac: 0.022, cad: 0.018 };
+export const FX_ZONES = Object.keys(FX_VOL) as FxZone[];
 
 export function newMacro(): Macro {
   const rec = <T>(v: () => T) => Object.fromEntries((['nae', 'naw', 'latam', 'europe', 'mea', 'apac'] as RegionId[]).map((r) => [r, v()])) as Record<RegionId, T>;
@@ -15,7 +16,7 @@ export function newMacro(): Macro {
     gap: 0.5, growth: 2.4, infl: 2.2, rate: 3.0, spread: 1.2, sentiment: 1.0, cpi: 1, wageIdx: 1, commodity: 1, energy: 1, cloud: 1, labor: 1.02, prodIdx: 1,
     phase: 'expansion', recessionLeft: 0, shock: { gap: 0, infl: 0, rate: 0 },
     indIdx: Object.fromEntries(IND_LIST.map((i) => [i.id, 1])) as Record<IndustryId, number>,
-    regionGap: rec(() => 0), fx: rec(() => 1), hist: [],
+    regionGap: rec(() => 0), fx: { ...rec(() => 1), cad: 1 }, hist: [],
   };
 }
 
@@ -48,7 +49,8 @@ export function stepMacro(g: GameState) {
 
   const spreadT = clamp(1.2 - 0.35 * m.gap + (m.recessionLeft > 0 ? 1.5 : 0), 0.5, 8);
   m.spread += 0.5 * (spreadT - m.spread);
-  const sentT = clamp(1 + 0.06 * m.gap - 0.05 * (m.rate - 3), 0.45, 1.7);
+  // (interest rates also act on valuations directly, through the multiple: see valueCompany)
+  const sentT = clamp(1 + 0.06 * m.gap - 0.02 * (m.rate - 3), 0.45, 1.7);
   m.sentiment = clamp(m.sentiment + 0.4 * (sentT - m.sentiment) + (calm ? 0 : normal(g, 0, 0.03)), 0.4, 1.8);
   m.labor = clamp(1 + 0.05 * m.gap, 0.7, 1.35);
   m.growth = 2.2 + 4 * (m.gap - prevGap);
@@ -70,8 +72,8 @@ export function stepMacro(g: GameState) {
   // Regional cycles and currencies.
   for (const r of REGION_LIST) {
     m.regionGap[r] = clamp(0.8 * m.regionGap[r] + noise(0.35), -6, 4);
-    if (FX_VOL[r] > 0) m.fx[r] = clamp(m.fx[r] + 0.05 * (1 - m.fx[r]) + noise(FX_VOL[r]), 0.4, 1.6);
   }
+  for (const z of FX_ZONES) if (FX_VOL[z] > 0) m.fx[z] = clamp((m.fx[z] ?? 1) + 0.05 * (1 - (m.fx[z] ?? 1)) + noise(FX_VOL[z]), 0.4, 1.6);
   for (const c of CITIES) g.cityIdx[c.id] *= 1 + (c.growth + 0.25 * (m.gap + m.regionGap[c.region])) / 400;
   for (const k of Object.keys(g.mk)) g.mk[k].s = clamp(1 + 0.85 * (g.mk[k].s - 1) + noise(0.012), 0.6, 1.5);
 
@@ -106,4 +108,5 @@ export function inputIndex(g: GameState, ind: IndustryId): number {
   }
 }
 
-export const fxOf = (g: GameState, city: string) => g.macro.fx[CITY[city].region];
+/** Value of a city's local currency in the reporting currency. */
+export const fxOf = (g: GameState, city: string) => g.macro.fx[CITY[city].fx ?? CITY[city].region] ?? 1;

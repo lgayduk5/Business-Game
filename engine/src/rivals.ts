@@ -1,9 +1,9 @@
 // Rival companies: generation, quarterly AI, financials on the same economics as the player,
 // escalation and retaliation, and the player's diplomatic options.
 import * as B from './books';
-import { CITIES, CITY, EVENT, INDUSTRIES, PERSONALITY, PERSONALITIES, RIVAL_CEOS, RIVAL_COLORS, RIVAL_NAMES, isCapital } from './content';
+import { CITIES, CITY, EVENT, INDUSTRIES, PERSONALITY, PERSONALITIES, RIVAL_CEOS, RIVAL_COLORS, RIVAL_NAMES, hasInventory, isCapital } from './content';
 import { queueEvent, scaleS, scheduleEvent, SPECIALS } from './events';
-import { dilute, founderStake } from './finance';
+import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, privateValue, scoreCredit, valueCompany, type LocalProfit } from './finance';
 import { fxOf, inputIndex } from './macro';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news } from './mods';
@@ -16,8 +16,10 @@ import { chance, clamp, money, pick, rand, randInt, randRange, shuffle, weighted
 /** How much sales and R&D effort each industry rewards (software = 1). Rivals and bots both use these. */
 export const SALES_INTENSITY: Record<IndustryId, number> = { saas: 1, consulting: 0.8, biotech: 0.5, retail: 0.35, mfg: 0.35, logistics: 0.25, energy: 0.1 };
 export const RD_INTENSITY: Record<IndustryId, number> = { saas: 1, biotech: 1.5, mfg: 0.4, consulting: 0.25, energy: 0.2, logistics: 0.2, retail: 0.1 };
+/** Marketing programmes (advertising, events, brand) as a share of revenue for an average competitor, on top of sales staff. */
+export const MKT_INTENSITY: Record<IndustryId, number> = { saas: 0.1, biotech: 0.08, retail: 0.05, consulting: 0.04, mfg: 0.03, logistics: 0.02, energy: 0.01 };
 
-const wageOf = (g: GameState, city: string, ind: IndustryId, role: 'ops' | 'sales') => INDUSTRIES[ind].wages[role] * 1000 * CITY[city].wage * g.macro.wageIdx * fxOf(g, city);
+const wageOf = (g: GameState, city: string, ind: IndustryId, role: 'ops' | 'sales' | 'admin') => INDUSTRIES[ind].wages[role] * 1000 * CITY[city].wage * g.macro.wageIdx * fxOf(g, city);
 const alive = (g: GameState) => g.rivals.filter((r) => r.alive);
 export const rivalById = (g: GameState, id: number | undefined) => g.rivals.find((r) => r.id === id);
 
@@ -51,7 +53,8 @@ export function generateRivals(g: GameState, n: number): Rival[] {
       id: i, name: names[i], ceo: ceos[i], personality: p.id, color: RIVAL_COLORS[i % RIVAL_COLORS.length], hq: hq.id, industries: [ind], offices: [], cash: 0, debt: 0,
       tech: { [ind]: clamp(def.startTech + 8 + (p.id === 'innovator' ? 12 : 0) + randRange(g, -4, 4) + (d.rivalSize - 1) * 6, 10, 90) },
       brand: 0, eff: p.eff * d.rivalEff, alive: true, isPublic: false, relation: randInt(g, -10, 10), hostility: p.aggression * d.aggression > 0.9 ? 2 : 1, pactUntil: -1,
-      lastMove: -9, grievances: 0, rev: 0, profit: 0, revTTM: [], valuation: 0, distress: 0, known: false,
+      lastMove: -9, grievances: 0, rev: 0, profit: 0, ebitda: 0, revTTM: [], ebitdaTTM: [], ar: 0, inv: 0, wc: 0, nolBy: {}, spread: 3.5, rating: 'BB', raised: 0, lastRaise: -99,
+      valuation: 0, distress: 0, known: false,
     };
     g.rivals.push(r); // so market lookups see it while we build
     const count = clamp(Math.round(2 * d.rivalSize + randRange(g, 0, 1.5) + (p.id === 'expander' ? 1 : 0)), 1, 8);
@@ -71,13 +74,124 @@ export function generateRivals(g: GameState, n: number): Rival[] {
     r.cash = annual * randRange(g, 0.3, 0.6);
     r.debt = annual * p.leverage * 0.5;
     r.brand = clamp(18 + 9 * r.offices.length ** 0.7 + randRange(g, 0, 8), 0, 90);
-    r.rev = annual / 4;
-    r.revTTM = [annual / 4];
-    r.valuation = annual * def.revMult + r.cash - r.debt;
+    seedRivalAccounts(g, r);
     rivals.push(r);
   });
   g.rivals = [];
   return rivals;
+}
+
+// ───────────────────────── rival accounts ─────────────────────────
+// Rivals run on the player's economics: the same cost lines, working capital, country-by-country tax,
+// the same valuation function, and the same lenders and investors. Nothing is free.
+
+export interface RivalQuarter {
+  rev: number;
+  opex: number; // office costs: materials, payroll (operations, sales and admin), hiring, rent, facilities
+  overhead: number; // head office, the same formula as the player's
+  execs: number;
+  rd: number;
+  ebitda: number;
+  da: number; // plant wearing out (replaced as it goes: capex equals depreciation)
+  interest: number;
+  pretax: number;
+  ar: number;
+  inv: number;
+  ap: number;
+  deferred: number;
+  staff: number;
+  local: Map<string, LocalProfit>;
+  mix: Partial<Record<IndustryId, number>>;
+}
+
+/** One quarter of a rival's accounts at today's prices and shares. Changes nothing. */
+export function rivalQuarter(g: GameState, r: Rival): RivalQuarter {
+  const d = DIFF[g.difficulty];
+  const m = g.macro;
+  const pers = PERSONALITY[r.personality];
+  const slow = 1 + Math.max(0, -m.gap) * 0.05; // customers pay late in downturns
+  let rev = 0, opex = 0, da = 0, staff = 0, ar = 0, inv = 0, ap = 0, deferred = 0;
+  const local = new Map<string, LocalProfit>();
+  const mix: Partial<Record<IndustryId, number>> = {};
+  for (const ro of r.offices) {
+    const def = INDUSTRIES[ro.ind];
+    const city = CITY[ro.city];
+    const D = marketUnits(g, ro.city, ro.ind);
+    const sold = Math.min(ro.share * D, ro.cap);
+    const orev = sold * localPrice(g, ro.city, ro.ind) * ro.price;
+    const fx = fxOf(g, ro.city);
+    const loc = m.cpi * fx;
+    const materials = sold * 1000 * def.varCost * inputIndex(g, ro.ind) * fx * city.wage ** def.local;
+    const ops = ro.cap / (def.opsOut * (m.prodIdx ?? 1));
+    const reps = ro.sales * (D / def.salesCover);
+    const admin = (ops + reps) / 14;
+    const pay = ops * wageOf(g, ro.city, ro.ind, 'ops') + reps * wageOf(g, ro.city, ro.ind, 'sales') + admin * wageOf(g, ro.city, ro.ind, 'admin');
+    const hiring = 0.028 * pay; // replacing leavers and training, as the player pays
+    const rent = (ops + reps + admin) * def.seatRent * 1000 * city.rent * loc;
+    const facility = ro.cap * def.fixedPerCap * 1000 * (0.4 + 0.6 * city.rent) * loc;
+    const marketing = MKT_INTENSITY[ro.ind] * (pers.sales / 0.2) * d.rivalSales * orev;
+    const cost = (materials + pay + hiring + rent + facility + marketing) * r.eff;
+    const dep = ((ro.cap * def.capPerUnit * 1000 * m.cpi) / def.deprQ) * r.eff;
+    rev += orev;
+    opex += cost;
+    da += dep;
+    staff += ops + reps + admin;
+    ar += (orev * def.dso * slow) / 90;
+    deferred += orev * def.deferred;
+    if (hasInventory(ro.ind)) inv += 0.3 * materials * r.eff;
+    ap += ((cost - pay * r.eff) * def.dpo) / 90;
+    const lp = local.get(city.country) ?? { rev: 0, pre: 0, taxW: 0 };
+    local.set(city.country, { rev: lp.rev + orev, pre: lp.pre + orev - cost - dep, taxW: lp.taxW + orev * city.tax });
+    mix[ro.ind] = (mix[ro.ind] ?? 0) + orev;
+  }
+  for (const k of Object.keys(mix) as IndustryId[]) mix[k] = rev > 0 ? mix[k]! / rev : 1 / Object.keys(mix).length;
+  if (!Object.keys(mix).length) mix[r.industries[0]] = 1;
+  const primary = r.industries[0];
+  const overhead = 25_000 * m.cpi * clamp(staff / 50, 0.2, 1) + 0.012 * rev + (r.isPublic ? 350_000 * m.cpi + 0.003 * rev : 0);
+  // a leadership team at head office and a general manager in every office, paid as the player's are
+  const execs = (clamp(2 + r.offices.length / 2, 2, 6) * 2 * CITY[r.hq].wage * fxOf(g, r.hq) + r.offices.reduce((a, ro) => a + 1.2 * CITY[ro.city].wage * fxOf(g, ro.city), 0)) * INDUSTRIES[primary].wages.admin * 1000 * 1.18 * m.wageIdx;
+  const rd = pers.rd * d.rivalRd * rev * (r.industries.reduce((a, k) => a + RD_INTENSITY[k], 0) / r.industries.length);
+  const ebitda = rev - opex - overhead - execs - rd;
+  ap += ((overhead + rd) * INDUSTRIES[primary].dpo) / 90;
+  const interest = (r.debt * (m.rate + r.spread)) / 400 - (Math.max(0, r.cash) * Math.max(0, m.rate - 1)) / 400;
+  return { rev, opex, overhead, execs, rd, ebitda, da, interest, pretax: ebitda - da - interest, ar, inv, ap, deferred, staff, local, mix };
+}
+
+const sum4 = (xs: number[]) => (xs.length ? (xs.slice(-4).reduce((a, b) => a + b, 0) * 4) / Math.min(4, xs.length) : 0);
+export const rivalGrowth = (r: Rival) => growthOf(r.revTTM);
+
+/** A rival valued exactly as the player is: the same function, the same private-company discount. */
+export function rivalValuation(g: GameState, r: Rival, mix?: Partial<Record<IndustryId, number>>): { equity: number; parts: Record<string, number> } {
+  const ind = r.industries[0];
+  const plant = r.offices.reduce((s, ro) => s + ro.cap * INDUSTRIES[ro.ind].capPerUnit * 1000 * g.macro.cpi, 0) * 0.5;
+  const v = valueCompany({
+    rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), growth: rivalGrowth(r), mix: mix ?? rivalQuarter(g, r).mix,
+    tech: r.tech[ind] ?? INDUSTRIES[ind].startTech, brand: r.brand, reputation: 50, sentiment: g.macro.sentiment, rate: g.macro.rate,
+    cash: r.cash, debt: r.debt, assets: 0.5 * plant + 0.6 * r.ar + 0.4 * r.inv,
+  });
+  return { equity: r.isPublic ? v.equity : privateValue(v.equity, r.cash, r.debt), parts: v.parts };
+}
+
+/** How lenders see a rival. */
+export const rivalCredit = (g: GameState, r: Rival) =>
+  scoreCredit({ rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), interest: (r.debt * (g.macro.rate + r.spread)) / 100, debt: r.debt, cash: r.cash, breaches: 0, cfo: 0.5 });
+
+/** An established rival has a year of history and the working capital its trade needs. */
+function seedRivalAccounts(g: GameState, r: Rival) {
+  const q = rivalQuarter(g, r);
+  const back = [0.92, 0.946, 0.973, 1]; // about 11% a year of growth behind it
+  r.rev = q.rev;
+  r.ebitda = q.ebitda;
+  r.profit = q.pretax > 0 ? q.pretax * 0.75 : q.pretax;
+  r.revTTM = back.map((f) => q.rev * f);
+  r.ebitdaTTM = back.map((f) => q.ebitda * f);
+  r.ar = q.ar;
+  r.inv = q.inv;
+  r.wc = q.ar + q.inv - q.ap - q.deferred;
+  const cr = rivalCredit(g, r);
+  r.rating = cr.rating;
+  r.spread = cr.spread + g.macro.spread * 0.5;
+  r.valuation = rivalValuation(g, r, q.mix).equity;
 }
 
 /** What the player can see of a rival. */
@@ -159,35 +273,39 @@ export function rivalsDecide(g: GameState) {
         }
       }
     }
-    // financing
-    const annual = Math.max(1, r.rev * 4);
-    if (r.cash < costs * 0.5 && r.debt / annual < pers.leverage * 1.5 + 0.3 && m.phase !== 'recession') {
-      const amt = annual * 0.15;
-      r.debt += amt;
-      r.cash += amt;
+    // financing: the same lenders and investors the player faces
+    const credit = rivalCredit(g, r);
+    r.rating = credit.rating;
+    r.spread = Math.max(0.4, credit.spread + m.spread * 0.5);
+    if (r.cash < costs * 0.75) {
+      // borrow against receivables, stock and cash flow, as far as lenders allow and the personality will go
+      const cap = debtCapacity(g, { ar: r.ar, inventory: r.inv, ebitda: sum4(r.ebitdaTTM), debt: r.debt, maxLev: credit.maxLev });
+      const room = Math.max(0, (cap.base + cap.cashFlow + r.debt) * clamp(0.4 + 0.6 * pers.leverage, 0.4, 1) - r.debt);
+      const amt = Math.min(room, costs * 1.5 - r.cash);
+      if (amt > costs * 0.05) {
+        r.debt += amt;
+        r.cash += amt * 0.99; // arrangement fee
+      }
+      // still short: sell shares, if investors want them
+      const runway = r.cash / costs;
+      const appetite = equityAppetite(m.sentiment, rivalGrowth(r), runway) + (r.personality === 'disruptor' ? 0.35 : r.personality === 'innovator' ? 0.15 : 0);
+      if (r.cash < costs * 0.75 && g.turn - r.lastRaise >= 3 && appetite >= 0.2 && r.valuation > 0) {
+        const pct = m.sentiment < 0.9 ? 0.3 : 0.22;
+        const raise = ((r.valuation * pct) / (1 - pct)) * 0.96;
+        r.cash += raise;
+        r.raised += raise;
+        r.lastRaise = g.turn;
+        if (r.known) news(g, `${r.name} has raised ${money(raise)} from investors.`, 'rival');
+      }
     } else if (r.cash > costs * 4 && r.debt > 0) {
       const pay = Math.min(r.debt, r.cash - costs * 3);
       r.debt -= pay;
       r.cash -= pay;
+    } else if (r.debt <= 0 && r.cash > costs * (r.personality === 'conservative' ? 8 : 5)) {
+      // surplus cash goes back to the owners (dividends or buybacks), as boards make companies do
+      r.cash -= 0.25 * (r.cash - costs * (r.personality === 'conservative' ? 8 : 5));
     }
-    if (r.personality === 'disruptor' && r.cash < costs && m.sentiment > 0.85 && chance(g, 0.5)) r.cash += annual * 0.4; // another funding round
   }
-}
-
-function officeFinancials(g: GameState, r: Rival, ro: RivalOffice): { rev: number; cost: number } {
-  const def = INDUSTRIES[ro.ind];
-  const city = CITY[ro.city];
-  const D = marketUnits(g, ro.city, ro.ind);
-  const sold = Math.min(ro.share * D, ro.cap);
-  const rev = sold * localPrice(g, ro.city, ro.ind) * ro.price;
-  const loc = g.macro.cpi * fxOf(g, ro.city);
-  const variable = sold * 1000 * def.varCost * inputIndex(g, ro.ind) * fxOf(g, ro.city) * city.wage ** def.local;
-  const staff = ro.cap / (def.opsOut * (g.macro.prodIdx ?? 1));
-  const labour = staff * wageOf(g, ro.city, ro.ind, 'ops');
-  const sm = ro.sales * (D / def.salesCover) * wageOf(g, ro.city, ro.ind, 'sales');
-  const fixed = ro.cap * def.fixedPerCap * 1000 * (0.4 + 0.6 * city.rent) * loc + staff * 1.3 * def.seatRent * 1000 * city.rent * loc;
-  const upkeep = (ro.cap * def.capPerUnit * 1000 * g.macro.cpi) / def.deprQ;
-  return { rev, cost: (variable + labour + sm + fixed + upkeep) * r.eff };
 }
 
 function absorb(g: GameState, buyer: Rival, target: Rival) {
@@ -200,6 +318,10 @@ function absorb(g: GameState, buyer: Rival, target: Rival) {
   }
   for (const k of target.industries) if (!buyer.industries.includes(k)) buyer.industries.push(k);
   for (const k of target.industries) buyer.tech[k] = Math.max(buyer.tech[k] ?? 0, target.tech[k] ?? 0);
+  buyer.cash += Math.max(0, target.cash);
+  buyer.ar += target.ar;
+  buyer.inv += target.inv;
+  buyer.wc += target.wc;
   target.offices = [];
   target.alive = false;
   target.fate = `Acquired by ${buyer.name}`;
@@ -220,33 +342,32 @@ export function rivalsFinancials(g: GameState) {
   let acted = g.queue.some((e) => EVENT[e.id]?.cat === 'rival');
   for (const r of alive(g)) {
     const pers = PERSONALITY[r.personality];
-    let rev = 0, cost = 0;
-    for (const ro of r.offices) {
-      const f = officeFinancials(g, r, ro);
-      rev += f.rev;
-      cost += f.cost;
-    }
-    const rd = pers.rd * DIFF[g.difficulty].rivalRd * rev * (r.industries.reduce((a, k) => a + RD_INTENSITY[k], 0) / r.industries.length);
-    const pre = rev - cost - 0.06 * rev - rd - (r.debt * (m.rate + 3.5 + m.spread)) / 400;
-    r.profit = pre > 0 ? pre * 0.75 : pre;
-    r.rev = rev;
-    r.cash += r.profit;
-    r.revTTM.push(rev);
+    const q = rivalQuarter(g, r);
+    const tax = countryTax(q.local, q.pretax, r.nolBy, { country: CITY[r.hq].country, rate: CITY[r.hq].tax });
+    r.nolBy = tax.nolBy;
+    r.profit = q.pretax - tax.tax;
+    r.rev = q.rev;
+    r.ebitda = q.ebitda;
+    // working capital moves with the business: growth ties up cash, shrinking releases it
+    const wc = q.ar + q.inv - q.ap - q.deferred;
+    r.cash += r.profit - (wc - r.wc); // depreciation is spent again on replacing worn plant
+    r.wc = wc;
+    r.ar = q.ar;
+    r.inv = q.inv;
+    r.revTTM.push(q.rev);
+    r.ebitdaTTM.push(q.ebitda);
     if (r.revTTM.length > 8) r.revTTM.shift();
+    if (r.ebitdaTTM.length > 8) r.ebitdaTTM.shift();
     for (const k of r.industries) {
       const def = INDUSTRIES[k];
-      const rp = rd / r.industries.length / (def.rdCost * 1000 * m.cpi);
+      const rp = q.rd / r.industries.length / (def.rdCost * 1000 * m.cpi);
       const target = def.startTech - 6 + 27 * Math.min(1, def.techGain + 0.1) * Math.log10(1 + rp) + (r.personality === 'innovator' ? 6 : 0);
       const t = r.tech[k] ?? def.startTech;
       r.tech[k] = clamp(t < target ? t + 0.12 * Math.max(def.techGain, 0.5) * (target - t) : t - Math.min(def.techDecay, 0.15 * (t - target)), 5, 100);
     }
     const avgShare = r.offices.length ? r.offices.reduce((s, o) => s + o.share, 0) / r.offices.length : 0;
     r.brand += 0.05 * (clamp(18 + 9 * r.offices.length ** 0.7 + 120 * avgShare, 0, 90) - r.brand);
-    const last4 = r.revTTM.slice(-4).reduce((a, b) => a + b, 0) * (4 / Math.min(4, r.revTTM.length));
-    const prev4 = r.revTTM.length >= 8 ? r.revTTM.slice(0, 4).reduce((a, b) => a + b, 0) : last4 / 1.1;
-    const growth = clamp(last4 / Math.max(1, prev4) - 1, -0.5, 1.5);
-    const margin = rev > 0 ? r.profit / rev : -0.5;
-    r.valuation = Math.max(0, last4 * INDUSTRIES[r.industries[0]].revMult * clamp(1 + 1.6 * (growth - 0.1), 0.4, 3) * clamp(1 + 2 * (margin - INDUSTRIES[r.industries[0]].targetMargin * 0.5), 0.35, 1.8) * m.sentiment + r.cash - r.debt);
+    r.valuation = rivalValuation(g, r, q.mix).equity;
     r.isPublic = r.isPublic || r.valuation > 1e9 * m.cpi;
     r.known = rivalKnown(g, r);
     r.hostility = clamp(r.hostility - 0.12, 0, 10);

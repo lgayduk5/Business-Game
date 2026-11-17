@@ -27,15 +27,24 @@ export function cashTip(g: GameState): string {
 export function valuationTip(g: GameState): string {
   const c = g.company;
   const v = c.valParts;
+  const w = v.ebitdaW ?? 0;
   const rows: Row[] = [
     ['Revenue, last 12 months', money(v.rev ?? 0)],
     ['× industry multiple', x2(v.mult ?? 0, 1) + '×'],
     ['× growth factor', `${x2(v.growthF ?? 1)} (growth ${pct(v.growth ?? 0)})`],
     ['× margin factor', `${x2(v.marginF ?? 1)} (EBITDA ${pct(v.margin ?? 0)} vs ${pct(v.target ?? 0)} typical)`],
+    ['= priced on revenue', money(v.byRev ?? 0)],
+  ];
+  if (w > 0) {
+    rows.push(['EBITDA, last 12 months', money(v.ebitda ?? 0)], ['× EBITDA multiple × growth', `${x2(v.ebitdaMult ?? 0, 1)}× × ${x2(v.growthF ?? 1)}`], ['= priced on profits', money(v.byEbitda ?? 0)],
+      [`Blend: growth below 25% shifts investors to profits`, `${pct(1 - w)} revenue / ${pct(w)} profits`]);
+  }
+  rows.push(
     ['× tech, brand, reputation', x2(v.qualityF ?? 1)],
     ['× market sentiment', x2(v.sentiment ?? 1)],
+    ['× interest rates', `${x2(v.rateF ?? 1)} (policy rate ${(v.rate ?? 3).toFixed(2)}%)`],
     ['Operating value', money(v.ops ?? 0), true],
-  ];
+  );
   if ((v.pipeline ?? 0) > 0) rows.push(['+ R&D pipeline (risk-adjusted)', money(v.pipeline)]);
   if ((v.ev ?? 0) > (v.ops ?? 0) + (v.pipeline ?? 0) + 1) rows.push(['Floor: promise or asset value', money(v.ev)]);
   rows.push(['+ cash', money(v.cash ?? 0)], ['− debt', money(v.debt ?? 0)]);
@@ -43,7 +52,7 @@ export function valuationTip(g: GameState): string {
   else rows.push(['× private-company discount', '0.80']);
   rows.push([c.cap.isPublic ? 'Market capitalisation' : 'Equity value', money(c.valuation), true]);
   return $(c.valuation, c.cap.isPublic ? 'Market capitalisation' : 'Company valuation',
-    c.cap.isPublic ? 'Share price × shares outstanding. The market pays for growth and margins, and punishes missed expectations.' : 'What investors would pay for all the shares today. Driven by revenue, how fast it grows and how much of it you keep.',
+    c.cap.isPublic ? 'Share price × shares outstanding. The market pays for growth and margins, and punishes missed expectations.' : 'What investors would pay for all the shares today. Fast growers are priced on revenue; as growth slows, on profits. Higher interest rates lower every multiple.',
     rows, ['valuation', 'multiple', 'ebitda']);
 }
 

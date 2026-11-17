@@ -7,6 +7,7 @@ import { market, marketUnits } from './market';
 import { prepOffice } from './people';
 import { refreshCandidates } from './actions';
 import { generateRivals } from './rivals';
+import { seedHistory } from './history';
 import { DIFF } from './difficulty';
 import { SAVE_VERSION } from './save';
 import type { ExecRole, GameState, IndustryId, NewGameOpts, Office, Person, RegionId, RegionPolicy, VictoryId } from './types';
@@ -61,7 +62,7 @@ export function newGame(opts: NewGameOpts): GameState {
       regionBrand: perRegion(() => 0), policy: perRegion<RegionPolicy>(() => ({ price: {}, marketing: 0, supply: 'balanced' })),
       books: emptyBooks(), open: emptyBooks(), techInfo: {}, loans: [],
       cap: { shares: 10_000_000, founder: 10_000_000 * f.equity, holders: [], isPublic: false, ipoTurn: -1, ipoStage: 0, price: 0, premium: 1, lastRoundTurn: -99, lastPost: 0, rounds: 0, expectedEps: 0, dividend: 0, boardPressure: 0 },
-      people: [], investments: [], nol: 0, intel: 0, quarters: [], pnl: emptyPnL(), cfTags: emptyTags(), valuation: 0, valParts: {}, rating: 'B', ratingScore: 40,
+      people: [], investments: [], nol: 0, nolBy: {}, intel: 0, quarters: [], pnl: emptyPnL(), cfTags: emptyTags(), valuation: 0, valParts: {}, rating: 'B', ratingScore: 40,
       autoRevolver: true, negCashTurns: 0, moonshots: 0, diligence: {},
     },
     discovered: {}, scouting: [], mk: {}, cityIdx: Object.fromEntries(CITIES.map((c) => [c.id, 1])), macro: newMacro(), rivals: [],
@@ -102,7 +103,9 @@ export function newGame(opts: NewGameOpts): GameState {
   const capUnits = prepOffice(g, o).capacity;
   o.share = Math.min(0.12, (0.85 * capUnits) / D);
   o.lastDemand = o.share * D;
-  revalue(g);
+  // a year of trading history (a scenario seeds it after rearranging the starting position)
+  if (opts.mode === 'scenario') revalue(g);
+  else seedHistory(g);
   g.counters.startValuation = c.valuation;
   g.counters.lastSentiment = g.macro.sentiment;
   refreshCandidates(g);
