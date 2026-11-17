@@ -10,6 +10,7 @@ export * from './market';
 export * from './people';
 export * from './finance';
 export * from './actions';
+export * from './difficulty';
 export * from './newgame';
 export * from './turn';
 export * from './invest';

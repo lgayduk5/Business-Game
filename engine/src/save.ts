@@ -1,8 +1,13 @@
-// Save files: versioned JSON with light validation and forward migration.
+// Save files: versioned JSON with light validation and numbered, forward-only migrations.
+//
+// `GameState.v` is the schema version of the state itself. When a change to GameState would break an
+// older save, bump SAVE_VERSION and add a step to MIGRATIONS that turns a version N state into N + 1.
+// Steps run in order, so a save from any older version is brought all the way forward. Additions that
+// only need a default value go in fillDefaults(), which runs after the steps on every load.
 import type { GameState } from './types';
 
 export const SAVE_FORMAT = 'going-concern-save';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface SaveFile { format: string; v: number; saved: number; name: string; turn: number; state: GameState }
 
@@ -20,14 +25,40 @@ export function fromSaveFile(text: string): GameState {
   }
   const f = data as Partial<SaveFile>;
   if (!f || f.format !== SAVE_FORMAT || typeof f.state !== 'object' || !f.state) throw new Error('That file is not a Going Concern save.');
-  if ((f.v ?? 0) > SAVE_VERSION) throw new Error('This save comes from a newer version of the game. Update the app and try again.');
+  if ((f.v ?? 0) > SAVE_VERSION || ((f.state as GameState).v ?? 0) > SAVE_VERSION) throw new Error('This save comes from a newer version of the game. Update the app and try again.');
   return migrate(f.state as GameState);
 }
 
-/** Fill anything an older save is missing, so old games keep loading as the game grows. */
+type Step = (g: GameState) => void;
+/** MIGRATIONS[n] upgrades a version-n state to version n + 1. */
+export const MIGRATIONS: Record<number, Step> = {
+  // v1 → v2: buybacks used to retire shares without taking them from any holder, so older cap tables
+  // can add up to more than the share count. Scale the outside holders down to fit.
+  1: (g) => {
+    const cap = g.company?.cap;
+    if (!cap) return;
+    const outside = cap.holders.reduce((s, h) => s + h.shares, 0);
+    const room = Math.max(0, cap.shares - cap.founder);
+    if (outside > room + 1 && outside > 0) for (const h of cap.holders) h.shares *= room / outside;
+  },
+};
+
+/** Bring a state from any older version up to SAVE_VERSION, then fill anything still missing. */
 export function migrate(g: GameState): GameState {
   const need = ['company', 'macro', 'rivals', 'turn', 'rng', 'seed'] as const;
   for (const k of need) if (g[k] === undefined) throw new Error(`The save is damaged (missing ${k}).`);
+  let v = Math.max(1, g.v ?? 1);
+  while (v < SAVE_VERSION) {
+    MIGRATIONS[v]?.(g);
+    v++;
+  }
+  g.v = v;
+  fillDefaults(g);
+  return g;
+}
+
+/** Defaults for fields added after a save was written. Safe to run on any state, any number of times. */
+export function fillDefaults(g: GameState): GameState {
   g.counters ??= {};
   g.streaks ??= {};
   g.flags ??= {};
@@ -46,6 +77,5 @@ export function migrate(g: GameState): GameState {
   g.company.open ??= { ...g.company.books };
   g.company.diligence ??= {};
   g.macro.prodIdx ??= 1;
-  g.v = Math.max(g.v ?? 1, 1);
   return g;
 }

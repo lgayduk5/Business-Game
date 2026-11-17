@@ -10,6 +10,7 @@
       "WebWorker"
     ],
     "strict": true,
+    "noUnusedLocals": true,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,

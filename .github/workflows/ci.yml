@@ -3,6 +3,7 @@ name: Test and deploy
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,15 +25,35 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm test
+      # Balance: a reduced AI-vs-AI grid that fails on red flags (probes beating honest play,
+      # goal shortcuts, Easy too hard, difficulty out of order, industries too far apart)…
+      - run: npm run sim:ci
+      # …and the full report must have been regenerated for the engine and content in this commit.
+      - run: npm run sim:check
       - run: npm run build
+      # Browser smoke test at phone and desktop sizes, including a check that no screen scrolls sideways
+      # and that the installed app works offline. Uses the runner's own Chrome.
+      - run: npm install --no-save playwright@1.49.1
+      - run: npm run smoke
+        env:
+          SMOKE_CHANNEL: chrome
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: shots/
+          if-no-files-found: ignore
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: dist
 
   # Needs GitHub Pages enabled once: Settings → Pages → Source: "GitHub Actions".
   deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     environment:

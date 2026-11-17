@@ -1,4 +1,4 @@
-import { CITIES, EVENT, IND_LIST, endTurn, evalCond, newGame, raiseEquity, resolveEvent, setReqs, staffingHint, type GameState, type NewGameOpts } from '../engine/src/index';
+import { CITIES, EVENT, IND_LIST, endTurn, evalCond, raiseEquity, resolveEvent, setReqs, staffingHint, type GameState, type NewGameOpts } from '../engine/src/index';
 
 export function opts(over: Partial<NewGameOpts> = {}): NewGameOpts {
   return { name: 'Testco', industry: IND_LIST[0].id, city: CITIES[0].id, founder: 'engineer', difficulty: 'normal', seed: 'test-seed', mode: 'standard', ...over };

@@ -2,6 +2,7 @@ import './styles.css';
 import * as engine from '@engine';
 import { initEvents, render, setView, ui } from './ui/store';
 import { shell } from './ui/shell';
+import { registerServiceWorker } from './ui/update';
 import { title, wizard } from './ui/screens/title';
 import './ui/screens/hq';
 import './ui/screens/map';
@@ -23,9 +24,8 @@ setView(() => (ui.screen === 'game' && ui.g ? shell(ui.g) : ui.screen === 'new' 
 initEvents();
 render(false);
 
-// Offline support: the service worker precaches the whole game on first visit.
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => void navigator.serviceWorker.register('./sw.js').catch(() => undefined));
-}
+// Offline support: the service worker precaches the whole game on first visit, and offers a reload
+// when a new build has been downloaded.
+if (import.meta.env.PROD) registerServiceWorker();
 // Expose state for automated checks and curious players.
 (window as any).__gc = { ui, render, engine };

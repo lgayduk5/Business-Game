@@ -45,7 +45,6 @@ function png(size, rgba) {
   ]);
 }
 
-const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const PAPER = [247, 250, 244];
 const BAR = [222, 237, 224];
 const INK = [21, 34, 56];

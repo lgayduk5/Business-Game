@@ -3,7 +3,7 @@ import {
   CITIES, CITY, INDUSTRIES, REGIONS, localPrice, marketUnits, money, openOffice, openOfficeCost, pct, scout, scoutCost,
   type CityDef, type GameState, type IndustryId,
 } from '@engine';
-import { $, N, P, esc, explain, tip, type Row } from '../kit';
+import { $, N, esc } from '../kit';
 import { act, afterRender, on, render, ui } from '../store';
 import { screens } from '../shell';
 import { sfx } from '../../audio';

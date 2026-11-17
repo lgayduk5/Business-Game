@@ -1,6 +1,8 @@
-// Browser smoke test: plays the first turns at phone and desktop sizes, saves screenshots,
-// fails on any console error. Needs Playwright and Chrome on the machine (not a project dependency):
-//   npm run build && node scripts/ui-smoke.mjs
+// Browser smoke test: plays the first turns at phone and desktop sizes, saves screenshots, and fails on
+// any console error, on any screen that scrolls sideways, or if a slider loses keyboard focus.
+// Needs Playwright on the machine (not a project dependency):
+//   npm run build && node scripts/ui-smoke.mjs            (Playwright's own Chromium)
+//   SMOKE_CHANNEL=chrome node scripts/ui-smoke.mjs        (the installed Google Chrome, as CI does)
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
@@ -13,7 +15,7 @@ const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--stric
 await new Promise((r) => setTimeout(r, 2500));
 mkdirSync('shots', { recursive: true });
 const errors = [];
-const browser = await chromium.launch({ channel: 'chrome', args: ['--no-sandbox'] });
+const browser = await chromium.launch({ channel: process.env.SMOKE_CHANNEL || undefined, args: ['--no-sandbox'] });
 const only = process.argv[2];
 try {
   for (const [name, vp] of [['phone', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 860 }]]) {
@@ -22,7 +24,20 @@ try {
     const page = await ctx.newPage();
     page.on('console', (m) => m.type() === 'error' && errors.push(`${name}: ${m.text()}`));
     page.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
-    const shot = (n) => page.screenshot({ path: `shots/${name}-${n}.png`, fullPage: false });
+    // Every screenshot also checks that nothing pushes the page wider than the screen.
+    const shot = async (n) => {
+      const over = await page.evaluate(() => {
+        const w = document.documentElement.clientWidth;
+        if (document.documentElement.scrollWidth <= w + 1) return '';
+        const culprit = [...document.querySelectorAll('body *')].find((el) => {
+          const r = el.getBoundingClientRect();
+          return r.right > w + 1 && !el.closest('.scrollx, .mapwrap, .tabs, .toast, .update, .tipbox') && el.children.length === 0;
+        });
+        return `${document.documentElement.scrollWidth}px wide on a ${w}px screen${culprit ? ` (${culprit.tagName.toLowerCase()}.${[...culprit.classList].join('.')}: "${(culprit.textContent ?? '').trim().slice(0, 50)}")` : ''}`;
+      });
+      if (over) errors.push(`${name}: ${n} overflows: ${over}`);
+      await page.screenshot({ path: `shots/${name}-${n}.png`, fullPage: false });
+    };
     const tap = async (sel) => { await page.locator(sel).first().click(); await page.waitForTimeout(120); };
     await page.goto(`http://localhost:${PORT}/`);
     await page.waitForSelector('.title');
@@ -32,6 +47,7 @@ try {
     await tap('[data-k=city]'); await shot('03-city'); await tap('[data-a=wzNext]');
     await tap('[data-k=founder]'); await tap('[data-a=wzNext]');
     await shot('04-setup'); await tap('[data-a=wzNext]');
+    await shot('04b-recap'); await tap('[data-a=wzNext]');
     await page.waitForSelector('.shell');
     await shot('05-hq-start');
     for (let i = 0; i < 3; i++) {
@@ -53,6 +69,18 @@ try {
       await tap('.modal [data-a=choose]'); await shot('07b-event-result'); await tap('.modal [data-a=eventDone]');
     }
     await page.locator('.n').first().click(); await page.waitForTimeout(150); await shot('08-tooltip');
+    await page.mouse.click(5, 300);
+    // keyboard: five steps on the price slider must move it five steps (focus survives each re-render)
+    await tap('.tabs [data-v=ops]');
+    const slider = page.locator('input[data-c=price]').first();
+    if (await slider.count()) {
+      const before = Number(await slider.inputValue());
+      await slider.focus();
+      for (let i = 0; i < 5; i++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(60); }
+      const after = Number(await page.locator('input[data-c=price]').first().inputValue());
+      const focused = await page.evaluate(() => document.activeElement?.getAttribute('data-c'));
+      if (Math.abs(after - before - 0.1) > 0.001 || focused !== 'price') errors.push(`${name}: price slider moved from ${before} to ${after} after five arrow presses (focus on ${focused})`);
+    }
     await page.mouse.click(5, 300);
     for (const t of ['map', 'ops', 'corp', 'intel']) {
       if (!(await page.locator(`.tabs [data-v=${t}]`).count())) continue;
@@ -93,7 +121,7 @@ try {
     await page.reload();
     await page.waitForSelector('.title', { timeout: 10000 });
     await page.locator('[data-a=newGame]').click();
-    for (let i = 0; i < 4; i++) { const b = page.locator('.choice').first(); if (await b.count()) await b.click(); await page.locator('[data-a=wzNext]').click(); }
+    for (let i = 0; i < 5; i++) { const b = page.locator('.wizard .choice').first(); if (await b.count()) await b.click(); await page.locator('[data-a=wzNext]').click(); }
     await page.waitForSelector('.shell');
     await page.locator('[data-a=endTurn]').click();
     await page.waitForSelector('.modal .printout', { timeout: 15000 });

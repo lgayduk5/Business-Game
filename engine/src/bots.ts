@@ -10,9 +10,9 @@ import * as F from './finance';
 import { diligence, invAvailable, invCost, startInvestment } from './invest';
 const invCostOf = (g: GameState, id: string, scope?: string) => invCost(g, INV[id], scope);
 import { localPrice, marketUnits } from './market';
-import { companyHeadcount, exec } from './people';
+import { exec } from './people';
 import { bidForRival, bidOdds, bidPrice, improveRelations, poachTalent, proposeTruce, sueRival, truceOdds } from './rivals';
-import type { GameState, IndustryId, Office, RegionId } from './types';
+import type { GameState, IndustryId, Office } from './types';
 import { clamp } from './util';
 
 export interface BotParams {
@@ -121,7 +121,6 @@ function staff(g: GameState, o: Office, p: BotParams) {
   }
   if (p.special !== 'gouge') A.setPay(g, o.id, o.morale < 45 ? 1.1 : 1.0);
   A.setTraining(g, o.id, p.invest && g.turn > 6 && (lastQ(g)?.ebitda ?? 0) > 0 ? 1 : 0);
-  void c;
 }
 
 function priceAndMarketing(g: GameState, p: BotParams) {
@@ -236,14 +235,13 @@ function diplomacy(g: GameState, p: BotParams) {
 }
 
 /** Biotech lives on its pipeline: keep two candidates in trials and raise money against them. */
-function biotech(g: GameState, p: BotParams) {
+function biotech(g: GameState) {
   const c = g.company;
   if (!c.divisions.includes('biotech')) return;
   const live = c.investments.filter((i) => i.def === 'drug' && i.state === 'ramp').length;
   const def = INV.drug;
   if (def && live < 2 && c.books.cash > (live ? 0.6 : 0.25) * def.base * 1000 * g.macro.cpi * 2.7) startInvestment(g, 'drug');
   if (g.equityOffer && runwayQ(g) < 8) F.raiseEquity(g, 0.2);
-  void p;
 }
 
 /** One quarter of decisions for a bot. Call before endTurn. */
@@ -253,7 +251,7 @@ export function botTurn(g: GameState, p: BotParams) {
   for (const o of g.company.offices) staff(g, o, p);
   priceAndMarketing(g, p);
   if (p.special !== 'gouge' && p.special !== 'flipper') expand(g, p);
-  biotech(g, p);
+  biotech(g);
   finance(g, p);
   people(g);
   invest(g, p);
@@ -262,6 +260,4 @@ export function botTurn(g: GameState, p: BotParams) {
     const t = INV.treasury;
     if (t && invAvailable(g, t).ok) startInvestment(g, 'treasury');
   }
-  void companyHeadcount;
-  void (null as unknown as RegionId);
 }

@@ -13,6 +13,8 @@
       "blurb": { "type": "string", "description": "One-line pitch" },
       "economics": { "type": "string", "description": "How the money works" },
       "failure": { "type": "string", "description": "Typical ways to go broke" },
+      "tier": { "enum": ["gentle", "tough", "expert"], "description": "How hard the industry is to win, from the balance harness; shown in the wizard" },
+      "firstGame": { "type": "boolean", "description": "Recommended for a first game" },
       "marketBase": { "type": "number", "description": "Units ($K of sales at reference price) per quarter in a reference city (5M people, income 1.0)" },
       "trend": { "type": "number", "description": "Annual real market growth" },
       "cyc": { "type": "number", "description": "Sensitivity to the business cycle" },

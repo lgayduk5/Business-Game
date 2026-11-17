@@ -2,7 +2,7 @@
 // dynamics and units sold for the player's offices and every rival office.
 import { CITY, FOUNDER, INDUSTRIES, PERSONALITY, hasInventory } from './content';
 import { cycleMult, fxOf } from './macro';
-import { DIFF } from './newgame';
+import { DIFF } from './difficulty';
 import { invSum, tempMod } from './mods';
 import { execBonus, gmOf, marketWage, type Prep } from './people';
 import type { AttractBreakdown, GameState, IndustryId, Office, OfficeResult, Rival, RivalOffice } from './types';
@@ -219,4 +219,27 @@ export function rivalGlobalShare(g: GameState, r: Rival, ind: IndustryId): numbe
   for (const c of Object.values(CITY)) tot += marketUnits(g, c.id, ind) * localPrice(g, c.id, ind);
   for (const ro of r.offices) if (ro.ind === ind) theirs += ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind);
   return tot > 0 ? theirs / tot : 0;
+}
+
+/**
+ * Shares of the named companies' sales in an industry: you and every rival, at market value, worldwide.
+ * Local incumbents are left out on purpose — they hold most of every market, and nobody counts them
+ * when they ask who leads a category.
+ */
+export function namedShares(g: GameState, ind: IndustryId): { you: number; rivals: Map<number, number>; total: number } {
+  const val = (city: string, share: number) => share * marketUnits(g, city, ind) * localPrice(g, city, ind);
+  let you = 0;
+  for (const o of g.company.offices) if (o.ind === ind) you += val(o.city, o.share);
+  const rivals = new Map<number, number>();
+  let total = you;
+  for (const r of g.rivals) {
+    if (!r.alive) continue;
+    let v = 0;
+    for (const ro of r.offices) if (ro.ind === ind) v += val(ro.city, ro.share);
+    rivals.set(r.id, v);
+    total += v;
+  }
+  if (total <= 0) return { you: 0, rivals: new Map(), total: 0 };
+  for (const [k, v] of rivals) rivals.set(k, v / total);
+  return { you: you / total, rivals, total };
 }

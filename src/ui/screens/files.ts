@@ -1,7 +1,7 @@
 // Saving, loading, importing and exporting games; title-screen entries for scenarios and saves.
 import { SCENARIOS, INDUSTRIES, CITIES, FOUNDERS, IND_LIST, hashSeed, startScenario, turnLabel, type GameState } from '@engine';
 import { esc } from '../kit';
-import { act, on, render, toast, ui } from '../store';
+import { act, on, persist, render, toast, ui } from '../store';
 import { modals } from '../shell';
 import { afterTurn, menuExtras } from './modals';
 import { startHooks, titleExtras } from './title';
@@ -16,10 +16,28 @@ export async function refreshSaves() {
   ui.saves = await listSaves();
 }
 
-// autosave every quarter, and when a game starts
+// autosave every quarter, when a game starts, shortly after every decision, and when the app is hidden
 afterTurn.push(async (g) => {
   await autosave(g);
 });
+let saveTimer = 0;
+async function saveNow() {
+  const g = ui.g;
+  if (!g || ui.busy || ui.screen !== 'game') return;
+  await autosave(g);
+}
+persist.soon = () => {
+  clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => void saveNow(), 700);
+};
+persist.now = () => {
+  clearTimeout(saveTimer);
+  return saveNow();
+};
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') void persist.now();
+});
+window.addEventListener('pagehide', () => void persist.now());
 startHooks.push(() => {
   if (ui.g) void autosave(ui.g).then(refreshSaves);
 });
@@ -135,8 +153,22 @@ on('surprise', () => {
   const next = () => ((h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0), h / 4294967296);
   const ind = IND_LIST[Math.floor(next() * IND_LIST.length)];
   const cities = CITIES.filter((c) => c.ind[ind.id] >= 0.9);
-  Object.assign(w, { industry: ind.id, city: cities[Math.floor(next() * cities.length)].id, founder: FOUNDERS[Math.floor(next() * FOUNDERS.length)].id, seed, step: 3 });
+  Object.assign(w, { industry: ind.id, city: cities[Math.floor(next() * cities.length)].id, founder: FOUNDERS[Math.floor(next() * FOUNDERS.length)].id, seed, step: 4 });
   sfx.tick();
   render(false);
 });
-void refreshSaves().then(() => ui.screen === 'title' && render(false));
+// After an app update the page reloads; carry on with the game that was open.
+void refreshSaves().then(async () => {
+  let resume: string | null = null;
+  try {
+    resume = sessionStorage.getItem('gc:resume');
+    sessionStorage.removeItem('gc:resume');
+  } catch {
+    resume = null;
+  }
+  const g = resume ? await loadFrom(resume) : null;
+  if (g) {
+    enter(g);
+    toast('Updated to the latest version.');
+  } else if (ui.screen === 'title') render(false);
+});

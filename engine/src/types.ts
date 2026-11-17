@@ -47,6 +47,8 @@ export interface IndustryDef {
   blurb: string;
   economics: string;
   failure: string;
+  tier: 'gentle' | 'tough' | 'expert'; // how hard it is to win, from the balance harness
+  firstGame?: boolean; // recommended for a first game
   marketBase: number; // units ($K of sales at reference price) per quarter in a reference city
   trend: number; // annual real growth of the market
   cyc: number; // sensitivity to the business cycle
@@ -323,6 +325,8 @@ export interface Outcome {
   chain?: [id: string, delay: number, p?: number][];
   /** weight multiplier if a stat test passes, e.g. ['culture', 60, 2.5] or ['flag', 'cyber', 3] */
   boost?: [stat: string, threshold: number | string, mult: number];
+  /** How the news feed colours this outcome; by default, by luck (better or worse than the odds). */
+  tone?: 'good' | 'bad' | 'info';
 }
 
 export interface EventOption {
@@ -794,6 +798,7 @@ export interface Outcome2 {
   title: string;
   text: string;
   turn: number;
+  grade?: string; // A–F, for games that run to the end
 }
 
 export interface Settings {

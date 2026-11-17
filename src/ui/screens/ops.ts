@@ -4,7 +4,7 @@ import {
   setBackfill, setMarketing, setPay, setPrice, setReqs, setTraining, severanceCost, staffingHint, unitVarCost, closeOffice,
   type GameState, type Office, type RegionId, type Role, type IndustryId,
 } from '@engine';
-import { $, N, P, esc, explain, lineChart, meter, seg, slider, stepper, tip, type Row } from '../kit';
+import { $, N, esc, explain, lineChart, seg, slider, stepper, tip } from '../kit';
 import { act, on, render, ui } from '../store';
 import { modals, screens } from '../shell';
 import { attritionTip, capacityTip, moraleTip, poolTip, qualityTip, shareTip, wageTip } from '../tips';

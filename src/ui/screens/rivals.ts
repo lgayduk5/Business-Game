@@ -4,7 +4,7 @@ import {
   proposeAlliance, proposeTruce, rivalById, rivalKnown, sueRival, truceOdds, turnLabel, victoryStatus,
   type CityDef, type GameState, type Rival,
 } from '@engine';
-import { $, N, P, esc, logo, meter, tip, explain } from '../kit';
+import { $, N, esc, logo, meter, tip, explain } from '../kit';
 import { act, on, render, ui } from '../store';
 import { modals, tabDots } from '../shell';
 import { intelTabs, intelViews } from './intel';
@@ -136,4 +136,3 @@ modals.bid = (g, m) => {
     <p class="small muted">If it works, you take over all ${r.offices.length} of their offices and their people. Integration takes a year, and merging two cultures always costs some of yours.</p>
     <div class="row end"><button class="btn" data-a="close">Not now</button><button class="btn primary" data-a="doBid" ${cash > c.books.cash ? 'disabled' : ''}>${cash > c.books.cash ? `Need ${money(cash)} in cash` : 'Make the offer'}</button></div>`;
 };
-void P;

@@ -24,6 +24,17 @@ export function mark(key: string) {
   if (ui.g && !ui.g.counters['tut:' + key]) ui.g.counters['tut:' + key] = 1;
 }
 const handlers: Record<string, Handler> = {};
+/**
+ * Persistence hooks, wired up by the saves screen. Anything the player does in a game is saved shortly
+ * afterwards (soon) and at once when the app is hidden or closed (now), so a phone that kills the tab
+ * mid-quarter loses nothing.
+ */
+export const persist = { soon: (): void => undefined, now: (): Promise<void> => Promise.resolve() };
+function afterHandler(r: void | Promise<void>) {
+  void Promise.resolve(r).finally(() => {
+    if (ui.g && ui.screen === 'game') persist.soon();
+  });
+}
 export const on = (name: string, fn: Handler) => (handlers[name] = fn);
 
 let view: () => string = () => '';
@@ -31,11 +42,28 @@ export const setView = (v: () => string) => (view = v);
 const hooks: (() => void)[] = [];
 export const afterRender = (f: () => void) => hooks.push(f);
 
+/**
+ * A selector that finds "the same" control after a re-render: its tag plus every data-* attribute and
+ * id, and its position among elements that match. Rendering replaces the whole app's HTML, so without
+ * this a slider moved with the keyboard would lose focus after every step.
+ */
+function focusKey(el: HTMLElement, root: HTMLElement): { sel: string; idx: number } | null {
+  if (el === document.body || !root.contains(el)) return null;
+  const attrs = [...el.attributes].filter((a) => a.name.startsWith('data-') || a.name === 'id' || a.name === 'type');
+  if (!attrs.length) return null;
+  const sel = el.tagName.toLowerCase() + attrs.map((a) => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
+  const idx = [...root.querySelectorAll(sel)].indexOf(el);
+  return idx < 0 ? null : { sel, idx };
+}
+
 export function render(keepScroll = true) {
   const root = document.getElementById('app')!;
   const y = window.scrollY;
   const modalEl = root.querySelector('.modal');
   const my = modalEl?.scrollTop ?? 0;
+  const active = document.activeElement as HTMLElement | null;
+  const fk = active ? focusKey(active, root) : null;
+  const sel = active instanceof HTMLInputElement && active.type === 'text' ? [active.selectionStart, active.selectionEnd] : null;
   resetTips();
   hideTip();
   root.innerHTML = view();
@@ -43,6 +71,13 @@ export function render(keepScroll = true) {
   window.scrollTo(0, keepScroll ? y : 0);
   const m2 = root.querySelector('.modal');
   if (m2 && keepScroll) m2.scrollTop = my;
+  if (fk) {
+    const el = root.querySelectorAll<HTMLElement>(fk.sel)[fk.idx];
+    if (el) {
+      el.focus({ preventScroll: true });
+      if (sel && el instanceof HTMLInputElement) el.setSelectionRange(sel[0], sel[1]);
+    }
+  }
   for (const h of hooks) h();
 }
 
@@ -107,7 +142,7 @@ export function initEvents() {
       mark('act:' + a.dataset.a);
       if (a.dataset.a === 'tab') mark('tab:' + a.dataset.v);
       if (a.dataset.a === 'sub') mark(`sub:${a.dataset.k}:${a.dataset.v}`);
-      if (fn) void fn(a.dataset, a);
+      if (fn) afterHandler(fn(a.dataset, a));
       return;
     }
     if (t.classList.contains('scrim') && ui.modal && !ui.modal.data?.sticky) {
@@ -119,7 +154,7 @@ export function initEvents() {
     const t = e.target as HTMLInputElement;
     const name = t.dataset?.c;
     if (name) mark('act:' + name);
-    if (name && handlers[name]) void handlers[name]({ ...t.dataset, value: t.value } as DOMStringMap, t);
+    if (name && handlers[name]) afterHandler(handlers[name]({ ...t.dataset, value: t.value } as DOMStringMap, t));
   });
   document.addEventListener('input', (e) => {
     const t = e.target as HTMLInputElement;

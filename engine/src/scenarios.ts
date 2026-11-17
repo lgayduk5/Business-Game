@@ -135,12 +135,13 @@ export function scenarioDef(g: GameState): ScenarioDef | undefined {
 }
 
 export interface ScenarioStatus { progress: number; met: boolean; failed: string; detail: string; left: number }
-export function scenarioStatus(g: GameState): ScenarioStatus | undefined {
+/** Progress on the scenario goal. `turn` is the number of quarters completed (defaults to the current turn). */
+export function scenarioStatus(g: GameState, turn = g.turn): ScenarioStatus | undefined {
   const s = scenarioDef(g);
   if (!s) return undefined;
   const c = g.company;
   const end = g.counters.scenarioEnd ?? s.turns;
-  const left = Math.max(0, end - g.turn);
+  const left = Math.max(0, end - turn);
   const goal = s.goal;
   const rev = B.ttm(c, (q) => q.pnl.revenue);
   let failed = '';
@@ -148,7 +149,7 @@ export function scenarioStatus(g: GameState): ScenarioStatus | undefined {
   if (goal.maxDilution !== undefined && founderStake(c) < 1 - goal.maxDilution) failed = `You own less than ${pct(1 - goal.maxDilution)} of the company.`;
   let progress = 0, met = false, detail = '';
   switch (goal.kind) {
-    case 'survive': progress = Math.min(1, g.turn / goal.value); met = g.turn >= goal.value; detail = `${Math.min(g.turn, goal.value)} of ${goal.value} quarters survived.`; break;
+    case 'survive': progress = Math.min(1, turn / goal.value); met = turn >= goal.value; detail = `${Math.min(turn, goal.value)} of ${goal.value} quarters survived.`; break;
     case 'valuation': {
       // the rate-shock goal is judged at the deadline; the others as soon as the bar is cleared
       const atEnd = s.id === 'rate_shock';
@@ -181,10 +182,10 @@ export function scenarioStatus(g: GameState): ScenarioStatus | undefined {
   return { progress, met, failed, detail, left };
 }
 
-/** Scenario win or loss, called from checkEnd. Returns true if the game ended. */
-export function checkScenario(g: GameState): boolean {
+/** Scenario win or loss, called from checkEnd with the number of quarters completed. Returns true if the game ended. */
+export function checkScenario(g: GameState, turn = g.turn): boolean {
   const s = scenarioDef(g);
-  const st = scenarioStatus(g);
+  const st = scenarioStatus(g, turn);
   if (!s || !st) return false;
   if (st.failed) {
     g.status = 'lost';

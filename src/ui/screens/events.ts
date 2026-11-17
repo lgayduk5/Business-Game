@@ -36,7 +36,8 @@ modals.event = (g, m) => {
   return `<div class="spread"><span class="chip ${v.def.cat === 'stress' ? 'warn' : 'dark'}">${CAT[v.def.cat]}</span>${g!.queue.length > 1 ? `<span class="small muted">${g!.queue.length - 1} more after this</span>` : ''}</div>
     <h2 style="margin-top:8px">${esc(v.title)}</h2><p class="serif" style="font-size:1.1rem;line-height:1.5">${esc(v.text)}</p>
     <div class="choices" style="grid-template-columns:1fr">${v.options.map((o, i) => `<button class="choice" data-a="choose" data-uid="${v.uid}" data-i="${i}" ${o.enabled ? '' : 'disabled'}>
-      <b>${esc(o.label)}</b><span class="muted">${esc(o.hint)}</span>${o.odds ? ` <span class="chip" style="margin-top:6px">${o.odds}</span>` : ''}${o.enabled ? '' : ' <span class="chip bad" style="margin-top:6px">Not available to you</span>'}</button>`).join('')}</div>`;
+      <b>${esc(o.label)}</b><span class="muted">${esc(o.hint)}</span>
+      <span class="chips">${o.money ? `<span class="chip money">${esc(o.money)}</span>` : ''}${o.odds ? `<span class="chip">${o.odds}</span>` : ''}</span>${o.enabled ? '' : ' <span class="chip bad" style="margin-top:6px">Not available to you</span>'}</button>`).join('')}</div>`;
 };
 
 on('openEvent', () => void nextPrompt.open(ui.g!));

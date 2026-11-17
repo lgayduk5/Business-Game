@@ -107,7 +107,7 @@ button { cursor: pointer; touch-action: manipulation; }
   background: none; border: 0; padding: 0 1px; margin: 0; font-family: var(--serif); font-variant-numeric: tabular-nums; font-weight: 600;
   border-bottom: 1.5px dotted var(--ink3); line-height: 1.25; cursor: help; color: inherit; text-align: inherit; white-space: nowrap;
 }
-.n.plain { font-family: inherit; font-weight: inherit; }
+.n.plain { font-family: inherit; font-weight: inherit; white-space: normal; }
 .n.neg { color: var(--red); }
 .tipbox {
   position: fixed; z-index: 100; max-width: min(340px, calc(100vw - 20px)); background: var(--ink); color: #eef3ee; border-radius: 6px;
@@ -180,6 +180,7 @@ table.ledger tr.tap { cursor: pointer; }
 .feed li { padding: 8px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 58px 1fr; gap: 8px; font-size: .93rem; }
 .feed li span:first-child { color: var(--ink2); font-size: .8rem; padding-top: 2px; }
 .feed li.bad span:last-child { color: var(--red); }
+.feed li.good span:last-child { color: var(--green); }
 
 /* ── controls ─────────────────────────────────────── */
 .stepper { display: inline-flex; align-items: center; border: 1.5px solid var(--ink); border-radius: 5px; overflow: hidden; background: var(--sheet); }
@@ -254,3 +255,31 @@ input[type='text'], input[type='number'], select {
   @keyframes riseT { from { transform: translate(-50%, 10px); opacity: 0; } }
   @keyframes feed { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
 }
+
+/* ── app update banner ─────────────────────────────── */
+.update {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tab-h) + var(--safe-b) + 12px); z-index: 95; width: min(560px, calc(100vw - 20px));
+  background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 6px; padding: 10px 12px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  box-shadow: 0 8px 28px rgba(21, 34, 56, .25);
+}
+.update span { flex: 1 1 200px; font-weight: 600; }
+@media (min-width: 900px) { .update { bottom: 24px; } }
+
+/* ── wizard details ───────────────────────────────── */
+.choice .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 6px; }
+.choice[aria-pressed='true'] .chip { background: var(--paper); color: var(--ink); }
+.chip.tier-gentle { border-color: var(--green); color: var(--green); }
+.chip.tier-tough { border-color: var(--ink); }
+.chip.tier-expert { border-color: var(--red); color: var(--red); }
+.ind-detail { margin-top: 14px; }
+.choices > .ind-detail.inline { grid-column: 1 / -1; margin: 0; }
+.ind-detail.below { display: none; }
+@media (min-width: 700px) { .choices > .ind-detail.inline { display: none; } .ind-detail.below { display: block; } }
+.choice.diff .dl { display: grid; grid-template-columns: 64px 1fr; gap: 6px; margin-top: 6px; font-size: .9rem; }
+.choice.diff .dl i { font-style: normal; font-weight: 600; color: var(--ink2); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
+.choice[aria-pressed='true'].diff .dl i { color: #c5cfdb; }
+.choice b.inl { display: inline; font-size: inherit; font-family: inherit; }
+.kv.recap > div:nth-child(even) { text-align: left; }
+.kv.recap { grid-template-columns: minmax(96px, auto) 1fr; }
+.chip.money { background: var(--bar); }
+.choice[aria-pressed='true'] .chip.money, .choice:disabled .chip.money { background: var(--sheet); }

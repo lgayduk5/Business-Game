@@ -2,11 +2,11 @@
 // regional cycles and currencies. Small and stylised, but the causal chain is the real one:
 // overheating → inflation → rate hikes → slowdown → cuts → recovery.
 import { CITIES, CITY, IND_LIST, INDUSTRIES, REGION_LIST } from './content';
+import { DIFF } from './difficulty';
 import { news } from './mods';
 import type { GameState, IndustryId, Macro, RegionId } from './types';
 import { chance, clamp, normal, randInt } from './util';
 
-const DIFF_REC = { easy: 0.7, normal: 1, hard: 1.2, brutal: 1.4 } as const;
 const FX_VOL: Record<RegionId, number> = { nae: 0, naw: 0, latam: 0.045, europe: 0.02, mea: 0.035, apac: 0.022 };
 
 export function newMacro(): Macro {
@@ -31,7 +31,7 @@ export function stepMacro(g: GameState) {
     m.recessionLeft--;
   } else if (!calm && g.turn > 5) {
     const real = m.rate - m.infl;
-    const p = (0.016 + Math.max(0, m.gap - 1.5) * 0.012 + Math.max(0, real - 2.5) * 0.012) * DIFF_REC[g.difficulty];
+    const p = (0.016 + Math.max(0, m.gap - 1.5) * 0.012 + Math.max(0, real - 2.5) * 0.012) * DIFF[g.difficulty].recession;
     if (chance(g, p)) {
       m.recessionLeft = randInt(g, 2, 4);
       m.gap -= 1.6;

@@ -1,7 +1,7 @@
 // Title screen and the new-company wizard.
-import { CITIES, CITY, DIFF, FOUNDERS, IND_LIST, INDUSTRIES, REGIONS, money, newGame, type Difficulty, type FounderId, type IndustryId } from '@engine';
+import { CITIES, CITY, DIFF, DIFFICULTIES, FOUNDERS, IND_LIST, INDUSTRIES, REGIONS, diffChanges, money, newGame, victoryBars, type Difficulty, type FounderId, type IndustryId } from '@engine';
 import { esc } from '../kit';
-import { on, render, toast, ui } from '../store';
+import { on, render, toast, ui, type Wizard } from '../store';
 import { modalHost } from '../shell';
 import { sfx } from '../../audio';
 
@@ -20,15 +20,43 @@ export function title(): string {
   </div>${modalHost(null)}`;
 }
 
-const STEPS = ['Industry', 'City', 'Founder', 'Setup'];
+const STEPS = ['Industry', 'City', 'Founder', 'Setup', 'Ready'];
+const TIER: Record<string, [string, string]> = {
+  gentle: ['Gentle', 'Forgiving economics: cash arrives early and mistakes are recoverable.'],
+  tough: ['Tough', 'Thin margins or cash tied up in working capital. Growth has to be financed with care.'],
+  expert: ['Expert', 'Slow, lumpy or high-stakes. Rewarding once you know the game.'],
+};
+/** Extra choices on the setup step (game length, ironman…), registered by other screens. */
+export const setupExtras: (() => string)[] = [];
+/** Extra lines on the recap step. */
+export const recapExtras: (() => [string, string][])[] = [];
+
+function industryDetail(id: IndustryId, cls: string): string {
+  const d = INDUSTRIES[id];
+  const s = d.start;
+  return `<div class="sheet ind-detail ${cls}"><h3>How the money works</h3><p>${esc(d.economics)}</p><h3>How it usually ends</h3><p>${esc(d.failure)}</p>
+    <p class="small muted">${esc(TIER[d.tier][0])}: ${esc(TIER[d.tier][1])} You start with ${money(s.cash * 1000)} in cash${s.debt ? `, ${money(s.debt * 1000)} of debt` : ''} and ${s.ops + s.sales + s.rnd + s.admin} people.</p></div>`;
+}
+
+function difficultyCard(d: Difficulty, w: Wizard): string {
+  const D = DIFF[d];
+  const bars = w.industry ? victoryBars(w.industry as IndustryId, d).slice(0, 5) : [];
+  return `<button class="choice diff" data-a="wz" data-k="difficulty" data-v="${d}" aria-pressed="${w.difficulty === d}"><b>${D.label}</b>
+    <span class="dl"><i>For</i>${esc(D.who)}</span>
+    <span class="dl"><i>Changes</i>${diffChanges(d).map(esc).join('. ')}.</span>
+    <span class="dl"><i>Expect</i>${esc(D.expect)}</span>
+    ${bars.length ? `<span class="dl small"><i>To win</i>${bars.map(([n, b]) => `<span class="nowrap-ish"><b class="inl">${esc(n)}</b> ${esc(b)}</span>`).join('; ')}.</span>` : ''}</button>`;
+}
+
 export function wizard(): string {
   const w = ui.wizard!;
   let body = '';
   if (w.step === 0) {
     body = `<div class="spread"><h1>What will you build?</h1><button class="btn sm" data-a="surprise">Surprise me</button></div><p class="muted">Each industry makes money — and goes broke — in its own way. Or let a random seed choose industry, city and founder for you.</p><div class="choices">${IND_LIST.map((d) => `
-      <button class="choice" data-a="wz" data-k="industry" data-v="${d.id}" aria-pressed="${w.industry === d.id}"><span class="glyph">${d.icon}</span><b>${d.name}</b><span class="muted">${esc(d.blurb)}</span></button>`).join('')}</div>
-      ${w.industry ? `<div class="sheet" style="margin-top:14px"><h3>How the money works</h3><p>${esc(INDUSTRIES[w.industry].economics)}</p><h3>How it usually ends</h3><p>${esc(INDUSTRIES[w.industry].failure)}</p>
-        <p class="small muted">You start with ${money(INDUSTRIES[w.industry].start.cash * 1000)} in cash${INDUSTRIES[w.industry].start.debt ? `, ${money(INDUSTRIES[w.industry].start.debt * 1000)} of debt` : ''} and ${INDUSTRIES[w.industry].start.ops + INDUSTRIES[w.industry].start.sales + INDUSTRIES[w.industry].start.rnd + INDUSTRIES[w.industry].start.admin} people.</p></div>` : ''}`;
+      <button class="choice" data-a="wz" data-k="industry" data-v="${d.id}" aria-pressed="${w.industry === d.id}"><span class="glyph">${d.icon}</span><b>${d.name}</b>
+        <span class="chips"><span class="chip tier-${d.tier}">${TIER[d.tier][0]}</span>${d.firstGame ? '<span class="chip warn">Recommended for a first game</span>' : ''}</span>
+        <span class="muted">${esc(d.blurb)}</span></button>${w.industry === d.id ? industryDetail(d.id, 'inline') : ''}`).join('')}</div>
+      ${w.industry ? industryDetail(w.industry as IndustryId, 'below') : ''}`;
   } else if (w.step === 1) {
     const ind = w.industry as IndustryId;
     const fit = (x: number) => (x >= 1.5 ? 'Excellent market' : x >= 1.1 ? 'Good market' : x >= 0.8 ? 'Average market' : 'Thin market');
@@ -40,20 +68,40 @@ export function wizard(): string {
   } else if (w.step === 2) {
     body = `<h1>Who are you?</h1><p class="muted">Your background shapes the company for the whole game.</p><div class="choices">${FOUNDERS.map((f) => `
       <button class="choice" data-a="wz" data-k="founder" data-v="${f.id}" aria-pressed="${w.founder === f.id}"><b>${esc(f.name)}</b><span class="muted">${esc(f.blurb)}</span><br><span class="small">${f.perks.map(esc).join('. ')}.</span></button>`).join('')}</div>`;
-  } else {
+  } else if (w.step === 3) {
     body = `<h1>Last details</h1>
       <div class="field"><label for="coname">Company name</label><input id="coname" type="text" maxlength="28" value="${esc(w.name)}" data-c="wzName" autocomplete="off"></div>
-      <h3>Difficulty</h3><div class="choices">${(Object.keys(DIFF) as Difficulty[]).map((d) => `<button class="choice" data-a="wz" data-k="difficulty" data-v="${d}" aria-pressed="${w.difficulty === d}"><b>${DIFF[d].label}</b><span class="muted">${DIFF[d].blurb}</span></button>`).join('')}</div>
+      <h3>Difficulty</h3><p class="small muted">Victory bars are shown for ${w.industry ? esc(INDUSTRIES[w.industry as IndustryId].name) : 'your industry'}, in today's money.</p>
+      <div class="choices">${DIFFICULTIES.map((d) => difficultyCard(d, w)).join('')}</div>
       <h3>Mode</h3><div class="choices">
         <button class="choice" data-a="wz" data-k="mode" data-v="standard" aria-pressed="${w.mode === 'standard'}"><b>Standard</b><span class="muted">Play to win. Bankruptcy is permanent.</span></button>
         <button class="choice" data-a="wz" data-k="mode" data-v="sandbox" aria-pressed="${w.mode === 'sandbox'}"><b>Sandbox</b><span class="muted">The whole map is visible and you cannot go bankrupt. For learning how things work.</span></button></div>
+      ${setupExtras.map((f) => f()).join('')}
       <div class="field" style="margin-top:16px"><label for="seed">World seed</label><input id="seed" type="text" maxlength="24" value="${esc(w.seed)}" data-c="wzSeed" autocomplete="off">
         <div class="help">The same seed always produces the same world and the same luck. Share one with a friend to play the same game.</div></div>`;
+  } else {
+    const ind = INDUSTRIES[w.industry as IndustryId];
+    const f = FOUNDERS.find((x) => x.id === w.founder)!;
+    const D = DIFF[w.difficulty];
+    const rows: [string, string, number][] = [
+      ['Company', esc(w.name.trim()), 3],
+      ['Industry', `${ind.icon} ${esc(ind.name)} <span class="chip tier-${ind.tier}">${TIER[ind.tier][0]}</span>`, 0],
+      ['Starting city', esc(CITY[w.city].name), 1],
+      ['Founder', `${esc(f.name)} <span class="small muted">${f.perks.map(esc).join('. ')}.</span>`, 2],
+      ['Difficulty', `${D.label} <span class="small muted">${esc(D.expect)}</span>`, 3],
+      ['Mode', w.mode === 'sandbox' ? 'Sandbox — no bankruptcy, map revealed' : 'Standard', 3],
+      ...recapExtras.flatMap((x) => x()).map(([k, v]): [string, string, number] => [k, v, 3]),
+      ['World seed', esc(w.seed), 3],
+    ];
+    const cash = ind.start.cash * 1000 * f.cash * D.cash;
+    body = `<h1>Ready?</h1><p class="muted">Check the details. Tap a line to change it.</p>
+      <div class="sheet"><div class="kv recap">${rows.map(([k, v, step]) => `<div><button class="linkish" data-a="wzGo" data-v="${step}">${esc(k)}</button></div><div>${v}</div>`).join('')}</div></div>
+      <div class="note"><b>You start with ${money(cash)} in cash</b><p>${ind.start.ops + ind.start.sales + ind.start.rnd + ind.start.admin} people in ${esc(CITY[w.city].name)}${ind.start.debt ? `, ${money(ind.start.debt * 1000)} of debt` : ''}, an established customer base, and ${D.rivals} rivals.</p></div>`;
   }
-  const ready = [!!w.industry, !!w.city, !!w.founder, w.name.trim().length > 0][w.step];
+  const ready = [!!w.industry, !!w.city, !!w.founder, w.name.trim().length > 0, true][w.step];
   return `<div class="wizard"><div class="steps">${STEPS.map((_, i) => `<i class="${i <= w.step ? 'on' : ''}"></i>`).join('')}</div>${body}
     <div class="bar"><button class="btn" data-a="wzBack">${w.step === 0 ? 'Cancel' : 'Back'}</button>
-    <button class="btn go" data-a="wzNext" ${ready ? '' : 'disabled'}>${w.step === 3 ? 'Start the company' : 'Next'}</button></div></div>`;
+    <button class="btn go" data-a="wzNext" ${ready ? '' : 'disabled'}>${w.step === STEPS.length - 1 ? 'Start the company' : 'Next'}</button></div></div>`;
 }
 
 const COMPANY_NAMES = ['Halden & Co', 'Brightwater', 'Northgate', 'Larch Street', 'Fourth Meridian', 'Copperline', 'Greyfriars', 'Wexford'];
@@ -76,9 +124,13 @@ on('wzBack', () => {
   render(false);
 });
 export const startHooks: (() => void)[] = [];
+on('wzGo', (d) => {
+  ui.wizard!.step = Number(d.v);
+  render(false);
+});
 on('wzNext', () => {
   const w = ui.wizard!;
-  if (w.step < 3) {
+  if (w.step < STEPS.length - 1) {
     w.step++;
     return render(false);
   }

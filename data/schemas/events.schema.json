@@ -54,7 +54,8 @@
                     "minItems": 3,
                     "maxItems": 3,
                     "description": "[stat, threshold, weight multiplier] — a stat check that tilts the odds"
-                  }
+                  },
+                  "tone": { "enum": ["good", "bad", "info"], "description": "News colour for this outcome; by default it follows luck" }
                 },
                 "required": ["text"],
                 "additionalProperties": false

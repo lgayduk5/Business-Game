@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DIFF, INDUSTRIES, bidForRival, checkEnd, endTurn, improveRelations, keepPlaying, newGame, poachTalent, proposeTruce, rivalKnown, startUnits, sueRival, victoryStatus,
+  DIFF, bidForRival, checkEnd, endTurn, improveRelations, keepPlaying, newGame, poachTalent, proposeTruce, rivalKnown, startUnits, sueRival, victoryStatus,
   type Difficulty,
 } from '../engine/src/index';
 import { findBadNumbers, opts, play } from './helpers';
@@ -113,6 +113,29 @@ describe('victory and defeat', () => {
     checkEnd(s);
     expect(s.status).toBe('playing');
   });
+  it('Pioneer needs a moonshot and four quarters of technology leadership, not one', () => {
+    const g = newGame(opts());
+    g.company.moonshots = 1;
+    for (let i = 0; i < 3; i++) {
+      g.company.tech[g.company.primary] = 100;
+      checkEnd(g);
+    }
+    expect(g.status).toBe('playing');
+    g.company.tech[g.company.primary] = 100;
+    checkEnd(g);
+    expect(g.outcome?.how).toBe('innovation');
+  });
+  it('Category king counts sales among named companies, not the local independents', () => {
+    const g = newGame(opts());
+    const v = victoryStatus(g).find((x) => x.id === 'dominance')!;
+    expect(v.met).toBe(false);
+    // shrink every rival to almost nothing: you now make nearly all of the named companies' sales
+    for (const r of g.rivals) for (const ro of r.offices) ro.share = 1e-6;
+    const after = victoryStatus(g).find((x) => x.id === 'dominance')!;
+    expect(after.met).toBe(true);
+    for (let i = 0; i < 4; i++) checkEnd(g);
+    expect(g.outcome?.how).toBe('dominance');
+  });
   it('Titan needs two quarters as the most valuable company above the bar', () => {
     const g = newGame(opts());
     for (let i = 0; i < 2; i++) {
@@ -121,6 +144,5 @@ describe('victory and defeat', () => {
       checkEnd(g);
     }
     expect(g.outcome?.how).toBe('marketCap');
-    void INDUSTRIES;
   });
 });

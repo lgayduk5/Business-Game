@@ -1,5 +1,5 @@
 // HQ: where the company stands, what needs attention, what happened.
-import { CITY, INDUSTRIES, globalShare, headcount, money, pct, turnLabel, victoryStatus, type GameState } from '@engine';
+import { CITY, DIFF, INDUSTRIES, diffChanges, globalShare, headcount, money, turnLabel, victoryStatus, type GameState } from '@engine';
 import { $, N, P, delta, esc, lineChart, type Row } from '../kit';
 import { on, render, ui } from '../store';
 import { screens } from '../shell';
@@ -46,7 +46,9 @@ function hq(g: GameState): string {
   for (const n of g.advisor.slice(0, 3)) notes.push(`<div class="note ${n.tone}"><b>${esc(n.who)}: ${esc(n.title)}</b><p>${esc(n.text)}</p></div>`);
   if (!q && !(g.settings.tutorial && g.mode !== 'scenario')) notes.push(`<div class="note"><b>Your first quarter.</b><p>Look over your office, set hiring and prices, then press <span class="hi">End quarter</span>. Tap any dotted number to see where it comes from.</p></div>`);
 
-  const position = `<div class="sheet"><h2>Position</h2><div class="kv">
+  const D = DIFF[g.difficulty];
+  const tag = `<span class="small muted gametag">${N(`${D.label}${g.mode === 'sandbox' ? ' sandbox' : ''} · seed ${esc(g.seed)}`, `${D.label} difficulty`, `${D.who} ${D.expect}`, [...diffChanges(g.difficulty).map((t): Row => [t, '']), ['World seed', g.seed]])}</span>`;
+  const position = `<div class="sheet"><div class="spread"><h2>Position</h2>${tag}</div><div class="kv">
     <div>Revenue <span class="sub">last quarter</span></div><div>${q ? $(q.pnl.revenue, 'Revenue', 'What customers were billed last quarter, summed across offices.', c.offices.map((o): Row => [o.name, money(o.last?.revenue ?? 0)]), ['revenue']) : '—'} ${q && pq ? delta(q.pnl.revenue, pq.pnl.revenue) : ''}</div>
     <div>Net income <span class="sub">last quarter</span></div><div>${q ? $(q.ni, 'Net income', 'What is left after every cost, interest and tax. Not the same as cash: see the cash-flow statement.', pnlRows(g), ['netIncome', 'ebitda']) : '—'}</div>
     <div>Cash runway</div><div>${N(r.quarters === Infinity ? 'not burning' : r.quarters.toFixed(1) + ' qtrs', 'Runway', 'How long the cash lasts at last quarter’s rate of burn (operating cash flow plus capex).', [['Cash', money(c.books.cash)], ['Burn per quarter', r.burn > 0 ? money(r.burn) : 'none']], ['runway'])}</div>

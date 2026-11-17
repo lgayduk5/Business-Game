@@ -47,14 +47,21 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('message', (e) => {
   if (e.data === 'skipWaiting') self.skipWaiting();
 });
+// The page itself comes from the network first, so a new build is noticed as soon as you are online;
+// everything else (content-hashed files) comes from the cache first. Offline, the cached page is used.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req, { cache: 'no-cache' }).catch(() =>
+        caches.match(req, { ignoreSearch: true, ignoreVary: true }).then((hit) => hit || caches.match('./index.html', { ignoreVary: true })),
+      ),
+    );
+    return;
+  }
   e.respondWith(
-    caches.match(req, { ignoreSearch: true, ignoreVary: true }).then((hit) => {
-      if (hit) return hit;
-      return fetch(req).catch(() => (req.mode === 'navigate' ? caches.match('./index.html', { ignoreVary: true }) : Response.error()));
-    }),
+    caches.match(req, { ignoreSearch: true, ignoreVary: true }).then((hit) => hit || fetch(req).catch(() => Response.error())),
   );
 });
 `;

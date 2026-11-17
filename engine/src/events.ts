@@ -1,10 +1,10 @@
 // Event engine: conditions, context binding, weighted outcomes with stat checks, effects, chains.
 import * as B from './books';
 import { CITIES, CITY, EVENT, EVENTS, INDUSTRIES, INV, REGIONS, hasInventory, isCapital } from './content';
-import { dilute, founderStake } from './finance';
-import { market } from './market';
+import { dilute, founderStake, outsideShares, retireShares } from './finance';
+import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news, setFlag } from './mods';
-import { DIFF } from './newgame';
+import { DIFF } from './difficulty';
 import { companyHeadcount, exec, headcount, personLeaves } from './people';
 import type { Cond, EventCtx, EventDef, EventOption, Fx, GameState, Office, Outcome, PendingEvent, RegionId, Role, Scope } from './types';
 import { ROLES } from './types';
@@ -323,9 +323,9 @@ export const SPECIALS: Record<string, Special> = {
     const co = g.company;
     const amt = co.books.cash * 0.1;
     if (!co.cap.isPublic || amt <= 0) return null;
-    const n = Math.min(amt / co.cap.price, (co.cap.shares - co.cap.founder) * 0.3);
+    const n = retireShares(co.cap, Math.min(amt / co.cap.price, outsideShares(co.cap) * 0.3));
+    if (n <= 0) return null;
     B.buyback(co, n * co.cap.price);
-    co.cap.shares -= n;
     return `${money(n * co.cap.price)} of shares bought back cheaply`;
   },
 };
@@ -522,12 +522,80 @@ export function optionEV(g: GameState, pe: PendingEvent, i: number): number {
   return ev;
 }
 
-export interface EventView { uid: number; def: EventDef; title: string; text: string; options: { label: string; hint: string; enabled: boolean; odds: string }[] }
+// ── what an option does to your cash: shown on the card (decision 27 keeps the odds hidden, not the bill)
+
+/** Money specials, valued the way they will actually be applied. Spend is P&L cash; finance is debt and equity flows. */
+const SPECIAL_MONEY: Record<string, (g: GameState, ctx: EventCtx, arg: number) => { spend?: number; finance?: number }> = {
+  payAmount: (g, ctx, arg) => ({ spend: -(ctx.amount ?? 0.1 * scaleS(g)) * (arg || 1) }),
+  waiverFee: (g, ctx) => ({ spend: -0.015 * (g.company.loans.find((l) => l.id === ctx.loan)?.principal ?? 0) }),
+  buyRivalOffice: (g, ctx) => {
+    const r = g.rivals.find((x) => x.id === ctx.rival);
+    const ro = r?.offices.find((x) => x.city === ctx.city) ?? r?.offices[0];
+    return ro ? { spend: -Math.min(Math.max(0, g.company.books.cash) * 0.8, ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind) * 2.5) } : {};
+  },
+  paydown: (g, _ctx, arg) => ({ finance: -Math.min(Math.max(0, g.company.books.cash) * 0.8, g.company.books.debt * arg) }),
+  paydownLoan: (g, ctx) => ({ finance: -Math.min(0.4 * (g.company.loans.find((l) => l.id === ctx.loan)?.principal ?? 0), Math.max(0, g.company.books.cash) * 0.7) }),
+  discountRepay: (g, ctx) => ({ finance: -Math.min(0.3 * (g.company.loans.find((l) => l.id === ctx.loan)?.principal ?? 0), Math.max(0, g.company.books.cash) * 0.8) * 0.95 }),
+  drawAll: (g) => {
+    const rv = g.company.loans.find((l) => l.kind === 'revolver');
+    return { finance: rv ? rv.limit - rv.principal : 0 };
+  },
+  factorAR: (g) => ({ finance: 0.68 * g.company.books.ar }),
+  buyback10: (g) => ({ finance: g.company.cap.isPublic ? -0.1 * Math.max(0, g.company.books.cash) : 0 }),
+};
+
+/** Cash an outcome moves: spend (costs and windfalls) and finance (borrowing, repaying, selling shares). */
+export function outcomeCash(g: GameState, ctx: EventCtx, o: Outcome): { spend: number; finance: number } {
+  const S = scaleS(g);
+  const co = g.company;
+  let spend = 0, finance = 0;
+  for (const f of o.fx ?? []) {
+    switch (f[0]) {
+      case 'cash': spend += f[1] * S; break;
+      case 'cost': case 'capex': case 'tax': spend -= f[1] * S; break;
+      case 'flat': spend -= f[1] * 1000 * g.macro.cpi; break;
+      case 'loan': finance += f[1] * S; break;
+      case 'debtCall': finance -= f[1] * (co.loans.find((l) => l.id === ctx.loan)?.principal ?? 0); break;
+      case 'equity': { const pct = f[1] / 100; finance += (pct / (1 - pct)) * Math.max(200_000, co.valuation * f[2]) * 0.95; break; }
+      case 'special': { const m = SPECIAL_MONEY[f[1]]?.(g, ctx, f[2] ?? 0); spend += m?.spend ?? 0; finance += m?.finance ?? 0; break; }
+    }
+  }
+  return { spend, finance };
+}
+/** Special effects that move cash; the content tests check every money-moving special is listed here. */
+export const MONEY_SPECIALS = new Set(Object.keys(SPECIAL_MONEY));
+
+const approx = (x: number) => {
+  const a = Math.abs(x);
+  const p = 10 ** Math.max(0, Math.floor(Math.log10(Math.max(1, a))) - 1);
+  const r = Math.round(a / p) * p;
+  return '~' + money(r, r >= 1e6 && r < 1e7 ? 1 : 0);
+};
+
+/** Plain words for the certain money in an option, e.g. "Costs ~$27K". Empty if nothing changes hands. */
+export function moneyText(g: GameState, ctx: EventCtx, opt: EventOption): string {
+  const vals = opt.out.map((o) => outcomeCash(g, ctx, o));
+  const part = (xs: number[], neg: string, pos: string, both: string): string => {
+    const lo = Math.min(...xs), hi = Math.max(...xs);
+    const big = Math.max(Math.abs(lo), Math.abs(hi));
+    if (big < 500) return '';
+    const tiny = big * 0.02;
+    if (Math.abs(hi - lo) <= tiny) return `${lo < 0 ? neg : pos} ${approx(lo)}`;
+    if (hi <= tiny) return lo > -tiny ? `${neg} up to ${approx(lo)}` : hi < -tiny ? `${neg} ${approx(hi)} to ${approx(lo)}` : `${neg} up to ${approx(lo)}`;
+    if (lo >= -tiny) return `${pos} up to ${approx(hi)}`;
+    return `${both}: from ${approx(lo).replace('~', '−~')} to ${approx(hi).replace('~', '+~')}`;
+  };
+  const spend = part(vals.map((v) => v.spend), 'Costs', 'Brings in', 'Cash');
+  const fin = part(vals.map((v) => v.finance), 'Pays out', 'Raises', 'Financing');
+  return [spend, fin].filter(Boolean).join('. ');
+}
+
+export interface EventView { uid: number; def: EventDef; title: string; text: string; options: { label: string; hint: string; enabled: boolean; odds: string; money: string }[] }
 export function viewEvent(g: GameState, pe: PendingEvent): EventView {
   const def = EVENT[pe.id];
   return {
     uid: pe.uid, def, title: fill(g, def.title, pe.ctx), text: fill(g, def.text, pe.ctx),
-    options: def.opts.map((o) => ({ label: fill(g, o.label, pe.ctx), hint: fill(g, o.hint, pe.ctx), enabled: evalCond(g, o.req, pe.ctx), odds: o.out.length > 1 ? 'Uncertain outcome' : '' })),
+    options: def.opts.map((o) => ({ label: fill(g, o.label, pe.ctx), hint: fill(g, o.hint, pe.ctx), enabled: evalCond(g, o.req, pe.ctx), odds: o.out.length > 1 ? 'Uncertain outcome' : '', money: moneyText(g, pe.ctx, o) })),
   };
 }
 
@@ -558,7 +626,9 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   if (Math.abs(luck) > 0.04 * scaleS(g)) g.attribution.notes.push({ turn: g.turn, kind: 'luck', text: `${title}: ${text}`, value: luck });
   g.eventLog.push({ turn: g.turn, id: def.id, title, choice, result: text, luck, cat: def.cat });
   if (g.eventLog.length > 200) g.eventLog.shift();
-  news(g, `${title}: ${text}`, luck < 0 || vals[pick] < 0 ? 'bad' : 'info');
+  // Colour the news by how it turned out against the odds (or the outcome's own tone), not by whether money was spent.
+  const tone = out.tone ?? (luck > 0.005 * scaleS(g) ? 'good' : luck < -0.005 * scaleS(g) ? 'bad' : 'info');
+  news(g, `${title}: ${text}`, tone);
   return { title, choice, text, effects, lesson: def.lesson, luck, terms: def.terms ?? [] };
 }
 

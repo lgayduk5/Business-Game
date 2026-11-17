@@ -2,9 +2,9 @@
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, INV, NAMES } from './content';
 import { news, tempMod } from './mods';
-import { DIFF } from './newgame';
+import { DIFF } from './difficulty';
 import { companyHeadcount, exec, execBonus } from './people';
-import type { ActionResult, Company, EquityOffer, GameState, IndustryId, Loan, LoanOffer } from './types';
+import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer } from './types';
 import { clamp, money, nextUid, normal, pick, randRange } from './util';
 
 const RATINGS: [number, string, number, number][] = [
@@ -172,7 +172,7 @@ function revenueMix(c: Company): Partial<Record<IndustryId, number>> {
   const last = c.quarters[c.quarters.length - 1];
   const out: Partial<Record<IndustryId, number>> = {};
   let tot = 0;
-  if (last) for (const [k, v] of Object.entries(last.byInd)) tot += v!.rev;
+  if (last) for (const v of Object.values(last.byInd)) tot += v!.rev;
   if (tot <= 0) return { [c.primary]: 1 };
   for (const [k, v] of Object.entries(last!.byInd)) out[k as IndustryId] = v!.rev / tot;
   return out;
@@ -328,13 +328,11 @@ export function raiseEquity(g: GameState, pct: number): ActionResult {
   return { ok: true, msg: `Raised ${money(gross * 0.96)} net. You now own ${(founderStake(c) * 100).toFixed(1)}%.` };
 }
 
-const IPO_MIN_REV = { easy: 25e6, normal: 40e6, hard: 60e6, brutal: 80e6 } as const;
-
 export function ipoChecklist(g: GameState): { ok: boolean; items: { label: string; ok: boolean; tip: string }[] } {
   const c = g.company;
   const rev = B.ttm(c, (q) => q.pnl.revenue);
   // listing needs scale; what counts as scale depends on how the market values the industry
-  const min = IPO_MIN_REV[g.difficulty] * g.macro.cpi * Math.min(1, INDUSTRIES[c.primary].capTarget);
+  const min = DIFF[g.difficulty].ipoMinRev * g.macro.cpi * Math.min(1, INDUSTRIES[c.primary].capTarget);
   const items = [
     { label: `Revenue of at least ${money(min)} a year`, ok: rev >= min, tip: 'Public investors want scale. Smaller listings get no analyst coverage and trade poorly.' },
     { label: 'Two years of quarterly accounts', ok: c.quarters.length >= 8 || g.turn >= 8, tip: 'Regulators require audited history.' },
@@ -406,24 +404,35 @@ export function followOn(g: GameState, pct: number): ActionResult {
   return { ok: true, msg: `Sold ${(pct * 100).toFixed(0)}% new shares at $${price.toFixed(2)} and raised ${money(n * price * 0.96)}.` };
 }
 
+/** Shares held outside the founder, from the cap table itself. */
+export const outsideShares = (cap: CapTable) => cap.holders.reduce((s, h) => s + h.shares, 0);
+
+/**
+ * Retire shares bought back in the market. Sellers are the outside holders, pro rata (the founder does
+ * not sell), and no more than half of all outside shares can be bought in one go. Keeps the cap table
+ * adding up: founder + holders = shares. Returns the number of shares retired.
+ */
+export function retireShares(cap: CapTable, n: number): number {
+  const outside = outsideShares(cap);
+  n = Math.min(n, outside * 0.5);
+  if (!(n > 0)) return 0;
+  const f = n / outside;
+  for (const h of cap.holders) h.shares -= h.shares * f;
+  cap.shares -= n;
+  return n;
+}
+
 export function buyBack(g: GameState, amount: number): ActionResult {
   const c = g.company;
   const cap = c.cap;
   if (!cap.isPublic) return { ok: false, msg: 'Buybacks need a public market for your shares.' };
   amount = Math.min(amount, c.books.cash * 0.8);
-  const outside = cap.shares - cap.founder;
-  const n = Math.min(amount / (cap.price * 1.03), outside * 0.5);
-  if (n <= 0 || amount < 10_000) return { ok: false, msg: 'Not enough cash for a buyback.' };
+  const want = amount / (cap.price * 1.03);
+  if (want <= 0 || amount < 10_000) return { ok: false, msg: 'Not enough cash for a buyback.' };
+  const n = retireShares(cap, want);
+  if (n <= 0) return { ok: false, msg: 'There are no outside shares left to buy.' };
   B.buyback(c, n * cap.price * 1.03);
-  cap.shares -= n;
-  const pub = cap.holders.filter((h) => h.name === 'Public shareholders');
-  let left = n;
-  for (const h of pub) {
-    const d = Math.min(h.shares, left);
-    h.shares -= d;
-    left -= d;
-  }
-  return { ok: true, msg: `Bought back ${Math.round(n).toLocaleString()} shares. You now own ${(founderStake(c) * 100).toFixed(1)}%.` };
+  return { ok: true, msg: `Bought back ${Math.round(n).toLocaleString()} shares${n < want - 1 ? ' — as many as holders would sell' : ''}. You now own ${(founderStake(c) * 100).toFixed(1)}%.` };
 }
 
 /** Company-wide effective tax rate: revenue-weighted across office cities. */
