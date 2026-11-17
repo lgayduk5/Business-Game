@@ -1,6 +1,6 @@
 # Going Concern
 
-A single-player, turn-based business strategy game — Civilization for running a company.
+A single-player, turn-based business strategy game.
 Each turn is one quarter. Found a company in one of nineteen cities and one of seven
 industries, grow it across the world against AI-run rivals, and try not to run out of
 cash. The simulation is built to teach real finance, economics and management: every
