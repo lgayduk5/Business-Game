@@ -202,9 +202,8 @@ input[type='text'], input[type='number'], select {
 .seg button { border: 0; background: none; min-height: 42px; padding: 0 14px; font-weight: 600; border-right: 1.5px solid var(--ink); }
 .seg button:last-child { border-right: 0; }
 .seg button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
-.subtabs { display: flex; gap: 6px; overflow-x: auto; margin: 0 -14px 14px; padding: 2px 14px 6px; scrollbar-width: none; }
-.subtabs::-webkit-scrollbar { display: none; }
-.subtabs button { flex: 0 0 auto; border: 1.5px solid var(--ink); background: var(--sheet); border-radius: 999px; min-height: 40px; padding: 0 15px; font-weight: 600; }
+.subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+.subtabs button { flex: 0 0 auto; border: 1.5px solid var(--ink); background: var(--sheet); border-radius: 999px; min-height: 40px; padding: 0 14px; font-weight: 600; }
 .subtabs button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
 
 /* choice cards (new game, events) */

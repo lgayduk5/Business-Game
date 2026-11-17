@@ -1,1 +1,473 @@
-[]
+[
+  {
+    "id": "recession_warning",
+    "cat": "macro",
+    "title": "Recession warning",
+    "text": "Credit is tightening and order books are thinning. Forecasters who were cheerful a quarter ago are now using the word \"contraction\".",
+    "w": 0.6,
+    "cool": 28,
+    "cond": { "minTurn": 8, "notMacro": "recession" },
+    "terms": ["businessCycle", "runway"],
+    "opts": [
+      {
+        "label": "Cut early",
+        "hint": "Freeze hiring and trim spending now. Protects cash; you will be short-handed when the recovery comes.",
+        "out": [
+          {
+            "text": "You moved before the numbers forced you to. The team is rattled.",
+            "fx": [["special", "recession"], ["gap", -2], ["special", "freezeHiring"], ["morale", -4, "all"], ["flag", "lean", 8]]
+          }
+        ]
+      },
+      {
+        "label": "Hold course",
+        "hint": "Change nothing and watch the data.",
+        "out": [{ "text": "You keep the plan. The downturn arrives on schedule.", "fx": [["special", "recession"], ["gap", -2]] }]
+      },
+      {
+        "label": "Lean in",
+        "hint": "Spend on marketing while rivals retrench. Wins share if you can afford the trough.",
+        "out": [
+          {
+            "text": "You advertise into the silence. Customers notice who is still standing.",
+            "fx": [["special", "recession"], ["gap", -2], ["cost", 0.08, "sm"], ["demand", 7, 5, "all"]]
+          }
+        ],
+        "req": { "cashS": 1.5 }
+      }
+    ],
+    "lesson": "Recessions reward cash and punish leverage. Spending against the cycle wins share cheaply, but only companies that survive the trough get to enjoy it."
+  },
+  {
+    "id": "rate_shock",
+    "cat": "macro",
+    "title": "Surprise rate rise",
+    "text": "The central bank has raised rates by three-quarters of a point, more than anyone expected, and says it is not finished.",
+    "cond": { "minTurn": 6, "notMacro": "recession" },
+    "terms": ["interestRate"],
+    "opts": [
+      {
+        "label": "Fix your floating debt",
+        "hint": "Lock today’s rate for a fee. Costs more now; protects you if rates keep climbing.",
+        "out": [{ "text": "The bank swaps your floating loans to fixed.", "fx": [["rate", 0.75], ["special", "fixDebt"], ["cost", 0.01, "other"]] }],
+        "req": { "hasDebt": true }
+      },
+      {
+        "label": "Pay debt down",
+        "hint": "Use cash to retire a quarter of your debt. Less interest, less cushion.",
+        "out": [{ "text": "You send the bank a large transfer.", "fx": [["rate", 0.75], ["special", "paydown", 0.25]] }],
+        "req": { "hasDebt": true }
+      },
+      {
+        "label": "Do nothing",
+        "hint": "Rates might come back down.",
+        "out": [{ "text": "You wait. Interest on anything floating just went up.", "fx": [["rate", 0.75]] }]
+      }
+    ],
+    "lesson": "Floating-rate debt is cheap until it is not. Fixing costs a premium because you are buying insurance against exactly this."
+  },
+  {
+    "id": "rate_cut",
+    "cat": "macro",
+    "title": "Emergency rate cut",
+    "text": "With the economy sliding, the central bank has cut rates sharply and promised more.",
+    "cond": { "macro": "recession" },
+    "terms": ["interestRate"],
+    "opts": [
+      {
+        "label": "Refinance at fixed",
+        "hint": "Lock in the low rate on existing loans.",
+        "out": [{ "text": "Your loans are now fixed near the bottom of the cycle.", "fx": [["rate", -0.75], ["sentiment", 5], ["special", "fixDebt"]] }],
+        "req": { "hasDebt": true }
+      },
+      {
+        "label": "Stay floating",
+        "hint": "Enjoy falling payments while they last.",
+        "out": [{ "text": "Your interest bill shrinks.", "fx": [["rate", -0.75], ["sentiment", 5]] }]
+      }
+    ],
+    "lesson": "Central banks cut when things are bad. Cheap money is an opportunity precisely when most people are too frightened to borrow."
+  },
+  {
+    "id": "inflation_spike",
+    "cat": "macro",
+    "title": "Inflation surges",
+    "text": "Prices are rising at the fastest pace in years. Your suppliers have all sent \"updated terms\", and your staff have noticed their rent.",
+    "cond": { "minTurn": 5 },
+    "terms": ["inflation", "pricingPower"],
+    "opts": [
+      {
+        "label": "Raise prices now",
+        "hint": "Put prices up 6% ahead of the market. Protects margin, tests loyalty.",
+        "out": [{ "text": "The new price list goes out. Some customers grumble; most pay.", "fx": [["infl", 2], ["special", "priceUp", 6]] }]
+      },
+      {
+        "label": "Give a cost-of-living raise",
+        "hint": "Staff keep up with prices; your wage bill jumps.",
+        "out": [{ "text": "The all-hands applauds. Finance does not.", "fx": [["infl", 2], ["wages", 3, 8], ["morale", 6, "all"], ["loyalty", 5]] }]
+      },
+      {
+        "label": "Absorb it",
+        "hint": "Hold prices and pay to protect share.",
+        "out": [{ "text": "You hold the line and watch the margin thin.", "fx": [["infl", 2]] }]
+      }
+    ],
+    "lesson": "Inflation is a test of pricing power. Companies that can raise prices without losing customers are worth far more than those that cannot."
+  },
+  {
+    "id": "credit_crunch",
+    "cat": "macro",
+    "title": "Credit crunch",
+    "text": "A mid-sized bank has failed and every other lender is suddenly counting its capital. Credit committees are saying no to everything.",
+    "w": 0.5,
+    "cool": 24,
+    "cond": { "hasDebt": true, "minTurn": 8 },
+    "terms": ["covenant", "runway"],
+    "opts": [
+      {
+        "label": "Draw the whole credit line",
+        "hint": "Take the cash while the facility exists. You pay interest on money you may not need.",
+        "out": [{ "text": "The money lands before anyone can change their mind.", "fx": [["spread", 2], ["special", "drawAll"]] }]
+      },
+      {
+        "label": "Buy covenant headroom",
+        "hint": "Pay a fee now for three quarters of relief.",
+        "out": [{ "text": "The bank agrees, for a price.", "fx": [["spread", 2], ["cost", 0.02, "other"], ["waive"]] }]
+      },
+      {
+        "label": "Trust your bank",
+        "hint": "You have a relationship. Surely that counts.",
+        "out": [
+          { "w": 0.55, "text": "Your banker keeps the line open.", "fx": [["spread", 2]] },
+          { "w": 0.45, "text": "Your banker is very sorry. The line is cut in half.", "fx": [["spread", 2], ["special", "cutRevolver"]] }
+        ]
+      }
+    ],
+    "lesson": "Credit lines are there until you need them. In a crunch, liquidity you have already drawn is the only liquidity you can count on."
+  },
+  {
+    "id": "market_crash",
+    "cat": "macro",
+    "title": "Markets in freefall",
+    "text": "Share prices have fallen by a fifth in three weeks. Nobody can say exactly why, which is making it worse.",
+    "w": 0.4,
+    "cool": 30,
+    "cond": { "minTurn": 10 },
+    "terms": ["sentiment", "valuation"],
+    "opts": [
+      {
+        "label": "Raise cash at any price",
+        "hint": "Sell 12% of the company at a 30% discount. Painful, safe.",
+        "out": [{ "text": "A fund takes the shares, and its pound of flesh.", "fx": [["sentiment", -25], ["gap", -1], ["equity", 12, 0.7]] }]
+      },
+      {
+        "label": "Hire the talent others are cutting",
+        "hint": "Good people are suddenly available.",
+        "out": [
+          {
+            "text": "You pick up people who would never have taken your call a year ago.",
+            "fx": [["sentiment", -25], ["gap", -1], ["cost", 0.03, "ga"], ["skill", 2, "all"]]
+          }
+        ]
+      },
+      {
+        "label": "Wait it out",
+        "hint": "Prices are opinions. Your business has not changed.",
+        "out": [{ "text": "You carry on.", "fx": [["sentiment", -25], ["gap", -1]] }]
+      }
+    ],
+    "lesson": "A crash changes the price of your company, not the value of it — unless you need to raise money, in which case the price is all that matters."
+  },
+  {
+    "id": "bull_run",
+    "cat": "macro",
+    "title": "Euphoria",
+    "text": "Markets are at record highs and investors are funding anything with a pitch deck. Your phone has not stopped.",
+    "w": 0.5,
+    "cool": 24,
+    "cond": { "minTurn": 6, "notMacro": "recession" },
+    "terms": ["dilution", "sentiment"],
+    "opts": [
+      {
+        "label": "Raise while it is cheap",
+        "hint": "Sell 10% at a 25% premium to your valuation.",
+        "out": [{ "text": "The round closes in a fortnight.", "fx": [["sentiment", 18], ["equity", 10, 1.25]] }]
+      },
+      {
+        "label": "Talk up your ambitions",
+        "hint": "A bold public forecast lifts your valuation. Then you have to hit it.",
+        "out": [
+          { "w": 0.5, "text": "The market loves it, and you deliver.", "fx": [["sentiment", 18], ["valuation", 10, 4]] },
+          {
+            "w": 0.5,
+            "text": "The market loves it. Two quarters later you miss, badly.",
+            "fx": [["sentiment", 18], ["valuation", 10, 2], ["rep", -4]],
+            "chain": [["missed_forecast", 2]]
+          }
+        ]
+      },
+      { "label": "Ignore the noise", "hint": "Keep your head down.", "out": [{ "text": "You get back to work.", "fx": [["sentiment", 18]] }] }
+    ],
+    "lesson": "The best time to raise money is when you do not need it. The worst promises are the ones made at the top."
+  },
+  {
+    "id": "missed_forecast",
+    "cat": "macro",
+    "title": "The forecast you made",
+    "text": "Analysts have noticed the gap between what you promised at the peak and what you delivered.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Own it",
+        "hint": "Reset expectations honestly.",
+        "out": [{ "text": "A rough week, then it passes.", "fx": [["valuation", -12, 3]] }]
+      },
+      {
+        "label": "Blame the economy",
+        "hint": "Everyone else does.",
+        "out": [{ "text": "Nobody is fooled.", "fx": [["valuation", -12, 4], ["rep", -3]] }]
+      }
+    ],
+    "lesson": "Guidance is a promise. Markets forgive a bad quarter faster than a broken one."
+  },
+  {
+    "id": "currency_crisis",
+    "cat": "macro",
+    "title": "Currency crisis",
+    "text": "The currency in {region} has lost a fifth of its value in a month. Everything you earn there is worth less at home.",
+    "bind": ["region"],
+    "w": 0.6,
+    "cool": 20,
+    "cond": { "minTurn": 6 },
+    "terms": ["fxRisk"],
+    "opts": [
+      {
+        "label": "Hedge what is left",
+        "hint": "Pay a premium to lock today’s rate for two years.",
+        "out": [{ "text": "You buy forwards. Expensive, but the bleeding stops.", "fx": [["fx", -18], ["cost", 0.02, "other"], ["flag", "hedged", 8]] }]
+      },
+      {
+        "label": "Raise local prices",
+        "hint": "Recover some of it from customers, 8% across the board.",
+        "out": [{ "text": "Local customers pay more. Some leave.", "fx": [["fx", -18], ["special", "priceUp", 8]] }]
+      },
+      {
+        "label": "Ride it out",
+        "hint": "Currencies come back. Usually.",
+        "out": [{ "text": "You do nothing and translate the damage.", "fx": [["fx", -18]] }]
+      }
+    ],
+    "lesson": "Foreign revenue carries currency risk. Local costs are a natural hedge; what is exposed is your margin, not your sales."
+  },
+  {
+    "id": "stimulus",
+    "cat": "macro",
+    "title": "Government stimulus",
+    "text": "A large spending package has passed. Public contracts are about to be tendered in every sector, including yours.",
+    "cond": { "minTurn": 6 },
+    "terms": ["businessCycle"],
+    "opts": [
+      {
+        "label": "Chase public contracts",
+        "hint": "Spend on bids. Good odds of a long stretch of extra demand.",
+        "out": [
+          { "w": 0.6, "text": "You win a framework contract.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"], ["demand", 8, 6, "all"]] },
+          { "w": 0.4, "text": "The incumbents win everything.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"]] }
+        ]
+      },
+      {
+        "label": "Hire ahead of the boom",
+        "hint": "Open positions now, before wages rise.",
+        "out": [{ "text": "Requisitions go out while candidates are still cheap.", "fx": [["gap", 1.5], ["infl", 0.4], ["special", "hireAhead"]] }]
+      },
+      {
+        "label": "Carry on",
+        "hint": "The tide lifts you anyway.",
+        "out": [{ "text": "Demand picks up on its own.", "fx": [["gap", 1.5], ["infl", 0.4]] }]
+      }
+    ],
+    "lesson": "Fiscal stimulus raises demand now and inflation later. Position for the first, and plan for the second."
+  },
+  {
+    "id": "labor_shortage",
+    "cat": "macro",
+    "title": "Nobody to hire",
+    "text": "Unemployment is at a record low. Recruiters are calling your people at their desks.",
+    "cond": { "macro": "boom" },
+    "terms": ["attrition"],
+    "opts": [
+      {
+        "label": "Raise pay everywhere",
+        "hint": "Eight points against market, company-wide.",
+        "out": [{ "text": "Offer letters start being accepted again.", "fx": [["wages", 4, 6], ["special", "payUp", 8]] }]
+      },
+      {
+        "label": "Retention bonuses",
+        "hint": "A one-off payment to stay put this year.",
+        "out": [{ "text": "Most people sign.", "fx": [["wages", 4, 6], ["cost", 0.04, "ga"], ["attrition", -30, 4]] }]
+      },
+      {
+        "label": "Hold the line",
+        "hint": "The market will cool.",
+        "out": [{ "text": "You lose people you would rather have kept.", "fx": [["wages", 4, 6], ["attrition", 25, 4]] }]
+      }
+    ],
+    "lesson": "In a tight labour market, the cheapest employee is the one you already have. Replacement costs months of salary before the new hire is productive."
+  },
+  {
+    "id": "tech_wave",
+    "cat": "macro",
+    "title": "A new technology wave",
+    "text": "A new class of tools has gone from demo to mainstream in eighteen months. Customers are asking what your plan is.",
+    "cool": 20,
+    "cond": { "ind": ["saas", "consulting", "biotech", "mfg"], "minTurn": 6 },
+    "terms": ["rd", "moat"],
+    "opts": [
+      {
+        "label": "Bet big",
+        "hint": "Retool the product around it. Expensive, and the technology may not be ready.",
+        "out": [
+          { "w": 0.55, "text": "It works. You are suddenly the modern choice.", "fx": [["cost", 0.12, "rd"], ["tech", 8], ["demand", 6, 6, "all"]] },
+          { "w": 0.45, "text": "It half-works. You have spent a lot to learn a little.", "fx": [["cost", 0.12, "rd"], ["tech", 2]] }
+        ]
+      },
+      {
+        "label": "Fast-follow",
+        "hint": "Let others find the dead ends, then copy what works.",
+        "out": [{ "text": "A sensible, unexciting improvement.", "fx": [["cost", 0.04, "rd"], ["tech", 3]] }]
+      },
+      {
+        "label": "Wait and see",
+        "hint": "Most waves are hype.",
+        "out": [
+          { "w": 0.5, "text": "It was mostly hype.", "fx": [] },
+          { "w": 0.5, "text": "It was not hype. Rivals pulled ahead.", "fx": [["tech", -4], ["rivalTech", 4]] }
+        ]
+      }
+    ],
+    "lesson": "Technology shifts are when market leadership changes hands. The question is not whether to respond but how much to stake on being early."
+  },
+  {
+    "id": "pandemic",
+    "cat": "macro",
+    "title": "Pandemic",
+    "text": "A fast-spreading illness has closed borders and emptied offices. Governments are improvising.",
+    "once": true,
+    "w": 0.25,
+    "cond": { "minTurn": 10 },
+    "opts": [
+      {
+        "label": "Protect everyone",
+        "hint": "Send people home, keep paying them, accept the disruption.",
+        "out": [
+          {
+            "text": "Output dips. People remember how you behaved.",
+            "fx": [["special", "recession"], ["gap", -3.5], ["prod", -8, 2, "all"], ["morale", 5, "all"], ["rep", 3]]
+          }
+        ]
+      },
+      {
+        "label": "Cut pay temporarily",
+        "hint": "A quarter of everyone’s pay for two quarters.",
+        "out": [
+          {
+            "text": "The cash holds. The goodwill does not.",
+            "fx": [["special", "recession"], ["gap", -3.5], ["wages", -25, 2], ["morale", -10, "all"], ["culture", -4]]
+          }
+        ]
+      },
+      {
+        "label": "Business as usual",
+        "hint": "It will blow over.",
+        "out": [
+          { "w": 0.45, "text": "You get away with it.", "fx": [["special", "recession"], ["gap", -3.5]] },
+          {
+            "w": 0.55,
+            "text": "An outbreak in the office. It is in the papers.",
+            "fx": [["special", "recession"], ["gap", -3.5], ["prod", -20, 2, "all"], ["rep", -6], ["morale", -8, "all"]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Rare shocks cannot be forecast, only survived. Cash reserves, flexible costs and a workforce that trusts you are what resilience is made of."
+  },
+  {
+    "id": "energy_shock",
+    "cat": "macro",
+    "title": "Energy price shock",
+    "text": "A supply disruption has sent energy prices up by a third. Everything that moves, heats or computes costs more.",
+    "cool": 20,
+    "cond": { "minTurn": 6 },
+    "terms": ["pricingPower"],
+    "opts": [
+      {
+        "label": "Efficiency drive",
+        "hint": "Spend now to use less for good.",
+        "out": [{ "text": "The savings outlast the crisis.", "fx": [["energyIdx", 35], ["infl", 0.8], ["cost", 0.02, "ga"], ["inputs", -3, 8]] }]
+      },
+      {
+        "label": "Add a surcharge",
+        "hint": "Pass 3% on to customers.",
+        "out": [{ "text": "The surcharge goes on every invoice.", "fx": [["energyIdx", 35], ["infl", 0.8], ["special", "priceUp", 3]] }]
+      },
+      {
+        "label": "Absorb it",
+        "hint": "Hope it is temporary.",
+        "out": [{ "text": "Margins take the hit.", "fx": [["energyIdx", 35], ["infl", 0.8]] }]
+      }
+    ],
+    "lesson": "Input shocks are margin shocks unless you can pass them on. Who pays — you, your customer or your supplier — is decided by bargaining power."
+  },
+  {
+    "id": "trade_war",
+    "cat": "macro",
+    "title": "Trade war",
+    "text": "Tariffs have gone up on both sides of a major trade route, and the retaliation has only started.",
+    "w": 0.6,
+    "cool": 28,
+    "cond": { "minRegions": 2, "minTurn": 8 },
+    "opts": [
+      {
+        "label": "Localise supply",
+        "hint": "Rebuild sourcing inside each region. Costly now, immune later.",
+        "out": [{ "text": "Slower, dearer, safer.", "fx": [["inputs", 6, 4], ["cost", 0.05, "cogs"], ["flag", "localised", 16]] }]
+      },
+      {
+        "label": "Lobby for an exemption",
+        "hint": "Your industry association is asking for money.",
+        "out": [
+          { "w": 0.35, "text": "Your products are carved out.", "fx": [["cost", 0.02, "ga"]], "boost": ["flag", "lobby", 2.5] },
+          { "w": 0.65, "text": "No exemption. The tariffs bite.", "fx": [["cost", 0.02, "ga"], ["inputs", 8, 8]] }
+        ]
+      },
+      { "label": "Wait", "hint": "Trade wars end in deals.", "out": [{ "text": "This one drags on.", "fx": [["inputs", 8, 8]] }] }
+    ],
+    "lesson": "Global supply chains are efficient and fragile. Political risk does not appear in a supplier’s quote."
+  },
+  {
+    "id": "green_shoots",
+    "cat": "macro",
+    "title": "Green shoots",
+    "text": "For the first time in a year the surveys have turned up. Customers are returning calls.",
+    "cond": { "macro": "recession" },
+    "terms": ["businessCycle"],
+    "opts": [
+      {
+        "label": "Hire before everyone else",
+        "hint": "Open positions while talent is still cheap and available.",
+        "out": [{ "text": "You get your pick.", "fx": [["gap", 1.5], ["sentiment", 8], ["special", "hireAhead"]] }]
+      },
+      {
+        "label": "Go shopping",
+        "hint": "Weak competitors are for sale.",
+        "out": [{ "text": "A struggling founder would like to talk.", "fx": [["gap", 1.5], ["sentiment", 8], ["mnaTarget"]] }]
+      },
+      {
+        "label": "Stay cautious",
+        "hint": "False dawns happen.",
+        "out": [{ "text": "You wait for confirmation.", "fx": [["gap", 1.5], ["sentiment", 8]] }]
+      }
+    ],
+    "lesson": "The recovery is when share is won. Capacity and people take quarters to add; those who start early are ready when demand returns."
+  }
+]

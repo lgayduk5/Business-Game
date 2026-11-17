@@ -5,6 +5,7 @@ import { CITY, FOUNDER, INDUSTRIES, REGION_LIST, EVENT, hasInventory } from './c
 import { drawEvents, queueEvent } from './events';
 import { covenantStatus, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, taxRate } from './finance';
 import { stepInvestments } from './invest';
+import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
 import { globalShare, localPrice, marketUnits, resolveMarkets } from './market';
 import { invSum, news, tempMod } from './mods';
@@ -216,7 +217,7 @@ export function endTurn(g: GameState): void {
   if (pretax > 0) {
     const use = Math.min(c.nol, pretax * 0.8);
     c.nol -= use;
-    B.tax(c, (pretax - use) * taxRate(g));
+    B.tax(c, (pretax - use) * taxRate(g) * Math.max(0.2, 1 + invSum(g, 'tax') / 100));
   } else c.nol += -pretax;
   if (c.cap.dividend > 0 && c.books.cash > c.cap.dividend) B.dividend(c, c.cap.dividend);
 
@@ -243,6 +244,8 @@ export function endTurn(g: GameState): void {
   if (c.quarters.length > 40) c.quarters.shift();
   c.open = { ...c.books };
 
+  c.intel = Math.min(1, invSum(g, 'intel'));
+  stepTargets(g);
   stepTech(g);
   stepBrand(g);
   stepCulture(g, prevHead);

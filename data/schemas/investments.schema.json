@@ -77,6 +77,16 @@
         "required": ["p", "mult", "text"],
         "additionalProperties": false
       },
+      "start": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Effect tuple: [kind, ...args]. See docs/content-guide.md for the full list.",
+          "prefixItems": [{ "type": "string", "description": "Effect kind" }]
+        },
+        "description": "Effects applied once when the investment is made"
+      },
       "flag": { "type": "string", "description": "Flag set while active" },
       "minRev": { "type": "number", "description": "$K annual revenue required" },
       "unique": { "type": "boolean", "description": "One at a time per scope" },

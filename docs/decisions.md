@@ -71,3 +71,23 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     morale. A retention package buys a two-year lock-in.
 24. **Executives are optional and expensive.** A startup cannot afford a full C-suite;
     hiring one is a scale decision (and a CFO is a hard requirement for an IPO).
+
+## M3 — investments, events, macro
+
+25. **Event money scales with the company** through `S` (about one quarter of revenue,
+    floor $250K). A fine of `0.08` stings equally at seed stage and at IPO.
+26. **About half of all quarters are quiet** (events arrive at roughly 0.75 a quarter,
+    capped at two). That keeps decisions meaningful and makes fast-forward useful.
+27. **Options show their trade-off, not their odds.** Uncertain options are labelled
+    as such; the exact probabilities stay hidden, as they are in life. Preparation
+    (a cybersecurity program, a CFO, a strong culture) visibly tilts them.
+28. **Luck is measured.** For every uncertain outcome the engine records realised value
+    minus expected value; the post-mortem uses the total to separate luck from judgement.
+29. **Traps are honest about being investable.** A trap has a rosy pitch, a real risk
+    several times the stated one, and a truth that due diligence reveals for about 1.5%
+    of the cost. The lesson is the habit of checking, not memorising which ones are bad.
+30. **Staged projects are options.** You pay stage by stage and can stop at any gate;
+    the advisor text makes the sunk-cost point explicitly.
+31. **Financial investments sit on the balance sheet as securities**, capitalised
+    project spend as property depreciated over five years; write-offs go through the
+    P&L as non-cash losses so the cash-flow statement still ties.

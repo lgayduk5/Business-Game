@@ -46,6 +46,12 @@ try {
       }
     }
     await shot('07-hq');
+    // an event card, start to finish
+    const queued = await page.evaluate(() => { const { ui, render, engine } = window.__gc; const ok = engine.EVENT.data_breach && engine.queueEvent(ui.g, 'data_breach', {}); render(); return !!ok; });
+    if (queued) {
+      await tap('[data-a=endTurn]'); await page.waitForSelector('.modal'); await shot('07a-event');
+      await tap('.modal [data-a=choose]'); await shot('07b-event-result'); await tap('.modal [data-a=eventDone]');
+    }
     await page.locator('.n').first().click(); await page.waitForTimeout(150); await shot('08-tooltip');
     await page.mouse.click(5, 300);
     for (const t of ['map', 'ops', 'corp', 'intel']) {

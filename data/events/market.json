@@ -1,1 +1,369 @@
-[]
+[
+  {
+    "id": "big_customer",
+    "cat": "market",
+    "title": "Your biggest customer wants a discount",
+    "text": "The account that makes up a sixth of {city}’s revenue has sent procurement instead of the usual contact. They want 15% off, or they will \"explore alternatives\".",
+    "bind": ["office"],
+    "cond": { "minRev": 200 },
+    "terms": ["pricingPower"],
+    "opts": [
+      {
+        "label": "Give the discount",
+        "hint": "Keep the account at a thinner margin.",
+        "out": [{ "text": "They sign. The margin is gone but the volume stays.", "fx": [["demand", -2, 6, "office"]] }]
+      },
+      {
+        "label": "Offer a multi-year deal at 8% off",
+        "hint": "Trade price for commitment.",
+        "out": [{ "text": "Three years, 8% off. Both sides can live with it.", "fx": [["demand", -1, 8, "office"], ["flag", "lockin", 8]] }]
+      },
+      {
+        "label": "Refuse",
+        "hint": "Call the bluff.",
+        "out": [{ "w": 0.5, "text": "They grumble and stay.", "fx": [] }, { "w": 0.5, "text": "It was not a bluff.", "fx": [["share", -15, "office"]] }]
+      }
+    ],
+    "lesson": "Customer concentration is a risk you choose when you take the big account. Whoever needs the other less sets the price."
+  },
+  {
+    "id": "viral",
+    "cat": "market",
+    "title": "You are trending",
+    "text": "A post about your product has been shared a few million times. The enquiries inbox is unusable.",
+    "cond": { "minTurn": 4 },
+    "terms": ["capacity"],
+    "opts": [
+      {
+        "label": "Pour fuel on it",
+        "hint": "Emergency marketing spend to turn attention into customers.",
+        "out": [{ "text": "Two enormous quarters — if you can serve them.", "fx": [["cost", 0.05, "sm"], ["demand", 25, 2, "all"], ["brand", 3]] }]
+      },
+      { "label": "Enjoy it", "hint": "Take what comes.", "out": [{ "text": "A pleasant bump.", "fx": [["demand", 12, 2, "all"], ["brand", 2]] }] },
+      {
+        "label": "Use the moment to raise prices",
+        "hint": "Demand is hot. Charge for it.",
+        "out": [{ "text": "Prices go up 5% and nobody blinks.", "fx": [["special", "priceUp", 5], ["demand", 8, 2, "all"], ["brand", 1]] }]
+      }
+    ],
+    "lesson": "A demand spike is only worth what your capacity can serve. Check the limit on each office before spending to create demand you cannot meet."
+  },
+  {
+    "id": "bad_review",
+    "cat": "market",
+    "title": "A scathing review",
+    "text": "An influential reviewer has taken your {city} operation apart, in detail, with screenshots.",
+    "bind": ["office"],
+    "terms": ["reputation"],
+    "opts": [
+      {
+        "label": "Respond and fix it",
+        "hint": "Admit the problems in public and spend to fix them.",
+        "out": [
+          {
+            "w": 0.7,
+            "text": "The follow-up piece is headlined \"They actually listened\".",
+            "fx": [["cost", 0.02, "other"], ["rep", 2]],
+            "boost": ["culture", 60, 1.5]
+          },
+          { "w": 0.3, "text": "The fix is slow and the story lingers.", "fx": [["cost", 0.02, "other"], ["rep", -2]] }
+        ]
+      },
+      {
+        "label": "Ignore it",
+        "hint": "It will blow over.",
+        "out": [{ "text": "It does, eventually, after costing you customers.", "fx": [["brand", -3], ["demand", -5, 3, "office"]] }]
+      },
+      {
+        "label": "Send lawyers",
+        "hint": "It is defamatory. Probably.",
+        "out": [{ "text": "The legal letter becomes the story.", "fx": [["cost", 0.03, "other"], ["rep", -5], ["brand", -3]] }]
+      }
+    ],
+    "lesson": "Criticism you answer well can raise your reputation above where it started. Suppressing it reliably makes it louder."
+  },
+  {
+    "id": "competitor_folds",
+    "cat": "market",
+    "title": "A local competitor folds",
+    "text": "One of the established names in {city} has closed its doors. Its customers need a new supplier this month.",
+    "bind": ["office"],
+    "cond": { "minTurn": 4 },
+    "opts": [
+      {
+        "label": "Hire their sales team",
+        "hint": "They know every customer by name.",
+        "out": [
+          {
+            "text": "Two of their best join, and bring their contacts.",
+            "fx": [["cost", 0.04, "sm"], ["share", 12, "office"], ["special", "addSales", 2], ["special", "fringeDown", 10]]
+          }
+        ]
+      },
+      {
+        "label": "Buy the customer list",
+        "hint": "Pay the administrator for the contracts.",
+        "out": [{ "text": "The accounts transfer to you.", "fx": [["cost", 0.06, "sm"], ["share", 18, "office"], ["special", "fringeDown", 10]] }]
+      },
+      {
+        "label": "Let them come to you",
+        "hint": "Free is free.",
+        "out": [{ "text": "Some find you on their own.", "fx": [["share", 5, "office"], ["special", "fringeDown", 10]] }]
+      }
+    ],
+    "lesson": "A competitor’s exit is the cheapest market share you will ever be offered — if you have the capacity to take the customers on."
+  },
+  {
+    "id": "new_entrant",
+    "cat": "market",
+    "title": "A well-funded newcomer",
+    "text": "A start-up with a famous investor and a large marketing budget has launched in {city}. They are giving the product away.",
+    "bind": ["office"],
+    "cond": { "minTurn": 5 },
+    "terms": ["moat"],
+    "opts": [
+      {
+        "label": "Lock customers in",
+        "hint": "Offer long contracts at a small discount before they can be poached.",
+        "out": [
+          {
+            "text": "Most of your base signs for two years.",
+            "fx": [["special", "fringeUp", 12], ["demand", -3, 4, "office"], ["flag", "lockin", 8]]
+          }
+        ]
+      },
+      {
+        "label": "Out-market them",
+        "hint": "Match their noise.",
+        "out": [
+          {
+            "text": "An expensive shouting match. You hold your ground.",
+            "fx": [["special", "fringeUp", 12], ["cost", 0.06, "sm"], ["demand", 4, 4, "office"]]
+          }
+        ]
+      },
+      {
+        "label": "Ignore them",
+        "hint": "Free products run out of money.",
+        "out": [
+          { "w": 0.5, "text": "They burn through their funding and fade.", "fx": [["special", "fringeUp", 4]] },
+          { "w": 0.5, "text": "They do not fade.", "fx": [["special", "fringeUp", 15], ["share", -10, "office"]] }
+        ]
+      }
+    ],
+    "lesson": "Entrants that buy share with investor money cannot do it for ever — but they can do it for longer than you might stay solvent matching them."
+  },
+  {
+    "id": "customer_bust",
+    "cat": "market",
+    "title": "A customer goes bust",
+    "text": "A significant customer has filed for bankruptcy. Their unpaid invoices are now a claim in a long queue.",
+    "cond": { "minRev": 300 },
+    "terms": ["workingCapital"],
+    "opts": [
+      { "label": "Write it off", "hint": "Take the loss and move on.", "out": [{ "text": "The receivable is gone.", "fx": [["writeoff", 0.15]] }] },
+      {
+        "label": "Chase it through the courts",
+        "hint": "Legal fees for a place in the queue.",
+        "out": [
+          { "w": 0.3, "text": "You recover a third.", "fx": [["writeoff", 0.15], ["cost", 0.01, "other"], ["cash", 0.05]] },
+          { "w": 0.7, "text": "Secured creditors take everything.", "fx": [["writeoff", 0.15], ["cost", 0.01, "other"]] }
+        ]
+      },
+      {
+        "label": "Tighten credit for everyone",
+        "hint": "Deposits and shorter terms. Safer; some customers will walk.",
+        "out": [{ "text": "Fewer sales, all of them collectable.", "fx": [["writeoff", 0.15], ["demand", -3, 4, "all"]] }]
+      }
+    ],
+    "lesson": "Revenue is not cash until it is collected. Every sale on credit is a small unsecured loan to your customer."
+  },
+  {
+    "id": "platform_fee",
+    "cat": "market",
+    "title": "The platform raises its cut",
+    "text": "The marketplace that brings you a third of your customers is raising its commission. Take it or leave it.",
+    "cond": { "ind": ["saas", "retail"], "minTurn": 5 },
+    "opts": [
+      {
+        "label": "Build direct sales",
+        "hint": "Spend to reach customers without the middleman.",
+        "out": [{ "text": "A hard year, then freedom.", "fx": [["cost", 0.08, "sm"], ["inputs", 6, 4], ["demand", 3, 8, "all"]] }]
+      },
+      {
+        "label": "Pass it on",
+        "hint": "Raise prices 4%.",
+        "out": [{ "text": "Customers pay the platform’s tax.", "fx": [["special", "priceUp", 4], ["inputs", 12, 8]] }]
+      },
+      {
+        "label": "Absorb it",
+        "hint": "It is still cheaper than a sales force.",
+        "out": [{ "text": "The margin shrinks.", "fx": [["inputs", 12, 8]] }]
+      }
+    ],
+    "lesson": "If one channel controls your access to customers, your margin is theirs to take. Distribution you do not own is rented."
+  },
+  {
+    "id": "open_source",
+    "cat": "market",
+    "title": "A free alternative",
+    "text": "A capable open-source project now does most of what your product does. A large company is funding it.",
+    "once": true,
+    "cond": { "ind": ["saas"], "minTurn": 8 },
+    "terms": ["moat"],
+    "opts": [
+      {
+        "label": "Open your core too",
+        "hint": "Give away the base, sell the enterprise layer.",
+        "out": [{ "text": "Adoption jumps; price per customer falls.", "fx": [["demand", 12, 6, "all"], ["special", "priceDown", 8]] }]
+      },
+      {
+        "label": "Go upmarket",
+        "hint": "Build what free software never does: compliance, support, integration.",
+        "out": [{ "text": "The enterprise customers stay, and pay.", "fx": [["cost", 0.08, "rd"], ["tech", 4]] }]
+      },
+      {
+        "label": "Dismiss it",
+        "hint": "Serious customers do not run free software.",
+        "out": [{ "w": 0.45, "text": "They do not, mostly.", "fx": [] }, { "w": 0.55, "text": "They do.", "fx": [["share", -8, "all"]] }]
+      }
+    ],
+    "lesson": "When a substitute is free, you cannot compete on price. Compete on what the free option structurally cannot offer."
+  },
+  {
+    "id": "trade_show",
+    "cat": "market",
+    "title": "The industry gathers",
+    "text": "The year’s main conference is next month. Your competitors have booked the big stands.",
+    "cool": 16,
+    "opts": [
+      {
+        "label": "Sponsor the keynote",
+        "hint": "Top billing.",
+        "out": [{ "text": "Everyone who matters saw your name.", "fx": [["cost", 0.04, "sm"], ["brand", 3], ["demand", 4, 3, "all"]] }]
+      },
+      {
+        "label": "Send a small team",
+        "hint": "Meet customers, skip the stand.",
+        "out": [{ "text": "A handful of good conversations.", "fx": [["cost", 0.01, "sm"], ["demand", 2, 2, "all"]] }]
+      },
+      { "label": "Skip it", "hint": "Nobody ever bought anything at a conference.", "out": [{ "text": "You save the money.", "fx": [] }] }
+    ],
+    "lesson": "Marketing has diminishing returns. The first dollar of presence is worth a lot; the biggest stand in the hall mostly impresses other exhibitors."
+  },
+  {
+    "id": "award",
+    "cat": "market",
+    "title": "Shortlisted",
+    "text": "You are on the shortlist for the industry’s best-known award.",
+    "cool": 20,
+    "cond": { "minTurn": 8, "minRep": 45 },
+    "opts": [
+      {
+        "label": "Campaign for it",
+        "hint": "Dinners, a film, a table at the ceremony.",
+        "out": [
+          { "w": 0.5, "text": "You win. The trophy goes in reception.", "fx": [["cost", 0.02, "sm"], ["brand", 5], ["morale", 4, "all"]] },
+          { "w": 0.5, "text": "A rival wins. The dinner was nice.", "fx": [["cost", 0.02, "sm"]] }
+        ]
+      },
+      {
+        "label": "Let the work speak",
+        "hint": "Turn up and see.",
+        "out": [{ "w": 0.25, "text": "You win anyway.", "fx": [["brand", 5], ["morale", 4, "all"]] }, { "w": 0.75, "text": "Not this year.", "fx": [] }]
+      }
+    ],
+    "lesson": "Recognition is a cheap brand asset when it comes — and a poor use of money when chased."
+  },
+  {
+    "id": "churn_wave",
+    "cat": "market",
+    "title": "Renewals are slipping",
+    "text": "More customers than usual are not renewing. Exit interviews mention reliability and slow support.",
+    "cond": { "ind": ["saas"], "minTurn": 6 },
+    "opts": [
+      {
+        "label": "Pause features, fix the basics",
+        "hint": "A quarter of engineering on reliability.",
+        "out": [{ "text": "The complaints stop.", "fx": [["cost", 0.03, "rd"], ["share", 2, "all"]] }]
+      },
+      {
+        "label": "Discount renewals",
+        "hint": "Buy them back.",
+        "out": [{ "text": "They stay, at a lower price.", "fx": [["demand", -2, 4, "all"]] }]
+      },
+      {
+        "label": "Push on with the roadmap",
+        "hint": "New features will win them back.",
+        "out": [{ "text": "They do not.", "fx": [["share", -7, "all"], ["rep", -2]] }]
+      }
+    ],
+    "lesson": "In a subscription business, churn compounds against you exactly as growth compounds for you. A leaky bucket cannot be filled by selling harder."
+  },
+  {
+    "id": "underpriced",
+    "cat": "market",
+    "title": "You are too cheap",
+    "text": "A pricing consultant has benchmarked you against the market. Her conclusion: customers would pay 10% more and barely notice.",
+    "cond": { "minTurn": 6 },
+    "terms": ["elasticity", "pricingPower"],
+    "opts": [
+      {
+        "label": "Raise prices 10%",
+        "hint": "Believe the study.",
+        "out": [
+          {
+            "text": "The new price list is live. Watch your share over the next few quarters to see if she was right.",
+            "fx": [["special", "priceUp", 10]]
+          }
+        ]
+      },
+      { "label": "Raise 4% and watch", "hint": "A smaller step.", "out": [{ "text": "A cautious increase.", "fx": [["special", "priceUp", 4]] }] },
+      { "label": "Leave it", "hint": "Share matters more than margin right now.", "out": [{ "text": "Prices stay where they are.", "fx": [] }] }
+    ],
+    "lesson": "The right price depends on elasticity: how much volume you lose per point of price. Open any market-share number to see yours — and remember a price rise on idle capacity costs more than one on a full order book."
+  },
+  {
+    "id": "exclusive_reseller",
+    "cat": "market",
+    "title": "A reseller wants exclusivity",
+    "text": "The largest distributor in {region} will push your product hard — if nobody else in the region can sell it.",
+    "bind": ["region"],
+    "cond": { "minTurn": 6 },
+    "opts": [
+      {
+        "label": "Sign the exclusive",
+        "hint": "Strong growth now; they become your only door.",
+        "out": [{ "text": "Volume jumps.", "fx": [["demand", 10, 8, "region"]], "chain": [["reseller_squeeze", 6, 0.55]] }]
+      },
+      {
+        "label": "Offer non-exclusive",
+        "hint": "Less commitment on both sides.",
+        "out": [{ "text": "They take it, with less enthusiasm.", "fx": [["demand", 4, 8, "region"]] }]
+      },
+      { "label": "Decline", "hint": "Keep control of your channel.", "out": [{ "text": "You keep selling direct.", "fx": [] }] }
+    ],
+    "lesson": "Exclusivity trades growth for dependence. The partner who controls your access to customers will eventually price that control."
+  },
+  {
+    "id": "reseller_squeeze",
+    "cat": "market",
+    "title": "Your reseller wants better terms",
+    "text": "Your exclusive distributor in {region} now accounts for most of your sales there. They would like a larger margin.",
+    "w": 0,
+    "bind": ["region"],
+    "opts": [
+      {
+        "label": "Give in",
+        "hint": "They have you.",
+        "out": [{ "text": "The margin moves from your account to theirs.", "fx": [["cost", 0.04, "sm"]] }]
+      },
+      {
+        "label": "Walk away",
+        "hint": "Rebuild the channel yourself.",
+        "out": [{ "text": "A painful year in the region.", "fx": [["share", -12, "region"]] }]
+      }
+    ],
+    "lesson": "This is what dependence costs. The time to negotiate was before they controlled the channel."
+  }
+]

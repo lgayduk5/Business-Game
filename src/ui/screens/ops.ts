@@ -13,6 +13,7 @@ import { sfx } from '../../audio';
 
 export const opsTabs: [string, string][] = [['list', 'All offices']];
 export const opsViews: Record<string, (g: GameState) => string> = {};
+export const opsExtras: ((g: GameState, o: Office) => string)[] = [];
 
 function list(g: GameState): string {
   const c = g.company;
@@ -87,7 +88,7 @@ function officeView(g: GameState): string {
 
   return `<div class="spread"><h1>${esc(city.name)} <span class="muted" style="font-size:.7em">${def.name}</span></h1>
     ${c.offices.length > 1 ? `<button class="btn sm" data-a="sub" data-k="ops" data-v="list">All offices</button>` : ''}</div>
-    ${status}<div class="grid2">${quarter}${market}<div class="wide">${team}</div>${plant}${chart}</div>${close}`;
+    ${status}<div class="grid2">${quarter}${market}<div class="wide">${team}</div>${plant}${chart}${opsExtras.map((f) => f(g, o)).join('')}</div>${close}`;
 }
 
 function plantView(g: GameState, o: Office): string {

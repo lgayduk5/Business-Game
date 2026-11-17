@@ -155,6 +155,7 @@ export interface InvFx {
   income?: number; // quarterly income as a fraction of upfront cost
   intel?: number; // intelligence on rivals 0..1
   loyalty?: number; // key-person loyalty per quarter
+  tax?: number; // % change in the tax bill
 }
 
 export interface InvStage {
@@ -184,6 +185,7 @@ export interface InvestmentDef {
   curve: Curve;
   fx: InvFx;
   stages?: InvStage[];
+  start?: Fx[]; // effects applied once when the investment is made
   risk?: { p: number; shownP: number; event?: string; text: string; fx?: Fx[] }; // per-quarter failure chance once active
   hit?: { p: number; mult: number; text: string }; // risky curve: per-quarter chance of a payoff worth mult × upfront
   flag?: string; // flag set while active (events check these)

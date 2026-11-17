@@ -1,4 +1,4 @@
-import { CITIES, IND_LIST, endTurn, newGame, raiseEquity, setReqs, staffingHint, type GameState, type NewGameOpts } from '../engine/src/index';
+import { CITIES, EVENT, IND_LIST, endTurn, evalCond, newGame, raiseEquity, resolveEvent, setReqs, staffingHint, type GameState, type NewGameOpts } from '../engine/src/index';
 
 export function opts(over: Partial<NewGameOpts> = {}): NewGameOpts {
   return { name: 'Testco', industry: IND_LIST[0].id, city: CITIES[0].id, founder: 'engineer', difficulty: 'normal', seed: 'test-seed', mode: 'standard', ...over };
@@ -7,6 +7,12 @@ export function opts(over: Partial<NewGameOpts> = {}): NewGameOpts {
 /** A minimal sensible player: staff to demand, add sales people when affordable, raise money when short. */
 export function simplePolicy(g: GameState) {
   const c = g.company;
+  // answer events: rotate through the options that are allowed
+  for (const pe of g.queue.slice()) {
+    const def = EVENT[pe.id];
+    const ok = def.opts.map((o, i) => (evalCond(g, o.req, pe.ctx) ? i : -1)).filter((i) => i >= 0);
+    resolveEvent(g, pe.uid, ok[(pe.uid + g.turn) % ok.length] ?? 0);
+  }
   for (const o of c.offices) {
     const hint = staffingHint(g, o);
     setReqs(g, o.id, 'ops', Math.max(0, hint.ops - o.staff.ops.n));

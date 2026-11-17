@@ -1,1 +1,473 @@
-[]
+[
+  {
+    "id": "outage",
+    "cat": "operational",
+    "title": "Everything is down",
+    "text": "Your service has been unavailable for six hours. Customers are posting screenshots.",
+    "cond": { "ind": ["saas"], "minTurn": 3 },
+    "opts": [
+      {
+        "label": "Full transparency and credits",
+        "hint": "Publish the post-mortem, refund the day.",
+        "out": [{ "text": "Customers appreciate the honesty.", "fx": [["cost", 0.04, "cogs"], ["rep", 2]] }]
+      },
+      {
+        "label": "Fix it quietly",
+        "hint": "Say as little as possible.",
+        "out": [
+          { "w": 0.5, "text": "It fades from memory.", "fx": [], "boost": ["flag", "reliable", 2] },
+          { "w": 0.5, "text": "It happens again a month later, and now there is a pattern.", "fx": [["rep", -5], ["share", -5, "all"]] }
+        ]
+      },
+      {
+        "label": "Blame the hosting provider",
+        "hint": "Technically true.",
+        "out": [{ "text": "Nobody cares whose fault it was.", "fx": [["rep", -3]] }]
+      }
+    ],
+    "lesson": "Incidents are inevitable; how you handle them is a choice. Reliability engineering shifts the odds, and honesty limits the damage."
+  },
+  {
+    "id": "spinout",
+    "cat": "operational",
+    "title": "Your best team wants out",
+    "text": "Five of your strongest people in {city} have an idea and want to start a company around it.",
+    "bind": ["office"],
+    "cond": { "minHead": 25, "minTurn": 8 },
+    "terms": ["keyPerson"],
+    "opts": [
+      {
+        "label": "Fund them as a spin-off",
+        "hint": "Back them for a 30% stake. You lose the team, keep a share of the upside.",
+        "out": [
+          {
+            "text": "They leave with your blessing and your money.",
+            "fx": [["cost", 0.05, "rd"], ["staff", -8, "rnd", "office"], ["culture", 2]],
+            "chain": [["spinout_result", 8]]
+          }
+        ]
+      },
+      {
+        "label": "Counter with equity",
+        "hint": "Promotions and shares to stay.",
+        "out": [{ "text": "They stay. For now.", "fx": [["dilute", 1.5], ["loyalty", 10], ["morale", 3, "office"]] }]
+      },
+      {
+        "label": "Let them go",
+        "hint": "Wish them luck.",
+        "out": [{ "text": "They take some knowledge with them.", "fx": [["staff", -10, "rnd", "office"], ["morale", -5, "office"], ["tech", -2]] }]
+      }
+    ],
+    "lesson": "Talented people have options. You can share the upside with them inside the company, outside it, or not at all — and they will remember which."
+  },
+  {
+    "id": "spinout_result",
+    "cat": "operational",
+    "title": "News from the spin-off",
+    "text": "The team you backed two years ago has reached the end of its first chapter.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Open the letter",
+        "hint": "Venture outcomes are lumpy.",
+        "out": [
+          { "w": 0.3, "text": "They have been acquired. Your stake pays handsomely.", "fx": [["cash", 0.5]] },
+          { "w": 0.7, "text": "They ran out of money. The stake is worthless.", "fx": [] }
+        ]
+      }
+    ],
+    "lesson": "Most venture bets fail; a few pay for all the rest. One bet is a lottery ticket, not a strategy."
+  },
+  {
+    "id": "burnout",
+    "cat": "operational",
+    "title": "People are running on empty",
+    "text": "Sick days are up, tempers are short, and two managers have asked what the plan is.",
+    "cond": { "maxMorale": 50, "minTurn": 4 },
+    "terms": ["utilisation", "attrition"],
+    "opts": [
+      {
+        "label": "Mandatory time off",
+        "hint": "Close for a week. Lose the output.",
+        "out": [{ "text": "People come back human.", "fx": [["prod", -10, 1, "all"], ["morale", 8, "all"]] }]
+      },
+      {
+        "label": "Hire to share the load",
+        "hint": "Open positions across operations.",
+        "out": [{ "text": "Help is on the way, in a quarter or two.", "fx": [["special", "hireAhead"], ["morale", 3, "all"]] }]
+      },
+      {
+        "label": "Push through",
+        "hint": "It is a busy period. It will pass.",
+        "out": [
+          { "w": 0.45, "text": "It passes.", "fx": [] },
+          { "w": 0.55, "text": "Several people resign in the same week.", "fx": [["staff", -6], ["morale", -6, "all"]] }
+        ]
+      }
+    ],
+    "lesson": "Running people above capacity borrows from the future. Watch utilisation: sustained above 95% it shows up as attrition and quality problems."
+  },
+  {
+    "id": "fraud",
+    "cat": "operational",
+    "title": "Someone has been stealing",
+    "text": "Finance has found a pattern of fake supplier invoices going back two years. It leads to a trusted manager.",
+    "once": true,
+    "cond": { "minHead": 30, "minTurn": 8 },
+    "opts": [
+      {
+        "label": "Prosecute publicly",
+        "hint": "Make an example.",
+        "out": [{ "text": "Uncomfortable headlines, clear message.", "fx": [["cost", 0.05, "other"], ["rep", -1], ["culture", 2]] }]
+      },
+      {
+        "label": "Quiet dismissal",
+        "hint": "Recover what you can and say nothing.",
+        "out": [
+          { "w": 0.6, "text": "It stays quiet.", "fx": [["cost", 0.05, "other"]], "boost": ["exec", "CFO", 1.5] },
+          { "w": 0.4, "text": "It leaks, along with the fact you hid it.", "fx": [["cost", 0.05, "other"], ["rep", -5], ["culture", -3]] }
+        ]
+      },
+      {
+        "label": "Tighten controls everywhere",
+        "hint": "Dual sign-off on everything, for ever.",
+        "out": [{ "text": "Slower, safer.", "fx": [["cost", 0.08, "ga"], ["prod", -2, 2, "all"], ["flag", "controls"]] }]
+      }
+    ],
+    "lesson": "Internal controls feel like bureaucracy until the day they are missing. Fraud grows where one person can both approve and pay."
+  },
+  {
+    "id": "complaint",
+    "cat": "operational",
+    "title": "A complaint about a star",
+    "text": "Three people have made a formal complaint about the behaviour of {person}, your {role}.",
+    "bind": ["person"],
+    "once": true,
+    "cond": { "minHead": 20, "minTurn": 6 },
+    "terms": ["culture"],
+    "opts": [
+      {
+        "label": "Independent investigation",
+        "hint": "Slow, expensive, fair.",
+        "out": [
+          {
+            "w": 0.6,
+            "text": "The complaints are upheld. {person} leaves.",
+            "fx": [["cost", 0.02, "other"], ["personLeave"], ["culture", 4], ["rep", 2]]
+          },
+          { "w": 0.4, "text": "The investigation clears them, and people accept it.", "fx": [["cost", 0.02, "other"], ["culture", 1]] }
+        ]
+      },
+      {
+        "label": "Settle quietly",
+        "hint": "Payments and non-disclosure agreements.",
+        "out": [{ "text": "It goes away. People notice that it went away.", "fx": [["cost", 0.03, "other"], ["culture", -5]], "chain": [["leak", 4, 0.4]] }]
+      },
+      {
+        "label": "Back your performer",
+        "hint": "They deliver. That matters.",
+        "out": [{ "text": "The complainants leave. Others update their CVs.", "fx": [["culture", -8], ["morale", -5, "all"]], "chain": [["leak", 3, 0.6]] }]
+      }
+    ],
+    "lesson": "Culture is defined by what you tolerate from your best performers. Everyone is watching what happens next."
+  },
+  {
+    "id": "leak",
+    "cat": "operational",
+    "title": "It is in the press",
+    "text": "A journalist has the whole story of how the complaint was handled, with documents.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Apologise and act",
+        "hint": "Admit it was wrong and change the process.",
+        "out": [{ "text": "A bad month.", "fx": [["rep", -4], ["cost", 0.03, "other"], ["culture", 2]] }]
+      },
+      {
+        "label": "Deny everything",
+        "hint": "No comment, then a denial.",
+        "out": [{ "text": "The documents are published in full.", "fx": [["rep", -10], ["brand", -4], ["culture", -3]] }]
+      }
+    ],
+    "lesson": "Problems buried rarely stay buried, and the cover-up is always a second story."
+  },
+  {
+    "id": "flood",
+    "cat": "operational",
+    "title": "Water everywhere",
+    "text": "A burst main has flooded your {city} premises. Nothing will work there for weeks.",
+    "bind": ["office"],
+    "cool": 30,
+    "opts": [
+      {
+        "label": "Rent emergency space",
+        "hint": "Pay whatever it takes to be running next week.",
+        "out": [{ "text": "Cramped, costly, operational.", "fx": [["cost", 0.03, "ga"], ["capacity", -10, 1, "office"]] }]
+      },
+      {
+        "label": "Make do",
+        "hint": "Wait for the repairs.",
+        "out": [{ "text": "A lost quarter in {city}.", "fx": [["capacity", -40, 1, "office"], ["morale", -3, "office"]] }]
+      }
+    ],
+    "lesson": "Business continuity planning is dull until the day it is the only thing that matters."
+  },
+  {
+    "id": "legacy_systems",
+    "cat": "operational",
+    "title": "The systems are creaking",
+    "text": "The software that runs your operations was built for a company a tenth your size. It fell over twice last month.",
+    "once": true,
+    "cond": { "minHead": 40, "minTurn": 10 },
+    "opts": [
+      {
+        "label": "Migrate now",
+        "hint": "Two painful quarters, then it is done.",
+        "out": [{ "text": "Painful, then better than before.", "fx": [["cost", 0.05, "ga"], ["prod", -5, 2, "all"], ["flag", "modern", 40]] }]
+      },
+      {
+        "label": "Patch it",
+        "hint": "Cheap, quick, temporary.",
+        "out": [{ "text": "It holds, for now.", "fx": [["cost", 0.01, "ga"]], "chain": [["systems_failure", 6, 0.4]] }]
+      },
+      {
+        "label": "Leave it",
+        "hint": "It mostly works.",
+        "out": [{ "text": "You move on to other things.", "fx": [], "chain": [["systems_failure", 4, 0.6]] }]
+      }
+    ],
+    "lesson": "Technical debt accrues interest. You can pay it down on your schedule or its own."
+  },
+  {
+    "id": "systems_failure",
+    "cat": "operational",
+    "title": "The system finally fell over",
+    "text": "The old platform has failed completely. Orders are being taken on paper.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Emergency rebuild",
+        "hint": "There is no other option.",
+        "out": [{ "text": "Twice the cost of doing it properly, and a wrecked quarter.", "fx": [["cost", 0.1, "ga"], ["prod", -12, 2, "all"]] }]
+      }
+    ],
+    "lesson": "Deferring a necessary cost does not avoid it. It adds a penalty and lets the timing be chosen for you."
+  },
+  {
+    "id": "staff_idea",
+    "cat": "operational",
+    "title": "An idea from the floor",
+    "text": "Someone on the front line in {city} thinks they can cut a step out of the main process.",
+    "bind": ["office"],
+    "cool": 10,
+    "opts": [
+      {
+        "label": "Pilot it",
+        "hint": "Try it in one team first.",
+        "out": [
+          {
+            "w": 0.6,
+            "text": "It works. They are thrilled to be listened to.",
+            "fx": [["cost", 0.01, "ga"], ["prod", 4, 12, "office"], ["morale", 3, "office"]]
+          },
+          { "w": 0.4, "text": "It does not pan out, but people are glad you tried.", "fx": [["cost", 0.01, "ga"], ["morale", 1, "office"]] }
+        ]
+      },
+      {
+        "label": "Roll it out everywhere",
+        "hint": "No time for pilots.",
+        "out": [
+          { "w": 0.4, "text": "It works company-wide.", "fx": [["cost", 0.03, "ga"], ["prod", 4, 12, "all"]] },
+          { "w": 0.6, "text": "It breaks things nobody anticipated.", "fx": [["cost", 0.03, "ga"], ["prod", -3, 2, "all"]] }
+        ]
+      },
+      {
+        "label": "Thank them and move on",
+        "hint": "There is a roadmap.",
+        "out": [{ "text": "They stop suggesting things.", "fx": [["morale", -2, "office"]] }]
+      }
+    ],
+    "lesson": "Small experiments are cheap options: limited downside, real information. Rolling out untested is paying full price for the same lottery ticket."
+  },
+  {
+    "id": "return_to_office",
+    "cat": "operational",
+    "title": "Where should people work?",
+    "text": "Leases are up for renewal and the question cannot be put off: office, home, or both.",
+    "once": true,
+    "cond": { "minHead": 20, "minTurn": 5 },
+    "opts": [
+      {
+        "label": "Everyone in, five days",
+        "hint": "Culture is built in person.",
+        "out": [{ "text": "Some of your best people resign rather than commute.", "fx": [["attrition", 25, 3], ["culture", 2]] }]
+      },
+      { "label": "Hybrid", "hint": "Three days in.", "out": [{ "text": "Nobody is delighted; nobody leaves.", "fx": [["morale", 2, "all"]] }] },
+      {
+        "label": "Fully remote",
+        "hint": "Hire anywhere, pay less rent.",
+        "out": [{ "text": "Costs fall and so, slowly, does cohesion.", "fx": [["cash", 0.01], ["morale", 4, "all"], ["culture", -3]] }]
+      }
+    ],
+    "lesson": "There is no free option here: each trades cost, talent pool and cohesion differently. Know which one your strategy depends on."
+  },
+  {
+    "id": "vendor_squeeze",
+    "cat": "operational",
+    "title": "A vendor doubles its price",
+    "text": "The supplier of a system you cannot run without has been bought by private equity. The renewal quote has doubled.",
+    "cool": 20,
+    "cond": { "minTurn": 6 },
+    "terms": ["pricingPower"],
+    "opts": [
+      { "label": "Pay", "hint": "Switching is worse.", "out": [{ "text": "You sign.", "fx": [["inputs", 8, 8]] }] },
+      {
+        "label": "Switch vendors",
+        "hint": "A risky migration to a cheaper alternative.",
+        "out": [
+          { "w": 0.7, "text": "The migration goes smoothly.", "fx": [["cost", 0.04, "ga"]] },
+          { "w": 0.3, "text": "The migration goes badly.", "fx": [["cost", 0.04, "ga"], ["prod", -8, 2, "all"]] }
+        ]
+      },
+      {
+        "label": "Negotiate hard",
+        "hint": "Threaten to leave.",
+        "out": [
+          { "w": 0.5, "text": "They meet you halfway.", "fx": [["inputs", 3, 8]] },
+          { "w": 0.5, "text": "They call your bluff and cut service during the dispute.", "fx": [["inputs", 8, 8], ["prod", -3, 1, "all"]] }
+        ]
+      }
+    ],
+    "lesson": "Switching costs are someone else’s pricing power. The time to negotiate is before you are locked in."
+  },
+  {
+    "id": "founder_burnout",
+    "cat": "operational",
+    "title": "You are exhausted",
+    "text": "You have not had a week off since you started. Your decisions are getting worse and you know it.",
+    "once": true,
+    "cond": { "minTurn": 16 },
+    "terms": ["keyPerson"],
+    "opts": [
+      {
+        "label": "Take a month off",
+        "hint": "Let the team run it.",
+        "out": [
+          {
+            "w": 0.7,
+            "text": "The company runs fine. That is good news.",
+            "fx": [["morale", 3, "all"], ["culture", 2]],
+            "boost": ["culture", 60, 1.6]
+          },
+          { "w": 0.3, "text": "Things slip without you.", "fx": [["prod", -5, 1, "all"]] }
+        ]
+      },
+      {
+        "label": "Hire a chief of staff",
+        "hint": "Someone to carry part of the load.",
+        "out": [{ "text": "The inbox halves.", "fx": [["cost", 0.02, "ga"], ["prod", 2, 8, "all"]] }]
+      },
+      {
+        "label": "Push through",
+        "hint": "Nobody else can do this.",
+        "out": [{ "text": "You push through.", "fx": [["culture", -3]], "chain": [["bad_call", 2, 0.5]] }]
+      }
+    ],
+    "lesson": "A company that cannot run without its founder has a key-person problem at the very top."
+  },
+  {
+    "id": "bad_call",
+    "cat": "operational",
+    "title": "A decision made at 2 a.m.",
+    "text": "A contract you signed without reading properly has turned out to mean what it says.",
+    "w": 0,
+    "opts": [{ "label": "Pay up", "hint": "An expensive lesson.", "out": [{ "text": "It costs what it costs.", "fx": [["cost", 0.06, "other"]] }] }],
+    "lesson": "Judgement is a resource that depletes. Tired leaders make expensive mistakes."
+  },
+  {
+    "id": "union",
+    "cat": "operational",
+    "title": "Staff are organising",
+    "text": "A majority of your people in {city} have signed cards to form a union.",
+    "bind": ["office"],
+    "once": true,
+    "cond": { "minHead": 40, "maxMorale": 58 },
+    "opts": [
+      {
+        "label": "Recognise it",
+        "hint": "Negotiate in good faith.",
+        "out": [{ "text": "Wages rise; so does trust.", "fx": [["wages", 4, 12], ["morale", 6, "office"], ["rep", 3], ["esg", 3]] }]
+      },
+      {
+        "label": "Address the grievances directly",
+        "hint": "Raise pay in the office and fix what they are angry about.",
+        "out": [{ "text": "The drive loses momentum.", "fx": [["special", "payUpOffice", 6], ["morale", 3, "office"]] }]
+      },
+      {
+        "label": "Campaign against it",
+        "hint": "Consultants, meetings, pressure.",
+        "out": [
+          { "w": 0.5, "text": "The vote fails. Nobody forgets.", "fx": [["cost", 0.03, "other"], ["morale", -3, "office"]] },
+          {
+            "w": 0.5,
+            "text": "The vote passes anyway, and now you are the villain.",
+            "fx": [["cost", 0.03, "other"], ["wages", 4, 12], ["morale", -8, "office"], ["rep", -4]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Union drives are a symptom. The underlying condition is pay, respect or security that people no longer expect to get by asking."
+  },
+  {
+    "id": "onboarding_gap",
+    "cat": "operational",
+    "title": "New hires are floundering",
+    "text": "You have hired fast. Managers say half the newcomers still do not know how things work here.",
+    "cond": { "minHead": 25, "minTurn": 5 },
+    "cool": 16,
+    "terms": ["culture"],
+    "opts": [
+      {
+        "label": "Build proper onboarding",
+        "hint": "A month of structured training for every new hire.",
+        "out": [{ "text": "New people become useful in half the time.", "fx": [["cost", 0.02, "ga"], ["skill", 2, "all"]] }]
+      },
+      {
+        "label": "Slow the hiring",
+        "hint": "Absorb the people you have first.",
+        "out": [{ "text": "All open positions are closed.", "fx": [["special", "freezeHiring"], ["culture", 2]] }]
+      },
+      {
+        "label": "Sink or swim",
+        "hint": "Good people figure it out.",
+        "out": [{ "text": "Some swim. Some leave.", "fx": [["attrition", 15, 3], ["culture", -2]] }]
+      }
+    ],
+    "lesson": "Hiring faster than you can absorb dilutes skill and culture. Headcount is not capacity until people are productive."
+  },
+  {
+    "id": "quality_escape",
+    "cat": "operational",
+    "title": "A fault reached customers",
+    "text": "A defect got past your checks in {city} and customers found it before you did.",
+    "bind": ["office"],
+    "cool": 16,
+    "cond": { "minTurn": 4 },
+    "opts": [
+      {
+        "label": "Make everyone whole",
+        "hint": "Recall, replace, refund — before being asked.",
+        "out": [{ "text": "Costly, and respected.", "fx": [["cost", 0.06, "cogs"], ["rep", 3]] }]
+      },
+      {
+        "label": "Fix it for those who complain",
+        "hint": "Most customers will never notice.",
+        "out": [
+          { "w": 0.5, "text": "Most never notice.", "fx": [["cost", 0.02, "cogs"]], "boost": ["flag", "qms", 2] },
+          { "w": 0.5, "text": "Someone compares notes online.", "fx": [["cost", 0.02, "cogs"], ["rep", -6], ["share", -6, "office"]] }
+        ]
+      }
+    ],
+    "lesson": "The cost of a defect multiplies at every stage it survives. Being seen to fix it generously is the cheapest option left once it is out."
+  }
+]

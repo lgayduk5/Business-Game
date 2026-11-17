@@ -1,5 +1,21 @@
 # Changelog
 
+## M3 — Investments, events, macro
+
+- Investment system: upfront and ongoing cost, ramp-up, four payoff curves (steady,
+  back-loaded, decaying, risky), staged projects with gates, and traps whose real risk
+  only due diligence reveals. 42 investments in the catalogue (industry-specific ones
+  appear as their industries arrive).
+- Acquisitions: businesses come up for sale; due diligence, goodwill, integration,
+  culture clash, hidden liabilities.
+- Event engine and a first deck of 60+ events across macro, market, operational,
+  regulatory, opportunity and crisis categories, with multi-option responses, weighted
+  outcomes, stat checks and chains.
+- Macro layer: shocks (recession, rate moves, inflation, credit crunch, currency
+  crises, energy and trade shocks) and an Economy screen with history charts.
+- All content validated against JSON schemas in tests. `docs/content-guide.md`
+  explains how to add events and investments.
+
 ## M2 — World, three tiers, people
 
 - Full world: 19 cities in 6 regions, each with its own wages, rent, tax, regulation,

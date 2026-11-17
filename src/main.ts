@@ -1,4 +1,5 @@
 import './styles.css';
+import * as engine from '@engine';
 import { initEvents, render, setView, ui } from './ui/store';
 import { shell } from './ui/shell';
 import { title, wizard } from './ui/screens/title';
@@ -9,6 +10,9 @@ import './ui/screens/regions';
 import './ui/screens/corp';
 import './ui/screens/capital';
 import './ui/screens/team';
+import './ui/screens/invest';
+import './ui/screens/intel';
+import './ui/screens/events';
 import './ui/screens/modals';
 
 setView(() => (ui.screen === 'game' && ui.g ? shell(ui.g) : ui.screen === 'new' && ui.wizard ? wizard() : title()));
@@ -20,4 +24,4 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => void navigator.serviceWorker.register('./sw.js').catch(() => undefined));
 }
 // Expose state for automated checks and curious players.
-(window as any).__gc = ui;
+(window as any).__gc = { ui, render, engine };

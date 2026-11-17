@@ -1,1 +1,221 @@
-[]
+[
+  {
+    "id": "acquihire",
+    "cat": "opportunity",
+    "title": "A team is available",
+    "text": "A start-up in {city} has run out of money. Its engineering team is excellent and about to scatter.",
+    "bind": ["office"],
+    "cool": 14,
+    "cond": { "minTurn": 4 },
+    "opts": [
+      {
+        "label": "Hire the whole team",
+        "hint": "Pay off their investors and take all four.",
+        "out": [
+          {
+            "text": "They join as a unit, with their own way of doing things.",
+            "fx": [["cost", 0.08, "rd"], ["special", "addRnd", 4], ["tech", 2], ["culture", -1]]
+          }
+        ]
+      },
+      {
+        "label": "Hire the best two",
+        "hint": "Cherry-pick.",
+        "out": [{ "text": "Two strong hires.", "fx": [["cost", 0.02, "rd"], ["special", "addRnd", 2]] }]
+      },
+      { "label": "Pass", "hint": "You have a hiring plan already.", "out": [{ "text": "A rival picks them up.", "fx": [["rivalTech", 2]] }] }
+    ],
+    "lesson": "Buying a team is faster than building one, and brings a ready-made culture — which may or may not be yours."
+  },
+  {
+    "id": "tender",
+    "cat": "opportunity",
+    "title": "A government tender",
+    "text": "A public body in {city} is tendering a multi-year contract. The paperwork alone is a project.",
+    "bind": ["office"],
+    "cool": 12,
+    "cond": { "minTurn": 4 },
+    "opts": [
+      {
+        "label": "Bid low",
+        "hint": "Win on price; live with the margin.",
+        "out": [
+          { "w": 0.6, "text": "You win. The work is steady and thin.", "fx": [["cost", 0.01, "sm"], ["demand", 15, 8, "office"], ["inputs", 4, 8]] },
+          { "w": 0.4, "text": "Someone bid lower still.", "fx": [["cost", 0.01, "sm"]] }
+        ]
+      },
+      {
+        "label": "Bid at full price",
+        "hint": "Only worth winning properly.",
+        "out": [
+          { "w": 0.3, "text": "They choose quality. A fine contract.", "fx": [["cost", 0.01, "sm"], ["demand", 15, 8, "office"]] },
+          { "w": 0.7, "text": "Too expensive.", "fx": [["cost", 0.01, "sm"]] }
+        ]
+      },
+      { "label": "No bid", "hint": "Public contracts are more trouble than they are worth.", "out": [{ "text": "You let it pass.", "fx": [] }] }
+    ],
+    "lesson": "In a sealed-bid auction the winner is often whoever most underestimated the cost. Decide what the work is worth before deciding what wins."
+  },
+  {
+    "id": "grant",
+    "cat": "opportunity",
+    "title": "An innovation grant",
+    "text": "A public fund is offering non-dilutive grants for research in your field.",
+    "cool": 12,
+    "cond": { "maxRev": 20000 },
+    "opts": [
+      {
+        "label": "Apply alone",
+        "hint": "A simple application.",
+        "out": [
+          { "w": 0.5, "text": "Awarded.", "fx": [["cost", 0.005, "rd"], ["cash", 0.08]] },
+          { "w": 0.5, "text": "Not this round.", "fx": [["cost", 0.005, "rd"]] }
+        ]
+      },
+      {
+        "label": "Apply with a university",
+        "hint": "Better odds, shared results.",
+        "out": [
+          { "w": 0.7, "text": "Awarded, with a research partner.", "fx": [["cost", 0.01, "rd"], ["cash", 0.06], ["tech", 1]] },
+          { "w": 0.3, "text": "Not this round.", "fx": [["cost", 0.01, "rd"]] }
+        ]
+      },
+      { "label": "Skip it", "hint": "Focus.", "out": [{ "text": "You skip it.", "fx": [] }] }
+    ],
+    "lesson": "Grant money costs no equity and no interest. Its price is paperwork and time — cheap for an early-stage company."
+  },
+  {
+    "id": "term_sheet",
+    "cat": "opportunity",
+    "title": "An unsolicited term sheet",
+    "text": "A fund you have never spoken to has sent an offer. They have clearly done their homework.",
+    "cool": 16,
+    "cond": { "isPublic": false, "minTurn": 4, "notMacro": "recession" },
+    "terms": ["dilution"],
+    "opts": [
+      {
+        "label": "Take it",
+        "hint": "Sell 15% at a 30% premium to your valuation.",
+        "out": [{ "text": "The money arrives. So does a new board member.", "fx": [["equity", 15, 1.3]] }]
+      },
+      {
+        "label": "Negotiate up",
+        "hint": "Smaller stake, higher price.",
+        "out": [{ "w": 0.5, "text": "They agree to 8% at a 50% premium.", "fx": [["equity", 8, 1.5]] }, { "w": 0.5, "text": "They walk.", "fx": [] }]
+      },
+      { "label": "Decline", "hint": "You are not raising.", "out": [{ "text": "You send a polite no.", "fx": [] }] }
+    ],
+    "lesson": "Money offered when you do not need it comes on better terms than money sought when you do. Dilution is still dilution."
+  },
+  {
+    "id": "keynote",
+    "cat": "opportunity",
+    "title": "An invitation to speak",
+    "text": "The industry’s main event wants you on the main stage.",
+    "cool": 16,
+    "cond": { "minTurn": 6, "minRep": 45 },
+    "opts": [
+      {
+        "label": "Accept and prepare properly",
+        "hint": "A week of your time.",
+        "out": [{ "text": "The talk is shared widely.", "fx": [["cost", 0.01, "sm"], ["brand", 3], ["rep", 2]] }]
+      },
+      {
+        "label": "Send your CTO",
+        "hint": "Share the spotlight.",
+        "out": [{ "text": "They are delighted, and good at it.", "fx": [["brand", 2], ["loyalty", 6]] }],
+        "req": { "exec": "CTO" }
+      },
+      { "label": "Decline", "hint": "You have a company to run.", "out": [{ "text": "You stay at your desk.", "fx": [] }] }
+    ],
+    "lesson": "The founder’s time is the scarcest resource in the company. Visibility is worth some of it."
+  },
+  {
+    "id": "white_label",
+    "cat": "opportunity",
+    "title": "A big brand wants your product under its name",
+    "text": "A household name wants to sell what you make in {city}, with their logo on it.",
+    "bind": ["office"],
+    "once": true,
+    "cond": { "minTurn": 6 },
+    "opts": [
+      {
+        "label": "Accept",
+        "hint": "Big volume, no brand credit, one powerful customer.",
+        "out": [{ "text": "The volume is real.", "fx": [["demand", 20, 8, "office"], ["brand", -2]], "chain": [["white_label_squeeze", 8, 0.5]] }]
+      },
+      {
+        "label": "Counter with co-branding",
+        "hint": "Both names on the box.",
+        "out": [{ "w": 0.5, "text": "They agree.", "fx": [["demand", 12, 8, "office"], ["brand", 2]] }, { "w": 0.5, "text": "They go elsewhere.", "fx": [] }]
+      },
+      { "label": "Decline", "hint": "Your brand is the asset.", "out": [{ "text": "You decline.", "fx": [] }] }
+    ],
+    "lesson": "White-label volume fills capacity but builds someone else’s brand, and hands them your biggest account."
+  },
+  {
+    "id": "white_label_squeeze",
+    "cat": "opportunity",
+    "title": "Renewal time",
+    "text": "Your white-label partner is renewing. They would like 20% off, and have a second supplier lined up.",
+    "w": 0,
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Give the discount",
+        "hint": "Keep the volume.",
+        "out": [{ "text": "Thinner, but still there.", "fx": [["demand", -4, 8, "office"]] }]
+      },
+      { "label": "Refuse", "hint": "Lose the account.", "out": [{ "text": "They switch supplier.", "fx": [["share", -15, "office"]] }] }
+    ],
+    "lesson": "A customer who owns the brand owns the relationship. You were always replaceable; now you know the price."
+  },
+  {
+    "id": "early_repay",
+    "cat": "opportunity",
+    "title": "Your lender wants out",
+    "text": "The bank holding {loan} is shrinking its book and will take 95 cents on the dollar for early repayment of 30%.",
+    "bind": ["loan"],
+    "cool": 20,
+    "cond": { "hasDebt": true, "minCashQ": 2 },
+    "opts": [
+      {
+        "label": "Take the discount",
+        "hint": "Use cash to retire debt cheaply.",
+        "out": [{ "text": "Debt retired below face value.", "fx": [["special", "discountRepay"]] }]
+      },
+      { "label": "Keep the cash", "hint": "Liquidity matters more.", "out": [{ "text": "You keep your cushion.", "fx": [] }] }
+    ],
+    "lesson": "Retiring debt at a discount is a guaranteed return. Compare it with what the same cash would earn inside the business."
+  },
+  {
+    "id": "founder_selling",
+    "cat": "opportunity",
+    "title": "A founder wants to sell",
+    "text": "The owner of a small competitor is retiring and would rather sell to you than to a fund.",
+    "cool": 10,
+    "cond": { "minTurn": 5 },
+    "opts": [
+      { "label": "Take a look", "hint": "Put it on the deals list.", "out": [{ "text": "The numbers are on your desk.", "fx": [["mnaTarget"]] }] },
+      { "label": "Not now", "hint": "You have enough to do.", "out": [{ "text": "Someone else will buy it.", "fx": [] }] }
+    ],
+    "lesson": "Acquisitions look easy on the day you sign. The value is made or lost in the diligence before and the integration after."
+  },
+  {
+    "id": "delegation",
+    "cat": "opportunity",
+    "title": "A trade delegation",
+    "text": "Officials from a city you have never looked at are in town and would like to pitch you on opening there.",
+    "cool": 12,
+    "cond": { "minTurn": 4 },
+    "opts": [
+      {
+        "label": "Host them",
+        "hint": "Lunch and a morning of your time.",
+        "out": [{ "text": "They leave you a thick folder of market data.", "fx": [["cost", 0.01, "sm"], ["discover"]] }]
+      },
+      { "label": "Decline politely", "hint": "One market at a time.", "out": [{ "text": "You send your regrets.", "fx": [] }] }
+    ],
+    "lesson": "Information about new markets has a price. Occasionally someone else pays it for you."
+  }
+]

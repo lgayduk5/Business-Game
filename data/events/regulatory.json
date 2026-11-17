@@ -1,1 +1,373 @@
-[]
+[
+  {
+    "id": "tax_audit",
+    "cat": "regulatory",
+    "title": "Tax audit",
+    "text": "The tax authority has selected you for a full audit of the last three years.",
+    "cool": 24,
+    "cond": { "minRev": 300, "minTurn": 8 },
+    "opts": [
+      {
+        "label": "Cooperate fully",
+        "hint": "Open the books.",
+        "out": [
+          { "w": 0.7, "text": "A clean result.", "fx": [["cost", 0.01, "other"]], "boost": ["exec", "CFO", 2] },
+          { "w": 0.3, "text": "They find errors. Honest ones, but errors.", "fx": [["cost", 0.01, "other"], ["tax", 0.04]] }
+        ]
+      },
+      {
+        "label": "Hire aggressive counsel",
+        "hint": "Contest every query.",
+        "out": [
+          { "w": 0.85, "text": "They give up on most points.", "fx": [["cost", 0.03, "other"]] },
+          { "w": 0.15, "text": "They do not give up.", "fx": [["cost", 0.03, "other"], ["tax", 0.06]] }
+        ]
+      },
+      {
+        "label": "Stall",
+        "hint": "Answer slowly and incompletely.",
+        "out": [
+          { "w": 0.4, "text": "The file is closed for lack of resources.", "fx": [] },
+          { "w": 0.6, "text": "They estimate the bill themselves, generously.", "fx": [["tax", 0.08], ["rep", -2]] }
+        ]
+      }
+    ],
+    "lesson": "Tax risk is a real liability even though it sits on no balance sheet. A good finance function is cheaper than a bad audit."
+  },
+  {
+    "id": "tax_scheme_audit",
+    "cat": "regulatory",
+    "title": "They have found the structure",
+    "text": "Tax authorities in three countries are coordinating a challenge to your tax arrangements.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Settle",
+        "hint": "Back taxes and a penalty, now.",
+        "out": [{ "text": "The structure is unwound.", "fx": [["tax", 0.25], ["rep", -4]] }]
+      },
+      {
+        "label": "Fight it",
+        "hint": "Your advisers say the position is defensible.",
+        "out": [
+          { "w": 0.25, "text": "You win on a technicality.", "fx": [["cost", 0.06, "other"]] },
+          { "w": 0.75, "text": "You lose, with interest and penalties, in public.", "fx": [["cost", 0.06, "other"], ["tax", 0.45], ["rep", -10]] }
+        ]
+      }
+    ],
+    "lesson": "The saving was a loan, and this is the repayment. Advisers are paid whether or not the scheme survives."
+  },
+  {
+    "id": "privacy_law",
+    "cat": "regulatory",
+    "title": "New data-privacy law",
+    "text": "A sweeping privacy law takes effect next year. You hold a great deal of customer data.",
+    "once": true,
+    "cond": { "ind": ["saas", "retail", "biotech", "consulting"], "minTurn": 6 },
+    "opts": [
+      {
+        "label": "Do it properly",
+        "hint": "Rebuild data handling to meet the law in full.",
+        "out": [{ "text": "Expensive, finished, and a selling point.", "fx": [["cost", 0.06, "ga"], ["rep", 2], ["flag", "privacy"]] }]
+      },
+      {
+        "label": "Minimum compliance",
+        "hint": "A policy document and a cookie banner.",
+        "out": [{ "text": "Probably enough.", "fx": [["cost", 0.02, "ga"]], "chain": [["privacy_fine", 6, 0.35]] }]
+      },
+      {
+        "label": "Wait for enforcement",
+        "hint": "Nobody gets fined in the first year.",
+        "out": [{ "text": "You carry on as before.", "fx": [], "chain": [["privacy_fine", 4, 0.6]] }]
+      }
+    ],
+    "lesson": "Compliance has a known cost; non-compliance has an unknown one with a fat tail. Regulators make examples of someone."
+  },
+  {
+    "id": "privacy_fine",
+    "cat": "regulatory",
+    "title": "The regulator has noticed",
+    "text": "You are the subject of a formal privacy investigation. The maximum fine is a percentage of global revenue.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Pay and comply",
+        "hint": "Take the fine and fix it.",
+        "out": [{ "text": "An expensive lesson.", "fx": [["cost", 0.12, "other"], ["rep", -4], ["flag", "privacy"]] }]
+      },
+      {
+        "label": "Fight it",
+        "hint": "The law is new and untested.",
+        "out": [
+          { "w": 0.3, "text": "The case collapses.", "fx": [["cost", 0.05, "other"]] },
+          { "w": 0.7, "text": "You become the test case, and lose.", "fx": [["cost", 0.25, "other"], ["rep", -6]] }
+        ]
+      }
+    ],
+    "lesson": "The cheap option was only cheap if nothing went wrong."
+  },
+  {
+    "id": "min_wage",
+    "cat": "regulatory",
+    "title": "Minimum wage rises",
+    "text": "The legal minimum is going up sharply. Even staff well above it will expect the difference to be kept.",
+    "cool": 20,
+    "cond": { "minTurn": 6 },
+    "opts": [
+      {
+        "label": "Raise everyone in step",
+        "hint": "Keep the pay ladder intact.",
+        "out": [{ "text": "The whole scale moves up.", "fx": [["wages", 5, 12], ["morale", 4, "all"]] }]
+      },
+      {
+        "label": "Just comply",
+        "hint": "Raise only those the law requires.",
+        "out": [{ "text": "The lowest paid catch up with those above them.", "fx": [["wages", 2, 12], ["morale", -2, "all"]] }]
+      },
+      {
+        "label": "Cut hours",
+        "hint": "Hold the wage bill flat.",
+        "out": [{ "text": "Same cost, less output, unhappy people.", "fx": [["wages", 1, 12], ["morale", -4, "all"], ["prod", -2, 4, "all"]] }]
+      }
+    ],
+    "lesson": "A wage floor compresses the whole pay scale. Labour-heavy, low-margin businesses feel it first."
+  },
+  {
+    "id": "bribe",
+    "cat": "regulatory",
+    "title": "A \"facilitation payment\"",
+    "text": "An official in {city} has let it be known that your permit renewal would go faster with a contribution to his nephew’s consultancy.",
+    "bind": ["office"],
+    "once": true,
+    "cond": { "minRegions": 2, "minTurn": 6 },
+    "opts": [
+      {
+        "label": "Refuse",
+        "hint": "Wait for the slow lane.",
+        "out": [
+          { "w": 0.6, "text": "Your paperwork is lost twice.", "fx": [["capacity", -15, 2, "office"], ["rep", 1]] },
+          { "w": 0.4, "text": "The permit arrives on time anyway.", "fx": [["rep", 1]] }
+        ]
+      },
+      {
+        "label": "Pay it",
+        "hint": "It is a rounding error.",
+        "out": [
+          {
+            "text": "The permit arrives the next morning.",
+            "fx": [["cost", 0.01, "other"], ["flag", "bribed"]],
+            "chain": [["bribery_probe", 8, 0.5]]
+          }
+        ]
+      },
+      {
+        "label": "Report him",
+        "hint": "To his ministry and yours.",
+        "out": [
+          {
+            "text": "He is transferred. His colleagues process your file very carefully.",
+            "fx": [["rep", 3], ["esg", 2], ["capacity", -20, 2, "office"]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Small bribes are a trap: cheap today, and a permanent liability under laws that reach you wherever you are headquartered."
+  },
+  {
+    "id": "bribery_probe",
+    "cat": "regulatory",
+    "title": "Bribery investigation",
+    "text": "Prosecutors at home have opened a file on payments your company made to officials abroad.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Self-report and settle",
+        "hint": "Cooperate, pay, reform.",
+        "out": [{ "text": "A large fine and a monitor for three years.", "fx": [["cost", 0.15, "other"], ["rep", -6]] }]
+      },
+      {
+        "label": "Deny it",
+        "hint": "It was a consultancy fee.",
+        "out": [
+          { "w": 0.4, "text": "The case is dropped for lack of evidence.", "fx": [] },
+          { "w": 0.6, "text": "The nephew talks.", "fx": [["cost", 0.35, "other"], ["rep", -15]] }
+        ]
+      }
+    ],
+    "lesson": "The payment was small. The liability never was."
+  },
+  {
+    "id": "antitrust",
+    "cat": "regulatory",
+    "title": "The competition authority calls",
+    "text": "Your share in {city} has attracted an inquiry into whether you are abusing a dominant position.",
+    "bind": ["office"],
+    "cool": 30,
+    "cond": { "minShare": 0.3 },
+    "opts": [
+      {
+        "label": "Cooperate",
+        "hint": "Open the files and wait.",
+        "out": [{ "text": "A year of document requests, then a clean bill.", "fx": [["cost", 0.03, "other"]] }]
+      },
+      {
+        "label": "Offer remedies",
+        "hint": "Cut prices 5% to make it go away.",
+        "out": [{ "text": "The inquiry closes.", "fx": [["special", "priceDown", 5]] }]
+      },
+      {
+        "label": "Fight",
+        "hint": "You earned that share.",
+        "out": [
+          { "w": 0.5, "text": "The authority backs down.", "fx": [["cost", 0.05, "other"]] },
+          { "w": 0.5, "text": "A fine, and a consent decree.", "fx": [["cost", 0.15, "other"], ["share", -10, "office"]] }
+        ]
+      }
+    ],
+    "lesson": "Past a certain share, growth itself becomes a regulatory risk. Dominance is a privilege with conditions."
+  },
+  {
+    "id": "esg_reporting",
+    "cat": "regulatory",
+    "title": "Sustainability reporting is now mandatory",
+    "text": "Companies your size must publish audited figures on emissions, pay gaps and supply chains.",
+    "once": true,
+    "cond": { "minRev": 2000 },
+    "opts": [
+      {
+        "label": "Do it properly",
+        "hint": "Measure, publish, improve.",
+        "out": [{ "text": "The first report is unflattering and credible.", "fx": [["cost", 0.03, "ga"], ["esg", 4]] }]
+      },
+      { "label": "Tick the boxes", "hint": "Minimum disclosure.", "out": [{ "text": "A report nobody reads.", "fx": [["cost", 0.01, "ga"]] }] },
+      {
+        "label": "Make it look good",
+        "hint": "Favourable definitions, selective scope.",
+        "out": [{ "text": "A glossy report.", "fx": [["esg", 6]], "chain": [["greenwash", 6, 0.5]] }]
+      }
+    ],
+    "lesson": "Disclosure turns reputation into something measurable — and makes gaming it a risk with a paper trail."
+  },
+  {
+    "id": "greenwash",
+    "cat": "regulatory",
+    "title": "Your sustainability claims fall apart",
+    "text": "An investigative piece has compared your sustainability report with your actual operations.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Restate and apologise",
+        "hint": "Publish the real numbers.",
+        "out": [{ "text": "Trust will take years to rebuild.", "fx": [["rep", -8], ["esg", -10]] }]
+      },
+      {
+        "label": "Stand by the report",
+        "hint": "The methodology was approved.",
+        "out": [{ "text": "The regulator opens a file.", "fx": [["rep", -12], ["esg", -12], ["cost", 0.05, "other"]] }]
+      }
+    ],
+    "lesson": "A reputation built on claims is a liability waiting for a fact-checker."
+  },
+  {
+    "id": "contractors",
+    "cat": "regulatory",
+    "title": "Are your contractors employees?",
+    "text": "New rules in {region} say long-term contractors must be offered employment, with benefits.",
+    "bind": ["region"],
+    "once": true,
+    "cond": { "minHead": 30 },
+    "opts": [
+      {
+        "label": "Convert them",
+        "hint": "Offer everyone a proper contract.",
+        "out": [{ "text": "Costs rise; loyalty too.", "fx": [["wages", 3, 12], ["morale", 3, "all"], ["esg", 2]] }]
+      },
+      {
+        "label": "Keep the arrangement",
+        "hint": "The rules are ambiguous.",
+        "out": [{ "text": "You keep things as they are.", "fx": [], "chain": [["misclassified", 6, 0.4]] }]
+      }
+    ],
+    "lesson": "Flexible labour is cheaper until a court decides it was employment all along."
+  },
+  {
+    "id": "misclassified",
+    "cat": "regulatory",
+    "title": "Back pay ordered",
+    "text": "A tribunal has ruled that your contractors were employees. Back pay, benefits and penalties are due.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Pay",
+        "hint": "There is no appeal worth making.",
+        "out": [{ "text": "An expensive correction.", "fx": [["cost", 0.08, "other"], ["rep", -3]] }]
+      }
+    ],
+    "lesson": "The saving was real, and so was the liability accruing alongside it."
+  },
+  {
+    "id": "rd_credit",
+    "cat": "regulatory",
+    "title": "R&D tax credit",
+    "text": "The government has introduced a generous credit for research spending.",
+    "cool": 24,
+    "cond": { "minTurn": 5 },
+    "opts": [
+      {
+        "label": "Claim it",
+        "hint": "Straightforward paperwork.",
+        "out": [{ "text": "A welcome cheque.", "fx": [["cost", 0.005, "ga"], ["cash", 0.04]] }]
+      },
+      {
+        "label": "Maximise it",
+        "hint": "Reclassify as much spending as possible as research.",
+        "out": [{ "text": "A much larger cheque.", "fx": [["cash", 0.08]], "chain": [["tax_audit", 6, 0.3]] }]
+      },
+      { "label": "Skip it", "hint": "Not worth the forms.", "out": [{ "text": "You leave the money on the table.", "fx": [] }] }
+    ],
+    "lesson": "Subsidies change the after-tax cost of an activity. Use them — but aggressive claims invite the audit that reviews everything else too."
+  },
+  {
+    "id": "licence",
+    "cat": "regulatory",
+    "title": "A new licence requirement",
+    "text": "From next quarter, operating in {city} requires a licence that takes months to obtain.",
+    "bind": ["office"],
+    "cool": 24,
+    "cond": { "minOffices": 2 },
+    "opts": [
+      {
+        "label": "Apply and wait",
+        "hint": "Operate at reduced scale meanwhile.",
+        "out": [{ "text": "The licence arrives eventually.", "fx": [["cost", 0.01, "other"], ["capacity", -10, 2, "office"]] }]
+      },
+      {
+        "label": "Pay expediters",
+        "hint": "Specialists who know the office.",
+        "out": [{ "text": "Approved in three weeks.", "fx": [["cost", 0.04, "other"]] }]
+      },
+      {
+        "label": "Carry on without it",
+        "hint": "Enforcement is patchy.",
+        "out": [{ "text": "You carry on.", "fx": [], "chain": [["licence_fine", 2, 0.5]] }]
+      }
+    ],
+    "lesson": "Regulation is a fixed cost of market entry. Incumbents with compliance teams barely notice; newcomers pay full price."
+  },
+  {
+    "id": "licence_fine",
+    "cat": "regulatory",
+    "title": "Shut down for inspection",
+    "text": "Inspectors have closed part of your {city} operation for trading without a licence.",
+    "w": 0,
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Pay the fine and comply",
+        "hint": "Nothing else to do.",
+        "out": [{ "text": "A fine, a closure, and the licence you should have had.", "fx": [["cost", 0.1, "other"], ["capacity", -30, 2, "office"]] }]
+      }
+    ],
+    "lesson": "Patchy enforcement is still enforcement."
+  }
+]

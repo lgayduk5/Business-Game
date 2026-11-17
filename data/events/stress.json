@@ -1,1 +1,281 @@
-[]
+[
+  {
+    "id": "data_breach",
+    "cat": "stress",
+    "title": "Data breach",
+    "text": "Over the weekend someone copied your customer database. They have sent a sample to prove it.",
+    "cool": 30,
+    "cond": { "minHead": 15, "minTurn": 6 },
+    "terms": ["reputation"],
+    "opts": [
+      {
+        "label": "Disclose now",
+        "hint": "Tell customers and regulators today; pay for monitoring.",
+        "out": [
+          {
+            "w": 0.7,
+            "text": "Customers respect the candour. Most stay.",
+            "fx": [["cost", 0.08, "other"], ["rep", -2], ["share", -3, "all"]],
+            "boost": ["flag", "cyber", 2.5]
+          },
+          { "w": 0.3, "text": "A class action is filed anyway.", "fx": [["cost", 0.16, "other"], ["rep", -4], ["share", -6, "all"]] }
+        ]
+      },
+      {
+        "label": "Investigate quietly first",
+        "hint": "Find out how bad it is before saying anything.",
+        "out": [
+          { "w": 0.4, "text": "It was contained. You disclose a small incident.", "fx": [["cost", 0.03, "other"]], "boost": ["flag", "cyber", 2.5] },
+          { "w": 0.6, "text": "It leaks before you are ready.", "fx": [["cost", 0.12, "other"], ["rep", -12], ["share", -12, "all"]] }
+        ]
+      },
+      {
+        "label": "Pay the ransom, say nothing",
+        "hint": "Make it disappear.",
+        "out": [
+          { "w": 0.5, "text": "It disappears.", "fx": [["cost", 0.05, "other"]] },
+          {
+            "w": 0.5,
+            "text": "The attackers sell the data anyway, and the story of the cover-up with it.",
+            "fx": [["cost", 0.2, "other"], ["rep", -18], ["share", -15, "all"]]
+          }
+        ]
+      }
+    ],
+    "lesson": "In a breach the first loss is data; the second, larger one is trust. Preparation shifts the odds and disclosure limits the second loss."
+  },
+  {
+    "id": "key_resignation",
+    "cat": "stress",
+    "title": "{person} is resigning",
+    "text": "Your {role} has asked for ten minutes and closed the door. There is an offer from elsewhere, and it is a good one.",
+    "w": 0,
+    "terms": ["keyPerson"],
+    "opts": [
+      {
+        "label": "Counter-offer",
+        "hint": "A raise and a retention bonus, today.",
+        "out": [
+          {
+            "w": 0.6,
+            "text": "They stay.",
+            "fx": [["cost", 0.02, "ga"], ["loyalty", 30], ["special", "retainPerson"]],
+            "boost": ["culture", 60, 1.6]
+          },
+          { "w": 0.4, "text": "They thank you and leave anyway.", "fx": [["personLeave"]] }
+        ]
+      },
+      { "label": "Wish them well", "hint": "People move on.", "out": [{ "text": "A gracious exit.", "fx": [["personLeave"], ["culture", 1]] }] },
+      {
+        "label": "Enforce the non-compete",
+        "hint": "They signed it.",
+        "out": [
+          {
+            "text": "They leave, bitterly, and everyone hears about it.",
+            "fx": [["cost", 0.02, "other"], ["personLeave"], ["culture", -3], ["rep", -2]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Counter-offers buy time more often than loyalty. A bench of successors turns a resignation from a crisis into an inconvenience."
+  },
+  {
+    "id": "audit_findings",
+    "cat": "stress",
+    "title": "The auditors have questions",
+    "text": "Your auditors have found revenue recognised a quarter early in two regions. They want to know whether it is a pattern.",
+    "once": true,
+    "cond": { "minRev": 1000, "minTurn": 10 },
+    "opts": [
+      {
+        "label": "Restate openly",
+        "hint": "Correct the accounts and say so.",
+        "out": [{ "text": "A painful announcement, then closure.", "fx": [["valuation", -15, 4], ["rep", -3], ["cost", 0.03, "other"]] }]
+      },
+      {
+        "label": "Fix it going forward",
+        "hint": "No restatement; just stop.",
+        "out": [
+          { "w": 0.5, "text": "The auditors accept it.", "fx": [], "boost": ["exec", "CFO", 1.5] },
+          { "w": 0.5, "text": "A whistleblower writes to the regulator.", "fx": [["valuation", -30, 6], ["rep", -12], ["cost", 0.1, "other"]] }
+        ]
+      },
+      {
+        "label": "Change auditors",
+        "hint": "A fresh pair of eyes.",
+        "out": [{ "text": "The market draws its own conclusions.", "fx": [["rep", -8], ["valuation", -20, 4]] }]
+      }
+    ],
+    "lesson": "Accounting credibility is binary. Once investors doubt one number they discount all of them."
+  },
+  {
+    "id": "liquidity_crisis",
+    "cat": "stress",
+    "title": "The account is empty",
+    "text": "Payroll is due on Friday and there is not enough in the bank to cover it.",
+    "w": 0,
+    "terms": ["runway", "workingCapital"],
+    "opts": [
+      {
+        "label": "Emergency share sale",
+        "hint": "Sell a quarter of the company at half its value.",
+        "out": [{ "text": "The wire arrives on Thursday.", "fx": [["equity", 25, 0.5]] }]
+      },
+      { "label": "Bridge loan", "hint": "Six quarters at 22%.", "out": [{ "text": "Money, at a price.", "fx": [["loan", 0.6, 22, 6]] }] },
+      {
+        "label": "Sell your receivables",
+        "hint": "A factor pays 85 cents on the dollar for most of your unpaid invoices.",
+        "out": [{ "text": "Cash today for cash you were owed tomorrow.", "fx": [["special", "factorAR"]] }]
+      },
+      {
+        "label": "Miss payroll",
+        "hint": "Ask people to wait.",
+        "out": [{ "text": "Some wait. Many do not.", "fx": [["morale", -25, "all"], ["staff", -15], ["rep", -10], ["culture", -8]] }]
+      }
+    ],
+    "lesson": "Insolvency is a cash event, not a profit event. Every option now is expensive because you are negotiating without alternatives — the cheap ones were available two quarters ago."
+  },
+  {
+    "id": "covenant_breach",
+    "cat": "stress",
+    "title": "Covenant breach",
+    "text": "You have broken a condition of {loan}. The bank’s workout team has replaced your usual contact.",
+    "w": 0,
+    "bind": ["loan"],
+    "terms": ["covenant", "leverage"],
+    "opts": [
+      {
+        "label": "Pay for a waiver",
+        "hint": "A 1.5% fee and 1.5 points more interest.",
+        "out": [{ "text": "The bank grants three quarters of relief.", "fx": [["special", "waiverFee"], ["rateUp", 1.5], ["waive"]] }]
+      },
+      {
+        "label": "Equity cure",
+        "hint": "Sell 12% of the company at a discount and pay down 40% of the loan.",
+        "out": [{ "text": "The covenant is cured with shareholders’ money.", "fx": [["equity", 12, 0.75], ["special", "paydownLoan"], ["waive"]] }]
+      },
+      {
+        "label": "Dare them to call it",
+        "hint": "They do not want the keys.",
+        "out": [
+          { "w": 0.35, "text": "They blink.", "fx": [["waive"]] },
+          { "w": 0.65, "text": "They demand half the loan back at once.", "fx": [["debtCall", 0.5], ["rateUp", 3]] }
+        ]
+      }
+    ],
+    "lesson": "Covenants are tripwires that hand control to the lender before the money runs out. Watch the headroom on the Capital page, not just the cash balance."
+  },
+  {
+    "id": "walkout",
+    "cat": "stress",
+    "title": "Walkout in {city}",
+    "text": "Most of your {city} staff have stopped work. They want to talk to you, not to their manager.",
+    "bind": ["office"],
+    "cool": 20,
+    "cond": { "maxMorale": 38, "minHead": 15 },
+    "opts": [
+      {
+        "label": "Emergency raises",
+        "hint": "Ten points against market, in that office.",
+        "out": [{ "text": "They go back to work.", "fx": [["special", "payUpOffice", 10]] }]
+      },
+      {
+        "label": "Listen, then change things",
+        "hint": "A town hall and real commitments.",
+        "out": [
+          { "w": 0.6, "text": "They believe you.", "fx": [["morale", 12, "office"]], "boost": ["culture", 55, 1.8] },
+          { "w": 0.4, "text": "They have heard it before. A third resign.", "fx": [["staff", -15, null, "office"]] }
+        ]
+      },
+      {
+        "label": "Replace them",
+        "hint": "Nobody is irreplaceable.",
+        "out": [{ "text": "You hire replacements. The rest of the company watches.", "fx": [["staff", -30, null, "office"], ["rep", -4], ["culture", -5]] }]
+      }
+    ],
+    "lesson": "A walkout is the end of a long process of not being heard. Morale and pay trends told you this was coming."
+  },
+  {
+    "id": "supplier_scandal",
+    "cat": "stress",
+    "title": "Your supplier is in the news",
+    "text": "A documentary has filmed conditions inside the offshore factory that makes most of your inputs.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Cut them off",
+        "hint": "Drop the supplier today and pay for emergency supply.",
+        "out": [{ "text": "Expensive, immediate, and seen to be done.", "fx": [["inputs", 15, 3], ["rep", -3], ["esg", -2]] }]
+      },
+      {
+        "label": "Demand an audit",
+        "hint": "Stay, with conditions.",
+        "out": [{ "text": "Nobody believes the audit.", "fx": [["rep", -8], ["esg", -6], ["share", -4, "all"]] }]
+      }
+    ],
+    "lesson": "The price was low because the risk was yours. Supply-chain reputation risk does not appear in any quote."
+  },
+  {
+    "id": "boycott",
+    "cat": "stress",
+    "title": "A boycott is trending",
+    "text": "A decision you made months ago has been picked up by campaigners. The hashtag has your name in it.",
+    "cool": 28,
+    "cond": { "minBrand": 20, "maxRep": 62 },
+    "terms": ["reputation"],
+    "opts": [
+      {
+        "label": "Reverse the decision",
+        "hint": "Apologise and change course.",
+        "out": [{ "text": "It ends within a week.", "fx": [["cost", 0.03, "other"], ["rep", 2]] }]
+      },
+      {
+        "label": "Explain your reasoning",
+        "hint": "A careful statement.",
+        "out": [
+          { "w": 0.4, "text": "Some people are persuaded.", "fx": [["rep", -2]], "boost": ["rep", 60, 2] },
+          { "w": 0.6, "text": "The statement is quoted mockingly for a month.", "fx": [["rep", -8], ["demand", -6, 3, "all"]] }
+        ]
+      },
+      {
+        "label": "Say nothing",
+        "hint": "These things burn out.",
+        "out": [{ "text": "It burns out, slowly.", "fx": [["rep", -5], ["demand", -4, 2, "all"]] }]
+      }
+    ],
+    "lesson": "Reputation is a balance you draw on in a crisis. Companies with a full account are given the benefit of the doubt; the rest are not."
+  },
+  {
+    "id": "acq_skeleton",
+    "cat": "stress",
+    "title": "What the sellers did not mention",
+    "text": "Three months after closing, a liability has surfaced in the business you bought in {city}: about {amount} that was never in the data room.",
+    "w": 0,
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Pay it and move on",
+        "hint": "Settle and write the lesson down.",
+        "out": [
+          {
+            "text": "The cheque is written; part of the goodwill is written off.",
+            "fx": [["special", "payAmount", 1], ["special", "impairGoodwill", 0.5]]
+          }
+        ]
+      },
+      {
+        "label": "Sue the sellers",
+        "hint": "They warranted the accounts.",
+        "out": [
+          { "w": 0.4, "text": "You recover most of it.", "fx": [["special", "payAmount", 0.3]] },
+          {
+            "w": 0.6,
+            "text": "The sellers have spent the money. You pay the liability and your lawyers.",
+            "fx": [["special", "payAmount", 1.2], ["special", "impairGoodwill", 0.5]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Due diligence is cheap compared with what it finds. The seller always knows more than the buyer; the price should assume so."
+  }
+]
