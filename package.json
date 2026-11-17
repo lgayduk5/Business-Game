@@ -2,14 +2,14 @@
   "name": "going-concern",
   "private": true,
   "version": "1.0.0",
-  "description": "Going Concern — a turn-based business strategy game. Civilization for running a company.",
+  "description": "Going Concern \u2014 a turn-based business strategy game. Civilization for running a company.",
   "type": "module",
   "scripts": {
     "icons": "node scripts/gen-icons.mjs",
     "dev": "npm run icons && vite",
-    "build": "npm run icons && tsc --noEmit && vite build",
+    "build": "npm run icons && npm run typecheck && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p engine/tsconfig.json",
     "test": "vitest run",
     "sim": "tsx scripts/sim.ts"
   },
