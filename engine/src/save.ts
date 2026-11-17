@@ -45,6 +45,7 @@ export function migrate(g: GameState): GameState {
   g.company.techInfo ??= {};
   g.company.open ??= { ...g.company.books };
   g.company.diligence ??= {};
+  g.macro.prodIdx ??= 1;
   g.v = Math.max(g.v ?? 1, 1);
   return g;
 }

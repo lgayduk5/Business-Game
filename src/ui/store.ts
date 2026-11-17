@@ -19,6 +19,10 @@ export const ui = {
 };
 
 type Handler = (d: DOMStringMap, el: HTMLElement) => void | Promise<void>;
+/** Record that the player has done something (drives the tutorial checklist; saved with the game). */
+export function mark(key: string) {
+  if (ui.g && !ui.g.counters['tut:' + key]) ui.g.counters['tut:' + key] = 1;
+}
 const handlers: Record<string, Handler> = {};
 export const on = (name: string, fn: Handler) => (handlers[name] = fn);
 
@@ -94,11 +98,15 @@ export function initEvents() {
     if (tp) {
       e.preventDefault();
       showTip(tp);
+      mark('tip');
       return;
     }
     hideTip();
     if (a && !(a as HTMLButtonElement).disabled) {
       const fn = handlers[a.dataset.a!];
+      mark('act:' + a.dataset.a);
+      if (a.dataset.a === 'tab') mark('tab:' + a.dataset.v);
+      if (a.dataset.a === 'sub') mark(`sub:${a.dataset.k}:${a.dataset.v}`);
       if (fn) void fn(a.dataset, a);
       return;
     }
@@ -110,6 +118,7 @@ export function initEvents() {
   document.addEventListener('change', (e) => {
     const t = e.target as HTMLInputElement;
     const name = t.dataset?.c;
+    if (name) mark('act:' + name);
     if (name && handlers[name]) void handlers[name]({ ...t.dataset, value: t.value } as DOMStringMap, t);
   });
   document.addEventListener('input', (e) => {

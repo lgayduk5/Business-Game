@@ -91,3 +91,25 @@ export const ICON = {
   close: I('<path d="m6 6 12 12M18 6 6 18"/>'),
   fwd: I('<path d="m5 5 7 7-7 7M13 5l7 7-7 7"/>'),
 };
+
+// ── procedural logos: a shape and a monogram derived from the name, in the house style
+function hash(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+export function logo(name: string, color: string, size = 28): string {
+  const h = hash(name);
+  const words = name.replace(/&/g, ' ').split(/\s+/).filter(Boolean);
+  const mono = (words.length > 1 ? words[0][0] + words[1][0] : name.slice(0, 2)).toUpperCase();
+  const shapes = [
+    '<circle cx="20" cy="20" r="17"/>',
+    '<rect x="4" y="4" width="32" height="32" rx="3"/>',
+    '<path d="M20 2 38 20 20 38 2 20Z"/>',
+    '<path d="M20 3 35 11.5V28.5L20 37 5 28.5V11.5Z"/>',
+    '<path d="M6 5h28v16c0 9-7 14-14 16C13 35 6 30 6 21Z"/>',
+  ];
+  const shape = shapes[h % shapes.length];
+  const rule = (h >> 4) % 3 === 0 ? '<path d="M10 31h20M10 34h20" stroke="var(--ink)" stroke-width="1.6"/>' : '';
+  return `<svg class="logo" width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true"><g fill="${color}" stroke="var(--ink)" stroke-width="2.2">${shape}</g>${rule}<text x="20" y="${rule ? 25 : 26}" text-anchor="middle" font-family="var(--serif)" font-weight="700" font-size="${mono.length > 1 ? 15 : 18}" fill="var(--ink)">${esc(mono)}</text></svg>`;
+}

@@ -39,6 +39,7 @@ export function productivity(g: GameState, o: Office): { mult: number; parts: Re
     Leadership: (gm ? 1 + (gm.skill - 50) / 400 : 0.97) * (1 + execBonus(c, 'COO') * 0.2),
     Programs: (1 + invSum(g, 'prod', o) / 100) * tempMod(g, 'prod', o) * FOUNDER[c.founder].opsProd,
     Integration: o.integration > 0 ? 0.9 : 1,
+    'Industry progress': g.macro.prodIdx ?? 1,
   };
   return { mult: Object.values(parts).reduce((a, b) => a * b, 1), parts };
 }

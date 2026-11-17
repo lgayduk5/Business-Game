@@ -44,7 +44,7 @@ function hq(g: GameState): string {
   if (g.queue.length) notes.push(`<div class="note warn"><b>${g.queue.length} decision${g.queue.length > 1 ? 's' : ''} waiting.</b> <button class="linkish" data-a="openEvent">Open</button></div>`);
   if (r.quarters < 4) notes.push(`<div class="note bad"><b>${r.quarters.toFixed(1)} quarters of cash left.</b><p>You are burning ${money(r.burn)} a quarter. Cut costs, grow revenue, or raise money before it runs out.</p></div>`);
   for (const n of g.advisor.slice(0, 3)) notes.push(`<div class="note ${n.tone}"><b>${esc(n.who)}: ${esc(n.title)}</b><p>${esc(n.text)}</p></div>`);
-  if (!q) notes.push(`<div class="note"><b>Your first quarter.</b><p>Look over your office, set hiring and prices, then press <span class="hi">End quarter</span>. Tap any dotted number to see where it comes from.</p></div>`);
+  if (!q && !(g.settings.tutorial && g.mode !== 'scenario')) notes.push(`<div class="note"><b>Your first quarter.</b><p>Look over your office, set hiring and prices, then press <span class="hi">End quarter</span>. Tap any dotted number to see where it comes from.</p></div>`);
 
   const position = `<div class="sheet"><h2>Position</h2><div class="kv">
     <div>Revenue <span class="sub">last quarter</span></div><div>${q ? $(q.pnl.revenue, 'Revenue', 'What customers were billed last quarter, summed across offices.', c.offices.map((o): Row => [o.name, money(o.last?.revenue ?? 0)]), ['revenue']) : '—'} ${q && pq ? delta(q.pnl.revenue, pq.pnl.revenue) : ''}</div>

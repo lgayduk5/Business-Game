@@ -178,3 +178,30 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     rules (for example "no equity") are hard constraints that end the game if broken.
 52. **"Surprise me"** draws industry, city and founder from a random seed. The seed
     also drives the world, so a surprise start can be shared and replayed.
+
+## M6 — polish, balance, tutorial, offline
+
+53. **Productivity grows 0.8% a year across the economy**, matching real wage growth.
+    Without it, labour-heavy industries saw costs creep from 58% to 81% of revenue over
+    fifteen years whatever the player did. Rivals get the same productivity growth.
+54. **Bots know what each industry rewards** (R&D and sales intensity by industry),
+    keep a cash reserve sized to their burn, expand only from a profitable base, and
+    obey scenario rules. They are a measuring instrument, so they must not lose
+    through obviously bad play that a person would not make.
+55. **Energy is the slowest industry to win and the safest to survive.** Its growth is
+    capital-bound by design; it gets a stronger long-run demand tailwind, a
+    utility-sized valuation bar, a lower IPO revenue bar, and a natural ESG edge that
+    makes "Good company" its natural route to victory.
+56. **The tutorial is a self-completing checklist**, not a modal script: eight steps
+    that tick off when the player actually does each thing, with a button to go there
+    and a skip link. It never blocks play and is off in scenarios.
+57. **Logos are generated**: a shape and a monogram from the company's name, filled
+    with the rival's colour (yours in highlighter yellow). No image assets anywhere.
+58. **Offline is verified, not assumed.** The browser test installs the service worker,
+    cuts the network, reloads and plays a quarter. That test found a real bug: some
+    servers mark files `Vary: Origin`, and module scripts are requested with an Origin
+    header, so cached copies did not match. The worker now ignores `Vary` when
+    serving its own cache.
+59. **Native wrappers are documented, not built** (see `docs/native-wrappers.md`). Game
+    code needs no changes for Tauri or Capacitor; only the storage module would change
+    if native file saves are wanted later.

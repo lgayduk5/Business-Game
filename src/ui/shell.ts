@@ -1,8 +1,9 @@
 // App frame: top strip, navigation, modal host.
 import { quarterOf, yearOf, type GameState } from '@engine';
-import { ICON, esc } from './kit';
+import { ICON, esc, logo } from './kit';
 import { on, render, ui, type Tab } from './store';
 import { cashTip } from './tips';
+import { sfx } from '../audio';
 
 const TABS: [Tab, string, string][] = [
   ['hq', 'HQ', ICON.hq],
@@ -26,6 +27,7 @@ export function shell(g: GameState): string {
       ${TABS.filter(([t]) => screens[t]).map(([t, label, icon]) => `<button data-a="tab" data-v="${t}" aria-current="${ui.tab === t}">${icon}<span>${label}</span>${tabDots[t]?.(g) ? '<i class="dot"></i>' : ''}</button>`).join('')}
     </nav>
     <header class="top">
+      <span style="flex:0 0 auto">${logo(c.name, 'var(--hi)', 34)}</span>
       <button class="who linkish" data-a="menu" style="text-align:left;text-decoration:none" aria-label="Menu">
         <div class="name">${esc(c.name)}</div><div class="when">Year ${yearOf(g.turn)}, quarter ${quarterOf(g.turn)}</div>
       </button>
@@ -44,6 +46,7 @@ export function modalHost(g: GameState | null): string {
 
 on('tab', (d) => {
   ui.tab = d.v as Tab;
+  sfx.tab();
   render(false);
 });
 on('close', () => {

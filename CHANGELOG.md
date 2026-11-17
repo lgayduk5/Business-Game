@@ -1,5 +1,18 @@
 # Changelog
 
+## M6 — Polish, balance, tutorial, offline
+
+- Balance pass with the harness across all seven industries and four difficulties
+  (`docs/balance.md`): economy-wide productivity growth so labour-heavy industries no
+  longer erode for ever; smarter, industry-aware bots; energy given a path to victory
+  and a lower IPO bar; a scale requirement for the 25-year finish.
+- First-game tutorial: a self-completing checklist on HQ.
+- Generated logos for your company and every rival.
+- Offline verified end to end in the browser test (install, cut the network, play a
+  quarter); fixed a service-worker cache-matching bug it uncovered.
+- Manifest, icons and relative paths checked automatically.
+- Notes for wrapping as a native app with Tauri (macOS) and Capacitor (iOS, Android).
+
 ## M5 — All industries, 150+ events, advisor, post-mortem, saves
 
 - All seven industries playable, each with distinct economics: SaaS, restaurants and

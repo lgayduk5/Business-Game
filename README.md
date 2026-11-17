@@ -30,6 +30,15 @@ number on screen explains where it came from.
 Tap any dotted number to see the arithmetic behind it. *Fast-forward* runs quiet quarters
 and stops when something needs you. The game saves itself every quarter.
 
+New to it? A short checklist on HQ walks you through your first quarters. When the game
+ends, *Read the review* shows how much of your result came from the market, your
+strategy, your execution and luck — and what to try next time.
+
+**Other ways to play:** *Scenario challenges* (six prepared situations with one goal and
+a deadline, such as surviving a cash crunch or a rate shock), *Sandbox* (no bankruptcy,
+the whole map visible) and *Surprise me* (a random industry, city and founder from a
+seed you can share).
+
 ## Run, test, build
 
 ```bash
@@ -71,7 +80,7 @@ Actions**. All paths are relative, so the game works at `https://<user>.github.i
 | `src/` | The UI (plain DOM), Web Audio sound, IndexedDB saves, and the web worker that runs turns. |
 | `tests/` | Headless tests: statements tie out, determinism, content schemas, every event option, scenarios, saves. |
 | `scripts/` | Icon generator, balance harness, browser smoke test, JSON formatter. |
-| `docs/` | Design, decision log, balance report, content guide, native-wrapper notes. |
+| `docs/` | [Design](docs/design.md), [decision log](docs/decisions.md), [balance report](docs/balance.md), [content guide](docs/content-guide.md), [native-wrapper notes](docs/native-wrappers.md). |
 
 To add events, investments or industries, edit the JSON in `data/` — see
 [docs/content-guide.md](docs/content-guide.md).

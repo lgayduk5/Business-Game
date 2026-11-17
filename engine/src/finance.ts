@@ -333,7 +333,8 @@ const IPO_MIN_REV = { easy: 25e6, normal: 40e6, hard: 60e6, brutal: 80e6 } as co
 export function ipoChecklist(g: GameState): { ok: boolean; items: { label: string; ok: boolean; tip: string }[] } {
   const c = g.company;
   const rev = B.ttm(c, (q) => q.pnl.revenue);
-  const min = IPO_MIN_REV[g.difficulty] * g.macro.cpi;
+  // listing needs scale; what counts as scale depends on how the market values the industry
+  const min = IPO_MIN_REV[g.difficulty] * g.macro.cpi * Math.min(1, INDUSTRIES[c.primary].capTarget);
   const items = [
     { label: `Revenue of at least ${money(min)} a year`, ok: rev >= min, tip: 'Public investors want scale. Smaller listings get no analyst coverage and trade poorly.' },
     { label: 'Two years of quarterly accounts', ok: c.quarters.length >= 8 || g.turn >= 8, tip: 'Regulators require audited history.' },

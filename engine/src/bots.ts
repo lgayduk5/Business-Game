@@ -80,6 +80,8 @@ function answerEvents(g: GameState) {
 
 /** How much R&D an industry rewards, relative to software. */
 const RD_WEIGHT: Record<IndustryId, number> = { saas: 1, biotech: 1, mfg: 0.4, energy: 0.2, logistics: 0.2, consulting: 0.25, retail: 0.1 };
+/** How much sales coverage an industry rewards: contracted and capacity-limited businesses need little. */
+const SALES_WEIGHT: Record<IndustryId, number> = { saas: 1, consulting: 1, retail: 0.6, biotech: 0.6, mfg: 0.6, logistics: 0.5, energy: 0.12 };
 
 function staff(g: GameState, o: Office, p: BotParams) {
   const c = g.company;
@@ -98,7 +100,9 @@ function staff(g: GameState, o: Office, p: BotParams) {
   const cover = o.staff.sales.n / need;
   const earning = !l || l.contribution > -0.05 * l.revenue;
   const ok = spare(g, p) > 0 && earning && (runwayQ(g) > p.runway || (lastQ(g)?.ebitda ?? 0) > 0);
-  const want = cover < p.sales && ok && (!l || (l.bind === 'demand' && l.util < 0.95)) ? Math.max(1, Math.round(need * 0.03)) : 0;
+  const slack = isCapital(o.ind) ? 0.85 : 0.95;
+  const want = cover < p.sales * SALES_WEIGHT[o.ind] && ok && (!l || (l.bind === 'demand' && l.util < slack)) ? Math.max(1, Math.round(need * 0.03)) : 0;
+  if (l && l.bind !== 'demand' && cover > p.sales * SALES_WEIGHT[o.ind] * 1.5 && o.staff.sales.n > 2) A.fire(g, o.id, 'sales', Math.ceil(o.staff.sales.n * 0.2));
   A.setReqs(g, o.id, 'sales', want);
   // R&D people: sized to what the industry rewards, once the office pays its way (software and biotech invest from day one)
   const w = RD_WEIGHT[o.ind];

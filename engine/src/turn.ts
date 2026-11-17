@@ -103,7 +103,9 @@ function stepCulture(g: GameState, prevHead: number) {
   c.culture = clamp(c.culture + 0.04 * (base - c.culture) + invSum(g, 'culture') - Math.max(0, growth - 0.12) * 18, 0, 100);
   c.reputation = clamp(c.reputation + 0.03 * (50 + (c.esg - 50) * 0.3 - c.reputation) + invSum(g, 'rep'), 0, 100);
   const resilient = REGION_LIST.filter((r) => c.policy[r].supply === 'resilient' && c.offices.some((o) => CITY[o.city].region === r)).length;
-  c.esg = clamp(c.esg + 0.02 * (45 - c.esg) + invSum(g, 'esg') + 0.1 * resilient, 0, 100);
+  const last = c.quarters[c.quarters.length - 1];
+  const green = last && last.pnl.revenue > 0 ? (last.byInd.energy?.rev ?? 0) / last.pnl.revenue : 0;
+  c.esg = clamp(c.esg + 0.02 * (45 + 30 * green - c.esg) + invSum(g, 'esg') + 0.1 * resilient, 0, 100);
 }
 
 export function endTurn(g: GameState): void {

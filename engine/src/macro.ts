@@ -12,7 +12,7 @@ const FX_VOL: Record<RegionId, number> = { nae: 0, naw: 0, latam: 0.045, europe:
 export function newMacro(): Macro {
   const rec = <T>(v: () => T) => Object.fromEntries((['nae', 'naw', 'latam', 'europe', 'mea', 'apac'] as RegionId[]).map((r) => [r, v()])) as Record<RegionId, T>;
   return {
-    gap: 0.5, growth: 2.4, infl: 2.2, rate: 3.0, spread: 1.2, sentiment: 1.0, cpi: 1, wageIdx: 1, commodity: 1, energy: 1, cloud: 1, labor: 1.02,
+    gap: 0.5, growth: 2.4, infl: 2.2, rate: 3.0, spread: 1.2, sentiment: 1.0, cpi: 1, wageIdx: 1, commodity: 1, energy: 1, cloud: 1, labor: 1.02, prodIdx: 1,
     phase: 'expansion', recessionLeft: 0, shock: { gap: 0, infl: 0, rate: 0 },
     indIdx: Object.fromEntries(IND_LIST.map((i) => [i.id, 1])) as Record<IndustryId, number>,
     regionGap: rec(() => 0), fx: rec(() => 1), hist: [],
@@ -56,6 +56,7 @@ export function stepMacro(g: GameState) {
   // Price levels.
   m.cpi *= 1 + m.infl / 400;
   m.wageIdx *= 1 + Math.max(-1, m.infl + 0.8 + 0.4 * m.gap) / 400;
+  m.prodIdx = (m.prodIdx ?? 1) * (1 + 0.8 / 400); // productivity keeps pace with real wages over the long run
   const noise = (sd: number) => (calm ? 0 : normal(g, 0, sd));
   const realC = m.commodity / (m.cpi / (1 + m.infl / 400));
   m.commodity = clamp(realC + 0.08 * (1 - realC) + 0.012 * m.gap + noise(0.035), 0.45, 2.6) * m.cpi;

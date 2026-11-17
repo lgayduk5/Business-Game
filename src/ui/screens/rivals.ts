@@ -4,7 +4,7 @@ import {
   proposeAlliance, proposeTruce, rivalById, rivalKnown, sueRival, truceOdds, turnLabel, victoryStatus,
   type CityDef, type GameState, type Rival,
 } from '@engine';
-import { $, N, P, esc, meter, tip, explain } from '../kit';
+import { $, N, P, esc, logo, meter, tip, explain } from '../kit';
 import { act, on, render, ui } from '../store';
 import { modals, tabDots } from '../shell';
 import { intelTabs, intelViews } from './intel';
@@ -18,7 +18,7 @@ const moodCls = (r: Rival) => (r.pact ? 'good' : r.hostility >= 3 ? 'bad' : '');
 function rivalRow(g: GameState, r: Rival): string {
   const intel = g.company.intel >= 1 || r.isPublic;
   const shared = r.offices.filter((ro) => g.company.offices.some((o) => o.city === ro.city && o.ind === ro.ind)).length;
-  return `<tr class="tap" data-a="rival" data-id="${r.id}"><td><i style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${r.color};border:1.5px solid var(--ink);vertical-align:-1px;margin-right:6px"></i><b>${esc(r.name)}</b><br><span class="small muted">${esc(PERSONALITY[r.personality].label)}</span></td>
+  return `<tr class="tap" data-a="rival" data-id="${r.id}"><td><span style="display:flex;gap:8px;align-items:center">${logo(r.name, r.color)}<span><b>${esc(r.name)}</b><br><span class="small muted">${esc(PERSONALITY[r.personality].label)}</span></span></span></td>
     <td class="num">${r.offices.filter((ro) => officeVisible(g, ro)).length}${r.offices.some((ro) => !officeVisible(g, ro)) ? '+' : ''}</td>
     <td class="num">${intel ? money(r.rev * 4) : '?'}</td><td class="num">${shared || '–'}</td><td><span class="chip ${moodCls(r)}">${mood(r)}</span></td></tr>`;
 }
@@ -48,7 +48,7 @@ function detail(g: GameState, r: Rival): string {
   }).join('');
   const hpBar = `<div class="row" style="gap:8px;align-items:center">${meter(r.hostility / 10, r.hostility >= 3)}<span class="small">${r.hostility.toFixed(1)} / 10</span></div>`;
   const bidF = bidPrice(g, r, false), bidH = bidPrice(g, r, true);
-  return `<div class="sheet"><div class="spread"><h2 style="margin:0">${esc(r.name)}</h2><span class="chip ${moodCls(r)}">${mood(r)}</span></div>
+  return `<div class="sheet"><div class="spread"><h2 style="margin:0;display:flex;gap:10px;align-items:center">${logo(r.name, r.color, 36)}${esc(r.name)}</h2><span class="chip ${moodCls(r)}">${mood(r)}</span></div>
     <p class="small muted" style="margin:4px 0 8px">Run by ${esc(r.ceo)} from ${esc(CITY[r.hq].name)}. ${esc(p.label)}: ${esc(p.blurb)}</p>
     <div class="kv">
       <div>Revenue a year</div><div>${intel ? $(r.rev * 4, 'Rival revenue', 'Last quarter, annualised.', [['Profit last quarter', money(r.profit)], ['Cash', money(r.cash)], ['Debt', money(r.debt)]]) : N('?', 'Unknown', 'Their accounts are private. A competitive intelligence unit would tell you.')}</div>

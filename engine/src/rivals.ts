@@ -12,6 +12,10 @@ import { companyHeadcount } from './people';
 import type { ActionResult, EventCtx, GameState, IndustryId, Office, Rival, RivalOffice } from './types';
 import { chance, clamp, money, pick, rand, randInt, randRange, shuffle, weighted } from './util';
 
+/** How much sales and R&D effort each industry rewards (software = 1). Rivals and bots both use these. */
+export const SALES_INTENSITY: Record<IndustryId, number> = { saas: 1, consulting: 0.8, biotech: 0.5, retail: 0.35, mfg: 0.35, logistics: 0.25, energy: 0.1 };
+export const RD_INTENSITY: Record<IndustryId, number> = { saas: 1, biotech: 1.5, mfg: 0.4, consulting: 0.25, energy: 0.2, logistics: 0.2, retail: 0.1 };
+
 const wageOf = (g: GameState, city: string, ind: IndustryId, role: 'ops' | 'sales') => INDUSTRIES[ind].wages[role] * 1000 * CITY[city].wage * g.macro.wageIdx * fxOf(g, city);
 const alive = (g: GameState) => g.rivals.filter((r) => r.alive);
 export const rivalById = (g: GameState, id: number | undefined) => g.rivals.find((r) => r.id === id);
@@ -130,7 +134,7 @@ export function rivalsDecide(g: GameState) {
       const defend = 1 + d.defend * threat;
       if (threat > 0.2 && d.defend > 0 && ro.war === 0) target -= 0.04 * d.defend * threat;
       ro.price = clamp(ro.price + 0.35 * (target - ro.price), 0.55, 1.6);
-      const budget = Math.max(pers.sales * d.rivalSales * defend * rev, 2 * repWage) * (healthy ? 1 : 0.7) * (m.phase === 'recession' && r.personality === 'conservative' ? 0.8 : 1);
+      const budget = Math.max(pers.sales * SALES_INTENSITY[ro.ind] * d.rivalSales * defend * rev, 2 * repWage) * (healthy ? 1 : 0.7) * (m.phase === 'recession' && r.personality === 'conservative' ? 0.8 : 1);
       const effort = budget / ((D / def.salesCover) * repWage);
       ro.sales = clamp(ro.sales + 0.5 * (effort - ro.sales), 0.001, 1.5);
     }
@@ -177,7 +181,7 @@ function officeFinancials(g: GameState, r: Rival, ro: RivalOffice): { rev: numbe
   const rev = sold * localPrice(g, ro.city, ro.ind) * ro.price;
   const loc = g.macro.cpi * fxOf(g, ro.city);
   const variable = sold * 1000 * def.varCost * inputIndex(g, ro.ind) * fxOf(g, ro.city) * city.wage ** def.local;
-  const staff = ro.cap / def.opsOut;
+  const staff = ro.cap / (def.opsOut * (g.macro.prodIdx ?? 1));
   const labour = staff * wageOf(g, ro.city, ro.ind, 'ops');
   const sm = ro.sales * (D / def.salesCover) * wageOf(g, ro.city, ro.ind, 'sales');
   const fixed = ro.cap * def.fixedPerCap * 1000 * (0.4 + 0.6 * city.rent) * loc + staff * 1.3 * def.seatRent * 1000 * city.rent * loc;
@@ -221,7 +225,7 @@ export function rivalsFinancials(g: GameState) {
       rev += f.rev;
       cost += f.cost;
     }
-    const rd = pers.rd * DIFF[g.difficulty].rivalRd * rev;
+    const rd = pers.rd * DIFF[g.difficulty].rivalRd * rev * (r.industries.reduce((a, k) => a + RD_INTENSITY[k], 0) / r.industries.length);
     const pre = rev - cost - 0.06 * rev - rd - (r.debt * (m.rate + 3.5 + m.spread)) / 400;
     r.profit = pre > 0 ? pre * 0.75 : pre;
     r.rev = rev;

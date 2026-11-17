@@ -711,6 +711,7 @@ export interface Macro {
   energy: number;
   cloud: number;
   labor: number;
+  prodIdx: number; // economy-wide labour productivity; real wages grow with it
   phase: 'expansion' | 'boom' | 'slowdown' | 'recession' | 'recovery';
   recessionLeft: number;
   shock: { gap: number; infl: number; rate: number }; // one-off shocks queued by events
