@@ -268,3 +268,28 @@ export function staffingHint(g: GameState, o: Office): Record<Role, number> {
   return { ops, sales: o.staff.sales.n, rnd: o.staff.rnd.n, admin: Math.max(1, Math.ceil(hc / 14)) };
 }
 export { marketWage };
+
+// ───────────── regional partners ─────────────
+
+export const PARTNER = { boost: 0.25, fee: 0.06, quarters: 8 };
+export function partnerCost(g: GameState): number {
+  return 50_000 * g.macro.cpi;
+}
+/** Sign a local distribution partner: faster acceptance in the region in exchange for a cut of sales. */
+export function signPartner(g: GameState, region: RegionId): ActionResult {
+  const c = g.company;
+  const pol = c.policy[region];
+  if (pol.partner && pol.partner.until >= g.turn) return no('You already have a partner in this region.');
+  if (!c.offices.some((o) => CITY[o.city].region === region)) return no('Open an office in the region first.');
+  const cost = partnerCost(g);
+  if (cost > c.books.cash) return no('Not enough cash to set up the partnership.');
+  B.expense(c, 'sm', cost, 'cash');
+  pol.partner = { name: `${CITY[c.offices.find((o) => CITY[o.city].region === region)!.city].name} Channel Partners`, boost: PARTNER.boost, fee: PARTNER.fee, until: g.turn + PARTNER.quarters - 1 };
+  return ok(`Partner signed for two years: +${PARTNER.boost * 100}% presence in the region for ${PARTNER.fee * 100}% of sales.`);
+}
+export function endPartner(g: GameState, region: RegionId): ActionResult {
+  const pol = g.company.policy[region];
+  if (!pol.partner) return no('No partner to drop.');
+  pol.partner = undefined;
+  return ok('Partnership ended.');
+}

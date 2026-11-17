@@ -1,11 +1,11 @@
 // People: wages, productivity, hiring pipelines, attrition, morale, layoffs, key people.
-import { CITY, FOUNDER, INDUSTRIES, isCapital } from './content';
+import { CITY, FOUNDER, INDUSTRIES, NAMES, isCapital } from './content';
 import { expense } from './books';
 import { fxOf } from './macro';
 import { invSum, news, tempMod } from './mods';
 import type { ActionResult, Company, ExecRole, GameState, Office, Person, Role } from './types';
 import { ROLES } from './types';
-import { clamp, normal, stochRound } from './util';
+import { clamp, normal, rand, stochRound } from './util';
 
 export const headcount = (o: Office) => o.staff.ops.n + o.staff.sales.n + o.staff.rnd.n + o.staff.admin.n;
 export const companyHeadcount = (c: Company) => c.offices.reduce((s, o) => s + headcount(o), 0);
@@ -165,3 +165,74 @@ export function layoff(g: GameState, o: Office, role: Role, n: number): ActionRe
   return { ok: true, msg: `Laid off ${n}. Severance paid; morale and culture took a hit.` };
 }
 const city = (o: Office) => CITY[o.city].name;
+
+// ───────────── key people ─────────────
+
+/** Remove a key person and apply the damage their departure does. */
+export function personLeaves(g: GameState, p: Person, why = 'resigned'): string {
+  const c = g.company;
+  c.people = c.people.filter((x) => x.id !== p.id);
+  const planned = g.company.investments.some((i) => i.state === 'active' && i.def === 'succession');
+  const soft = planned ? 0.5 : 1;
+  let effect = '';
+  if (p.office) {
+    const o = c.offices.find((x) => x.id === p.office);
+    if (o) {
+      const succ: Person = { ...p, id: 'p' + (++g.uid), name: `${pickName(g)}`, skill: clamp(Math.round(p.skill - (planned ? 4 : 12) + normal(g, 0, 5)), 25, 92), loyalty: 60, hired: g.turn, retained: undefined };
+      c.people.push(succ);
+      o.gm = succ.id;
+      o.morale = clamp(o.morale - 6 * soft, 0, 100);
+      g.mods.push({ kind: 'prod', pct: -8 * soft, until: g.turn + 1, office: o.id, src: 'GM departure' });
+      effect = `${succ.name} steps up; expect a rough couple of quarters in ${CITY[o.city].name}.`;
+    }
+  } else {
+    switch (p.role) {
+      case 'CTO':
+        c.tech[c.primary] = clamp((c.tech[c.primary] ?? 0) - 3 * soft, 5, 100);
+        for (const o of c.offices) o.staff.rnd.n = Math.max(0, o.staff.rnd.n - stochRound(g, o.staff.rnd.n * 0.06 * soft));
+        effect = 'Some engineers followed, and the roadmap slipped.';
+        break;
+      case 'CFO':
+        g.mods.push({ kind: 'valuation', pct: -5 * soft, until: g.turn + 2, src: 'CFO departure' });
+        effect = 'Investors and lenders are asking questions.';
+        break;
+      case 'COO':
+        g.mods.push({ kind: 'prod', pct: -4 * soft, until: g.turn + 1, src: 'COO departure' });
+        effect = 'Operations will wobble for a while.';
+        break;
+      case 'CMO':
+        c.brand = clamp(c.brand - 2 * soft, 0, 100);
+        effect = 'Campaigns in flight lost their owner.';
+        break;
+      default:
+        c.culture = clamp(c.culture - 2 * soft, 0, 100);
+        effect = 'People noticed.';
+    }
+  }
+  g.counters.keyDepartures = (g.counters.keyDepartures ?? 0) + 1;
+  news(g, `${p.name}, ${p.role === 'GM' ? 'general manager' : p.role}, has ${why}. ${effect}`, 'bad');
+  return effect;
+}
+function pickName(g: GameState): string {
+  const f = NAMES.first, l = NAMES.last;
+  return `${f[Math.floor(rand(g) * f.length)]} ${l[Math.floor(rand(g) * l.length)]}`;
+}
+
+/** Per-quarter chance that this person resigns. */
+export function flightRisk(g: GameState, p: Person): number {
+  if ((p.retained ?? -1) >= g.turn) return 0;
+  return clamp(0.012 * (1.7 - (p.loyalty / 100) * 1.4) * g.macro.labor * (p.skill > 75 ? 1.4 : 1), 0, 0.2);
+}
+
+/** Loyalty drift and resignations. Returns people who decided to leave this quarter. */
+export function stepKeyPeople(g: GameState): Person[] {
+  const c = g.company;
+  const leaving: Person[] = [];
+  for (const p of c.people) {
+    const o = p.office ? c.offices.find((x) => x.id === p.office) : undefined;
+    const drift = (c.culture - 50) * 0.02 + (o ? (o.morale - 55) * 0.03 : 0) + invSum(g, 'loyalty') - 0.3;
+    p.loyalty = clamp(p.loyalty + drift, 0, 100);
+    if (rand(g) < flightRisk(g, p)) leaving.push(p);
+  }
+  return leaving;
+}

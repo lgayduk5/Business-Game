@@ -5,6 +5,7 @@ import { refreshEquityOffer, refreshLoanOffers, revalue } from './finance';
 import { newMacro } from './macro';
 import { market, marketUnits, playerAttract, rivalAttract } from './market';
 import { prepOffice } from './people';
+import { refreshCandidates } from './actions';
 import { generateRivals } from './rivals';
 import type { Difficulty, ExecRole, GameState, IndustryId, NewGameOpts, Office, Person, RegionId, RegionPolicy, VictoryId } from './types';
 import { clamp, hashSeed, nextUid, normal, pick, randInt } from './util';
@@ -20,7 +21,7 @@ export function makePerson(g: GameState, role: ExecRole, office?: Office, qualit
   const skill = clamp(Math.round(normal(g, 58 + quality, 11)), 30, 95);
   const ind = office ? INDUSTRIES[office.ind] : INDUSTRIES[g.company.primary];
   const cityWage = office ? CITY[office.city].wage : CITY[g.company.home].wage;
-  const base = role === 'GM' ? ind.wages.admin * 1.8 : ind.wages.admin * 3.2;
+  const base = role === 'GM' ? ind.wages.admin * 1.8 : ind.wages.admin * 2.0;
   return {
     id: 'p' + nextUid(g), name: `${pick(g, NAMES.first)} ${pick(g, NAMES.last)}`, role, skill, loyalty: randInt(g, 40, 85),
     salary: Math.round(base * 1000 * cityWage * (0.6 + skill / 100)), trait: pick(g, NAMES.traits), office: office?.id, hired: g.turn,
@@ -109,6 +110,7 @@ export function newGame(opts: NewGameOpts): GameState {
   o.lastDemand = o.share * D;
 
   revalue(g);
+  refreshCandidates(g);
   refreshLoanOffers(g);
   refreshEquityOffer(g);
   return g;

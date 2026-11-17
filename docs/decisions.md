@@ -53,3 +53,21 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     busywork but still squeezes margins through wages and inputs.
 17. **`endTurn` runs in a web worker from M1**, with a main-thread fallback, so the
     architecture does not change when rival AI arrives.
+
+## M2 — world, tiers, people
+
+18. **19 cities in 6 regions**, home region visible at the start, everything else under
+    fog. A market study costs money and a quarter; it is the "scout" of this game.
+19. **The map scrolls sideways on phones** rather than shrinking. Tokens stay large
+    enough to tap, and the view centres on the selected city.
+20. **Price, marketing and supply chain live at the region level** and are also shown
+    on each office page, because that is where the player notices they need changing.
+21. **Hiring is a pipeline, not a purchase.** You open requisitions; how fast they fill
+    depends on the city's talent depth, your pay policy, your reputation, the labour
+    market and how many rivals are fishing in the same pool.
+22. **Layoff cost scales with local regulation** (0.5 to 2 quarters of pay) and leaves a
+    morale "scar" that decays over about a year, so cutting and rehiring is expensive.
+23. **Key people are named and can resign.** Loyalty drifts with culture and office
+    morale. A retention package buys a two-year lock-in.
+24. **Executives are optional and expensive.** A startup cannot afford a full C-suite;
+    hiring one is a scale decision (and a CFO is a hard requirement for an IPO).

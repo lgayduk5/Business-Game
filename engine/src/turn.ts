@@ -8,7 +8,8 @@ import { stepInvestments } from './invest';
 import { inputIndex, stepMacro, fxOf } from './macro';
 import { globalShare, localPrice, marketUnits, resolveMarkets } from './market';
 import { invSum, news, tempMod } from './mods';
-import { companyHeadcount, execBonus, headcount, payroll, prepOffice, stepPeople, type Prep } from './people';
+import { companyHeadcount, execBonus, headcount, payroll, personLeaves, prepOffice, stepKeyPeople, stepPeople, type Prep } from './people';
+import { refreshCandidates } from './actions';
 import { rivalsDecide, rivalsFinancials } from './rivals';
 import type { ExpCat, GameState, IndustryId, Office, Quarter, Role } from './types';
 import { ROLES } from './types';
@@ -262,6 +263,10 @@ export function endTurn(g: GameState): void {
   }
   if (c.negCashTurns === 1 && EVENT['liquidity_crisis']) queueEvent(g, 'liquidity_crisis', {});
 
+  for (const p of stepKeyPeople(g)) {
+    if (!(EVENT['key_resignation'] && queueEvent(g, 'key_resignation', { person: p.id, office: p.office }))) personLeaves(g, p);
+  }
+
   trackAttribution(g);
   g.history.push({
     turn: g.turn, revenue: q.pnl.revenue, ebitda: q.ebitda, ni: q.ni, cash: c.books.cash, debt: c.books.debt, valuation: c.valuation,
@@ -284,6 +289,7 @@ export function endTurn(g: GameState): void {
   if (g.status === 'playing' || g.continued) {
     refreshLoanOffers(g);
     refreshEquityOffer(g);
+    if (g.turn % 4 === 0 || !g.candidates.length) refreshCandidates(g);
     drawEvents(g);
   }
 }
