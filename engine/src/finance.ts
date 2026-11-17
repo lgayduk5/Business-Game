@@ -4,7 +4,7 @@ import { CITY, FOUNDER, INDUSTRIES, INV, NAMES } from './content';
 import { invSum, news, tempMod } from './mods';
 import { DIFF } from './difficulty';
 import { companyHeadcount, exec, execBonus } from './people';
-import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer } from './types';
+import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer, Office } from './types';
 import { clamp, money, nextUid, normal, pick, randRange } from './util';
 
 const RATINGS: [number, string, number, number][] = [
@@ -244,6 +244,7 @@ export interface ValueInputs {
   pipeline?: number; // risk-adjusted R&D still in progress
   promise?: number; // what a young company is worth on its story alone
   assets?: number; // what the assets would fetch
+  minority?: number; // value of stakes in its plants that outside funds own
 }
 
 /**
@@ -270,12 +271,30 @@ export function valueCompany(x: ValueInputs): { equity: number; parts: Record<st
   const ops = ((1 - ebitdaW) * byRev + ebitdaW * byEbitda) * qualityF * x.sentiment * rateF;
   const pipeline = x.pipeline ?? 0, promise = x.promise ?? 0, assets = x.assets ?? 0;
   const ev = Math.max(ops + pipeline, promise, assets);
-  const equity = Math.max(0, ev + x.cash - x.debt);
+  const minority = x.minority ?? 0;
+  const equity = Math.max(0, ev + x.cash - x.debt - minority);
   return {
     equity,
-    parts: { rev: x.rev, ebitda: x.ebitda, mult, growth: x.growth, growthF, margin, target, marginF, byRev, byEbitda, ebitdaMult, ebitdaW, qualityF, sentiment: x.sentiment, rate: x.rate, rateF, ops, pipeline, promise, assets, ev, cash: x.cash, debt: x.debt },
+    parts: { minority, rev: x.rev, ebitda: x.ebitda, mult, growth: x.growth, growthF, margin, target, marginF, byRev, byEbitda, ebitdaMult, ebitdaW, qualityF, sentiment: x.sentiment, rate: x.rate, rateF, ops, pipeline, promise, assets, ev, cash: x.cash, debt: x.debt },
   };
 }
+
+/**
+ * What an infrastructure fund would pay for the whole of a running plant: a year of its contribution times
+ * the industry's EBITDA multiple, with a premium because such funds accept a lower return for steady cash.
+ */
+export function plantValue(g: GameState, o: Office, fundPremium = 1.25): number {
+  const def = INDUSTRIES[o.ind];
+  const h = o.hist.slice(-4);
+  const contrib = h.length ? (h.reduce((s, x) => s + x.contrib, 0) * 4) / h.length : 0;
+  return Math.max(0, contrib) * (def.revMult / def.targetMargin) * fundPremium * g.macro.sentiment * clamp(1 - 0.04 * (g.macro.rate - 3), 0.75, 1.15);
+}
+/** Project and equipment loans secured on an office's plant. */
+export const plantLoans = (g: GameState, o: Office) => g.company.loans.filter((l) => l.office === o.id);
+/** The plant's value to its owners: what a fund would pay for all of it, less the loans secured on it. */
+export const plantEquity = (g: GameState, o: Office, fundPremium = 1.25) => Math.max(0, plantValue(g, o, fundPremium) - plantLoans(g, o).reduce((s, l) => s + l.principal, 0));
+/** This quarter's interest and scheduled repayment on the loans secured on an office's plant. */
+export const plantDebtService = (g: GameState, o: Office) => plantLoans(g, o).reduce((s, l) => s + (l.principal * loanRate(g, l)) / 400 + Math.min(l.principal, l.amort), 0);
 
 /** Private companies trade at a discount for illiquidity — on the business, not on the cash in the bank. */
 export const PRIVATE_DISCOUNT = 0.8;
@@ -292,6 +311,8 @@ export function valuation(g: GameState): { equity: number; parts: Record<string,
     cash: b.cash + b.securities, debt: b.debt, pipeline: pipelineValue(g),
     promise: 2.2e6 * g.macro.cpi * sentiment * (1 + companyHeadcount(c) / 40) * Math.exp(-g.turn / 24),
     assets: 0.5 * (b.ppe - b.accDep) + 0.6 * b.ar + 0.4 * b.inventory,
+    // the funds' stakes, valued as the market values the rest of the company (no infrastructure-fund premium)
+    minority: c.offices.reduce((s, o) => s + (o.minority ?? 0) * plantEquity(g, o, 1), 0),
   });
 }
 

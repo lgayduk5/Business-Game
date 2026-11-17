@@ -1,6 +1,6 @@
 // Offices: staffing, pay, capacity — and the regional levers that shape demand.
 import {
-  CITY, INDUSTRIES, REGIONS, ROLES, assetFinanceLTV, hasInventory, expandCapacity, expandCost, fire, gmOf, headcount, isCapital, marketWage, money, officeById, pct, priceIndex, sellCapacity,
+  CITY, INDUSTRIES, PLANT_STAKE, REGIONS, ROLES, assetFinanceLTV, canRecycle, hasInventory, expandCapacity, expandCost, fire, gmOf, headcount, isCapital, marketWage, money, officeById, pct, plantEquity, plantValue, priceIndex, sellCapacity, sellPlantStake,
   setBackfill, setMarketing, setPay, setPrice, setReqs, setTraining, severanceCost, staffingHint, unitVarCost, closeOffice,
   type GameState, type Office, type RegionId, type Role, type IndustryId,
 } from '@engine';
@@ -101,8 +101,18 @@ function plantView(g: GameState, o: Office): string {
     <div>Under construction</div><div>${o.building.length ? o.building.map((b) => `${Math.round(b.units).toLocaleString()} (ready in ${b.ready - g.turn} qtr)`).join(', ') : 'nothing'}</div></div>
     ${slider({ label: 'Build more', act: 'buildAmt', attrs: `data-office="${o.id}"`, min: step, max: step * 40, step, value: pending, fmt: 'x', help: `${money(expandCost(g, o, pending))} now, ready in ${def.buildQ} quarters. Then depreciated over ${def.deprQ / 4} years.` })}
     <div class="row"><button class="btn primary" data-a="build" data-office="${o.id}" data-units="${pending}">Build ${pending.toLocaleString()} units for ${money(expandCost(g, o, pending))}</button>
-    <button class="btn" data-a="buildFin" data-office="${o.id}" data-units="${pending}">${tip(`Finance ${Math.round(assetFinanceLTV(o.ind) * 100)}% against the asset`, explain(INDUSTRIES[o.ind].capPerUnit >= 10 ? 'Project finance' : 'Equipment finance', `Lenders fund ${Math.round(assetFinanceLTV(o.ind) * 100)}% of the build, secured on the new asset, at a fixed rate over ${INDUSTRIES[o.ind].capPerUnit >= 10 ? 18 : 7} years. You put in ${money(expandCost(g, o, pending) * (1 - assetFinanceLTV(o.ind)))}. The loan carries a coverage covenant: EBITDA must stay above 1.2× interest.`, undefined, ['leverage', 'covenant']), 'plain')}</button>
-    ${o.cap > step ? `<button class="btn sm danger" data-a="sellCap" data-office="${o.id}" data-units="${step}">Sell ${step} units</button>` : ''}</div></div>`;
+    <button class="btn" data-a="buildFin" data-office="${o.id}" data-units="${pending}">${tip(`Finance ${Math.round(assetFinanceLTV(o.ind) * 100)}% against the asset`, explain(INDUSTRIES[o.ind].capPerUnit >= 10 ? 'Project finance' : 'Equipment finance', `Lenders fund ${Math.round(assetFinanceLTV(o.ind) * 100)}% of the build, secured on the new asset, at a fixed rate over ${INDUSTRIES[o.ind].capPerUnit >= 10 ? 20 : 7} years. You put in ${money(expandCost(g, o, pending) * (1 - assetFinanceLTV(o.ind)) * (1 - (o.minority ?? 0)))}${o.minority ? `; the fund that owns ${Math.round(o.minority * 100)}% of the plant puts in its share` : ''}. The loan carries a coverage covenant: EBITDA must stay above 1.2× interest.`, undefined, ['leverage', 'covenant']), 'plain')}</button>
+    ${o.cap > step ? `<button class="btn sm danger" data-a="sellCap" data-office="${o.id}" data-units="${step}">Sell ${step} units</button>` : ''}</div>
+    ${INDUSTRIES[o.ind].capPerUnit >= 10 ? recycleBlock(g, o) : ''}</div>`;
+}
+
+/** Capital recycling: sell part of a running plant to an infrastructure fund. */
+function recycleBlock(g: GameState, o: Office): string {
+  if (o.minority) return `<p class="small muted" style="margin-top:10px">An infrastructure fund owns ${Math.round(o.minority * 100)}% of this plant. It receives that share of what the plant earns after its own loan is serviced, and pays its share of any expansion.</p>`;
+  const why = canRecycle(g, o);
+  const price = PLANT_STAKE * plantEquity(g, o);
+  return `<div class="row" style="margin-top:10px;gap:8px;align-items:center"><button class="btn" data-a="recycle" data-office="${o.id}" ${why ? 'disabled' : ''}>${tip(`Sell ${Math.round(PLANT_STAKE * 100)}% to a fund${why ? '' : ` for ${money(price)}`}`, explain('Capital recycling', `Infrastructure funds pay well for running plants because they accept a lower return for steady cash. Selling ${Math.round(PLANT_STAKE * 100)}% of this one raises money to build the next. From then on the fund receives its share of what the plant earns after its loan is serviced, and the stake no longer counts towards your company's value.`,
+    [['A fund values the whole plant at', money(plantValue(g, o))], ['Less the loans secured on it', money(plantValue(g, o) - plantEquity(g, o))], [`Price for ${Math.round(PLANT_STAKE * 100)}%`, money(price), true]], ['valuation']), 'plain')}</button>${why ? `<span class="small muted">${esc(why)}</span>` : ''}</div>`;
 }
 
 const roleText = (r: Role, name: string) =>
@@ -134,6 +144,7 @@ on('buildAmt', (d) => {
 on('build', (d) => void act(expandCapacity(ui.g!, d.office!, Number(d.units)), sfx.build));
 on('buildFin', (d) => void act(expandCapacity(ui.g!, d.office!, Number(d.units), true), sfx.build));
 on('sellCap', (d) => void act(sellCapacity(ui.g!, d.office!, Number(d.units))));
+on('recycle', (d) => void act(sellPlantStake(ui.g!, d.office!)));
 on('askLayoff', (d) => {
   ui.modal = { kind: 'layoff', data: { office: d.office, role: d.role, n: 1 } };
   render();

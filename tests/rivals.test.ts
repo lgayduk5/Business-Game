@@ -92,8 +92,15 @@ describe('victory and defeat', () => {
     expect(vs.map((v) => v.id)).toEqual(['marketCap', 'dominance', 'ipo', 'innovation', 'reputation', 'lastStanding']);
     for (const v of vs) expect(v.progress >= 0 && v.progress <= 1).toBe(true);
   });
+  it('outliving every rival is not a win for a business that went nowhere', () => {
+    const g = newGame(opts());
+    for (const r of g.rivals) r.alive = false;
+    checkEnd(g);
+    expect(g.status).toBe('playing');
+  });
   it('last company standing wins', () => {
     const g = newGame(opts());
+    g.counters.startRevenue = 1; // the business has grown since it started
     for (const r of g.rivals) r.alive = false;
     checkEnd(g);
     expect(g.status).toBe('won');
@@ -131,6 +138,9 @@ describe('victory and defeat', () => {
     expect(v.met).toBe(false);
     // shrink every rival to almost nothing: you now make nearly all of the named companies' sales
     for (const r of g.rivals) for (const ro of r.offices) ro.share = 1e-6;
+    // …but a business that has not grown is not a category king
+    expect(victoryStatus(g).find((x) => x.id === 'dominance')!.met).toBe(false);
+    g.counters.startRevenue = 1;
     const after = victoryStatus(g).find((x) => x.id === 'dominance')!;
     expect(after.met).toBe(true);
     for (let i = 0; i < 4; i++) checkEnd(g);

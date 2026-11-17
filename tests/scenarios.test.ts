@@ -47,7 +47,8 @@ describe('save files', () => {
     const old = JSON.parse(JSON.stringify(g));
     delete old.counters; delete old.attribution; delete old.company.techInfo;
     const m = migrate(old);
-    expect(m.counters).toEqual({});
+    // only the baselines the end-of-game grade needs are filled in
+    expect(Object.keys(m.counters).filter((k) => !/^(rivalStart\d+|startFounderValue|startRevenue)$/.test(k))).toEqual([]);
     expect(m.attribution.notes).toEqual([]);
   });
 });

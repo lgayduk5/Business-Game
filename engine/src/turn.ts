@@ -3,14 +3,14 @@ import { advise, trackAttribution } from './advisor';
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, REGION_LIST, EVENT, hasInventory } from './content';
 import { drawEvents, queueEvent } from './events';
-import { covenantStatus, payTaxes, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
+import { covenantStatus, payTaxes, plantDebtService, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
 import { globalShare, localPrice, marketUnits, priceIndex, resolveMarkets } from './market';
 import { invSum, news, tempMod } from './mods';
 import { companyHeadcount, execBonus, headcount, payroll, personLeaves, prepOffice, stepKeyPeople, stepPeople, type Prep } from './people';
-import { refreshCandidates } from './actions';
+import { FACTOR_FEE, FACTOR_SHARE, refreshCandidates } from './actions';
 import { rivalsDecide, rivalsFinancials } from './rivals';
 import type { ExpCat, GameState, IndustryId, Office, Quarter, Role } from './types';
 import { ROLES } from './types';
@@ -188,6 +188,11 @@ export function endTurn(g: GameState): void {
     bi.contrib += res.contribution;
     o.hist.push({ rev: res.revenue, contrib: res.contribution, share: o.share, mkt: res.market * localPrice(g, o.city, o.ind), px: priceIndex(g, o) });
     if (o.hist.length > 24) o.hist.shift();
+    // an infrastructure fund that owns part of the plant takes its share of what the plant earns after its own loan
+    if (o.minority) {
+      const dist = o.minority * Math.max(0, res.contribution - plantDebtService(g, o));
+      if (dist > 0) B.dividend(c, dist);
+    }
     // regional partner takes a cut of sales
     const partner = c.policy[city.region].partner;
     if (partner && partner.until >= g.turn && partner.fee > 0) {
@@ -212,7 +217,10 @@ export function endTurn(g: GameState): void {
   // ── revenue, collections, payables
   B.bill(c, revenue, defTarget - c.books.deferred);
   if (g.macro.gap < -1.5) B.writeOffAR(c, c.books.ar * clamp(0.003 * (-g.macro.gap - 1), 0, 0.02));
-  B.collect(c, Math.max(0, c.books.ar - arTarget));
+  // a factor buys most invoices as they are billed: receivables fall, for a fee
+  const arKeep = c.factoring ? arTarget * (1 - FACTOR_SHARE) : arTarget;
+  B.collect(c, Math.max(0, c.books.ar - arKeep));
+  if (c.factoring) B.interest(c, FACTOR_FEE * FACTOR_SHARE * revenue);
   const dpo = revenue > 0 ? dpoW / revenue : INDUSTRIES[c.primary].dpo;
   B.payAP(c, Math.max(0, c.books.ap - (apSpend * dpo) / 90));
 

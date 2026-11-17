@@ -128,6 +128,9 @@ export function startScenario(id: string, name: string): GameState {
   g.maxTurns = 100;
   g.counters.scenarioEnd = s.turns;
   g.counters.startValuation = g.company.valuation;
+  g.counters.startRevenue = B.ttm(g.company, (q) => q.pnl.revenue);
+  g.counters.startFounderValue = g.company.valuation * (g.company.cap.founder / g.company.cap.shares);
+  for (const r of g.rivals) g.counters[`rivalStart${r.id}`] = r.valuation;
   g.counters.scenarioStartValuation = g.company.valuation;
   news(g, s.goal.text, 'info');
   return g;

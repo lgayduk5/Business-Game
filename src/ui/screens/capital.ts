@@ -1,6 +1,6 @@
 // Capital: debt, covenants, equity rounds, IPO, dividends and buybacks.
 import {
-  buyBack, covenantStatus, drawRevolver, followOn, founderStake, ipoChecklist, loanRate, money, pct, raiseEquity, repayLoan, setAutoRevolver, setDividend,
+  FACTOR_FEE, FACTOR_SHARE, buyBack, covenantStatus, drawRevolver, followOn, founderStake, ipoChecklist, loanRate, money, pct, raiseEquity, repayLoan, setAutoRevolver, setDividend, setFactoring,
   startIPO, takeLoan, ttm, turnLabel, type GameState,
 } from '@engine';
 import { $, N, esc, explain, seg, slider, tip, x2, type Row } from '../kit';
@@ -77,6 +77,7 @@ function capital(g: GameState): string {
         <div>Tax losses carried forward</div><div>${$(c.nol, 'Tax loss carryforward', 'Past losses you can set against future profits in the same country. They shelter up to 80% of each quarter’s taxable income there until used up; a loss in one country does nothing for profits in another.', taxRows(g))}</div>
       </div>
       <div class="field" style="margin-top:12px"><div class="lab"><span>Draw on the credit line automatically when cash runs short</span></div>${seg('autoRev', [['1', 'Yes'], ['0', 'No']], c.autoRevolver ? '1' : '0')}</div>
+      <div class="field" style="margin-top:12px"><div class="lab"><span>${tip('Sell invoices to a factor', explain('Invoice factoring', `A factor buys ${Math.round(FACTOR_SHARE * 100)}% of your invoices as you bill them, so most of what customers owe you arrives at once instead of when they pay. It costs ${(FACTOR_FEE * 100).toFixed(1)}% of the invoices sold, every quarter, booked as interest. Useful when slow-paying clients tie up cash; stop when you no longer need it and receivables build back up.`, [['Customers owe you now', money(c.books.ar)], ['Cost a quarter at last quarter’s sales', money(FACTOR_FEE * FACTOR_SHARE * (c.quarters[c.quarters.length - 1]?.pnl.revenue ?? 0))]], ['workingCapital']), 'plain')}</span></div>${seg('factor', [['1', 'On'], ['0', 'Off']], c.factoring ? '1' : '0')}</div>
       ${c.cap.isPublic || c.cap.dividend > 0 ? slider({ label: 'Dividend per quarter', act: 'dividend', min: 0, max: Math.max(100_000, Math.round(Math.max(0, ebitda) / 4 / 10_000) * 10_000), step: 10_000, value: c.cap.dividend, fmt: 'money', help: 'Income investors like a steady dividend and punish a cut.' }) : ''}
       </div>
       <div class="sheet"><h2>Equity</h2>${equity}${ipo}</div>
@@ -101,3 +102,4 @@ on('followOn', () => void act(followOn(ui.g!, 0.1), sfx.cash));
 on('buyback', () => void act(buyBack(ui.g!, ui.g!.company.books.cash * 0.2)));
 on('dividend', (d) => void act(setDividend(ui.g!, Number(d.value))));
 on('autoRev', (d) => void act(setAutoRevolver(ui.g!, d.v === '1')));
+on('factor', (d) => void act(setFactoring(ui.g!, d.v === '1')));

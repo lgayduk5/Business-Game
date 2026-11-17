@@ -1,5 +1,5 @@
 // World and company generation.
-import { emptyBooks, emptyPnL, emptyTags } from './books';
+import { emptyBooks, emptyPnL, emptyTags, ttm } from './books';
 import { CITIES, CITY, FOUNDER, INDUSTRIES, NAMES, REGION_LIST } from './content';
 import { refreshEquityOffer, refreshLoanOffers, revalue } from './finance';
 import { newMacro } from './macro';
@@ -87,7 +87,7 @@ export function newGame(opts: NewGameOpts): GameState {
     const project = opts.industry === 'energy';
     c.loans.push({
       id: 'ln' + nextUid(g), kind: project ? 'project' : 'term', name: project ? 'Founding project loan' : 'Founding equipment loan', principal: b.debt, limit: 0,
-      spread: 3, fixedRate: 6, floating: !project, start: 0, maturity: project ? 72 : 24, amort: b.debt / (project ? 72 : 24), breaches: 0, waivedUntil: 4,
+      spread: 3, fixedRate: 6, floating: !project, start: 0, maturity: project ? 72 : 24, amort: b.debt / (project ? 72 : 24), breaches: 0, waivedUntil: 4, office: o.id,
     });
   }
   b.paidIn = b.cash + b.ppe - b.debt;
@@ -107,6 +107,9 @@ export function newGame(opts: NewGameOpts): GameState {
   if (opts.mode === 'scenario') revalue(g);
   else seedHistory(g);
   g.counters.startValuation = c.valuation;
+  g.counters.startRevenue = ttm(c, (q) => q.pnl.revenue);
+  g.counters.startFounderValue = c.valuation * (c.cap.founder / c.cap.shares);
+  for (const r of g.rivals) g.counters[`rivalStart${r.id}`] = r.valuation;
   g.counters.lastSentiment = g.macro.sentiment;
   refreshCandidates(g);
   refreshLoanOffers(g);

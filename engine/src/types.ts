@@ -54,6 +54,7 @@ export interface IndustryDef {
   failure: string;
   tier: 'gentle' | 'tough' | 'expert'; // how hard it is to win, from the balance harness
   firstGame?: boolean; // recommended for a first game
+  grid?: boolean; // output is sold into a wholesale market: a working plant sells most of what it makes at the going price
   marketBase: number; // units ($K of sales at reference price) per quarter in a reference city
   trend: number; // annual real growth of the market
   cyc: number; // sensitivity to the business cycle
@@ -463,6 +464,7 @@ export interface Office {
   scar: number; // lingering morale damage from layoffs
   gm?: string;
   integration: number; // quarters of acquisition integration left
+  minority?: number; // share of this plant sold to an infrastructure fund (capital recycling)
   last?: OfficeResult;
   hist: { rev: number; contrib: number; share: number; mkt?: number; px?: number }[]; // mkt: market value at reference price; px: price position
 }
@@ -504,6 +506,7 @@ export interface Loan {
   minCash?: number;
   breaches: number;
   waivedUntil: number;
+  office?: string; // project or equipment finance secured on this office's plant
 }
 
 export interface LoanOffer {
@@ -662,6 +665,7 @@ export interface Company {
   rating: string;
   ratingScore: number;
   autoRevolver: boolean;
+  factoring?: boolean; // invoices are sold to a factor as they are billed
   negCashTurns: number;
   moonshots: number;
   diligence: Record<string, boolean>;
@@ -676,6 +680,7 @@ export interface RivalOffice {
   cap: number;
   opened: number;
   war: number; // quarters of active price war remaining
+  built?: number; // turn the last capacity expansion was started (plant takes time to build)
 }
 
 export interface Rival {

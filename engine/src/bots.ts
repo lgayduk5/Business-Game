@@ -54,13 +54,14 @@ const quarterlyCosts = (g: GameState) => {
 /** Cash to keep in hand: half a quarter of costs, plus the runway the strategy insists on at the current burn. */
 const reserve = (g: GameState, p: BotParams) => {
   const q = lastQ(g);
-  const burn = q ? Math.max(0, -(q.cf.cfo + q.cf.capex)) : quarterlyCosts(g) * 0.3;
+  // operating burn: plant and offices are bought deliberately (and largely financed), so they do not count as running out of money
+  const burn = q ? Math.max(0, -q.cf.cfo) : quarterlyCosts(g) * 0.3;
   return quarterlyCosts(g) * 1.0 + burn * Math.min(p.runway, 12);
 };
 const spare = (g: GameState, p: BotParams) => g.company.books.cash - reserve(g, p);
 const runwayQ = (g: GameState) => {
   const q = lastQ(g);
-  const burn = q ? -(q.cf.cfo + q.cf.capex) : 0;
+  const burn = q ? -q.cf.cfo : 0;
   return burn > 0 ? g.company.books.cash / burn : 99;
 };
 
@@ -101,7 +102,9 @@ function staff(g: GameState, o: Office, p: BotParams) {
   const earning = !l || l.contribution > -0.05 * l.revenue;
   const ok = spare(g, p) > 0 && earning && (runwayQ(g) > p.runway || (lastQ(g)?.ebitda ?? 0) > 0);
   const slack = isCapital(o.ind) ? 0.85 : 0.95;
-  const want = cover < p.sales * SALES_WEIGHT[o.ind] && ok && (!l || (l.bind === 'demand' && l.util < slack)) ? Math.max(1, Math.round(need * 0.03)) : 0;
+  // grow the sales team in steps the company can absorb: a few per cent of the market's coverage, at most a third of the team
+  const step = Math.min(Math.max(1, Math.round(need * 0.03)), 1 + Math.round(o.staff.sales.n * 0.35));
+  const want = cover < p.sales * SALES_WEIGHT[o.ind] && ok && (!l || (l.bind === 'demand' && l.util < slack)) ? step : 0;
   if (l && l.bind !== 'demand' && cover > p.sales * SALES_WEIGHT[o.ind] * 1.5 && o.staff.sales.n > 2) A.fire(g, o.id, 'sales', Math.ceil(o.staff.sales.n * 0.2));
   A.setReqs(g, o.id, 'sales', want);
   // R&D people: sized to what the industry rewards, once the office pays its way (software and biotech invest from day one)
@@ -112,12 +115,20 @@ function staff(g: GameState, o: Office, p: BotParams) {
   if (o.staff.rnd.n > rdWant + 2 && w < 1) A.fire(g, o.id, 'rnd', o.staff.rnd.n - rdWant - 1);
   A.setReqs(g, o.id, 'admin', Math.max(0, hint.admin - o.staff.admin.n));
   // plant: build when the plant is the limit and customers want more
-  if (isCapital(o.ind) && l && l.bind === 'facility' && l.target > o.share * 1.05 && o.building.length === 0) {
+  // (a grid sells whatever a full plant makes, so there a full plant is the signal on its own)
+  if (isCapital(o.ind) && l && l.bind === 'facility' && (l.target > o.share * 1.05 || (def.grid && l.util > 0.9)) && o.building.length === 0) {
     const units = Math.max(10, Math.round(o.cap * 0.3));
     const cost = A.expandCost(g, o, units);
-    const own = cost * (1 - A.assetFinanceLTV(o.ind));
+    const own = cost * (1 - A.assetFinanceLTV(o.ind)) * (1 - (o.minority ?? 0));
     if (cost < spare(g, p)) A.expandCapacity(g, o.id, units);
-    else if ((p.debt || def.capPerUnit >= 10) && own < spare(g, p) && B.ttm(c, (q) => q.ebitda) > 0) A.expandCapacity(g, o.id, units, true);
+    else if ((p.debt || def.capPerUnit >= 10) && B.ttm(c, (q) => q.ebitda) > 0) {
+      if (own >= spare(g, p)) {
+        // capital recycling pays for the owner's share of the build, if a running plant can be part-sold
+        const r = c.offices.find((x) => !A.canRecycle(g, x));
+        if (r && spare(g, p) + A.PLANT_STAKE * F.plantEquity(g, r) * 0.98 > own) A.sellPlantStake(g, r.id);
+      }
+      if (own < spare(g, p)) A.expandCapacity(g, o.id, units, true);
+    }
   }
   if (p.special !== 'gouge') A.setPay(g, o.id, o.morale < 45 ? 1.1 : 1.0);
   A.setTraining(g, o.id, p.invest && g.turn > 6 && (lastQ(g)?.ebitda ?? 0) > 0 ? 1 : 0);
@@ -136,6 +147,7 @@ function priceAndMarketing(g: GameState, p: BotParams) {
       const idle = offs.filter((o) => o.ind === k && o.last && o.last.util < 0.7).length;
       let next = cur + (bound ? 0.03 : idle ? -0.02 : 0.25 * (p.price - cur));
       next = clamp(next, p.price - 0.12, p.price + 0.2);
+      if (INDUSTRIES[k as IndustryId].grid) next = Math.min(next, p.price); // the grid buys at the going rate and no higher
       A.setPrice(g, r, k as IndustryId, p.special === 'gouge' ? 1.8 : next);
     }
   }
@@ -167,7 +179,16 @@ function expand(g: GameState, p: BotParams) {
     return;
   }
   const cost = A.openOfficeCost(g, best.id, ind).total;
-  if (cost * 2 + quarterlyCosts(g) * 0.5 < spare(g, p)) A.openOffice(g, best.id, ind);
+  // plant-heavy offices are part-financed against the plant once the business earns enough to carry the loan
+  const lent = isCapital(ind) && B.ttm(c, (q) => q.ebitda) > 0 ? A.openOfficeFinancing(g, best.id, ind) : 0;
+  const need = (cost - lent) * 2 + quarterlyCosts(g) * 0.5;
+  if (need >= spare(g, p)) {
+    // capital recycling: sell part of a running plant only if that pays for the next one
+    const o = c.offices.find((x) => !A.canRecycle(g, x));
+    if (!o || spare(g, p) + A.PLANT_STAKE * F.plantEquity(g, o) * 0.98 < need) return;
+    A.sellPlantStake(g, o.id);
+  }
+  A.openOffice(g, best.id, ind, lent > 0);
 }
 
 function finance(g: GameState, p: BotParams) {
@@ -187,6 +208,10 @@ function finance(g: GameState, p: BotParams) {
     if (br) F.takeLoan(g, br.id, Math.min(br.max, quarterlyCosts(g) * 2));
   }
   if (p.ipo && F.ipoChecklist(g).ok) F.startIPO(g);
+  // working capital: sell invoices when cash is tight and customers owe a lot; stop once comfortable
+  const qrev = lastQ(g)?.pnl.revenue ?? 0;
+  if (!c.factoring && c.books.ar > 0.4 * qrev && (rw < p.runway + 1 || spare(g, p) < 0)) A.setFactoring(g, true);
+  else if (c.factoring && spare(g, p) > quarterlyCosts(g) * 3) A.setFactoring(g, false);
 }
 
 function people(g: GameState) {
@@ -213,6 +238,7 @@ function invest(g: GameState, p: BotParams) {
     if (!c.diligence[id] && (def.risk || def.trap)) diligence(g, id, scope);
     if (def.trap && c.diligence[id] && def.truth) continue;
     if (invCostOf(g, id, scope) * 2 > spare(g, p)) continue;
+    if (invCostOf(g, id, scope) > 0.03 * B.ttm(c, (q) => q.pnl.revenue)) continue; // programmes sized to the business, not bought on a whim
     const r = startInvestment(g, id, scope);
     if (r.ok) return; // one a quarter
   }
@@ -230,6 +256,10 @@ function diplomacy(g: GameState, p: BotParams) {
     if (p.special === 'raider') {
       const price = bidPrice(g, r, false);
       if (price < g.company.books.cash * 0.7 && bidOdds(g, r, false) > 0.3) bidForRival(g, r.id, false);
+    } else if ((p.name === 'Leveraged' || p.name === 'Blitz') && g.turn > 12) {
+      // consolidators buy a weaker rival when it is cheap against the cash in hand and likely to say yes
+      const price = bidPrice(g, r, false);
+      if (price < g.company.books.cash * 0.6 && bidOdds(g, r, false) > 0.35 && r.valuation < g.company.valuation * 0.6) bidForRival(g, r.id, false);
     }
   }
 }

@@ -123,7 +123,7 @@ button { cursor: pointer; touch-action: manipulation; }
 
 /* ── sheets and ledgers ───────────────────────────── */
 .sheet { background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 4px; padding: 14px; margin: 0 0 14px; }
-.sheet > h2:first-child, .sheet > h3:first-child { margin-top: 0; }
+.sheet > h2:first-child, .sheet > h3:first-child, .sheet > .spread:first-child > h2, .sheet > .spread:first-child > h3 { margin-top: 0; }
 .grid2 { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 .grid2 > * { min-width: 0; margin-bottom: 0; }
 .main, .top { min-width: 0; }

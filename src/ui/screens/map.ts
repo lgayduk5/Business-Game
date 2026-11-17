@@ -1,6 +1,6 @@
 // The board: a stylised world drawn in SVG, with fog over cities you have not studied.
 import {
-  CITIES, CITY, INDUSTRIES, REGIONS, localPrice, marketUnits, money, openOffice, openOfficeCost, pct, scout, scoutCost,
+  CITIES, CITY, INDUSTRIES, REGIONS, assetFinanceLTV, localPrice, marketUnits, money, openOffice, openOfficeCost, openOfficeFinancing, pct, scout, scoutCost,
   type CityDef, type GameState, type IndustryId,
 } from '@engine';
 import { $, N, esc } from '../kit';
@@ -86,7 +86,7 @@ function citySheet(g: GameState): string {
     return `<tr><td><b>${INDUSTRIES[k].short}</b><br><span class="small muted">${fit >= 1.5 ? 'Excellent' : fit >= 1.1 ? 'Good' : fit >= 0.8 ? 'Average' : 'Thin'} fit</span></td>
       <td class="num">${$(marketValue(g, ct.id, k), 'Market size', 'Everything customers in this city spend on this industry in a quarter, at today’s prices. It moves with the economy, the city’s growth and the industry’s long-run trend.', [['City fit for the industry', fit.toFixed(1) + '×'], ['Strength of local incumbents', (g.mk[`${ct.id}:${k}`]?.f ?? INDUSTRIES[k].fringe).toFixed(1)]], ['marketShare'])}</td>
       <td class="num">${o ? pct(o.share, 2) : '—'}</td>
-      <td>${o ? `<button class="btn sm" data-a="office" data-id="${o.id}">Manage</button>` : `<button class="btn sm primary" data-a="openOffice" data-id="${ct.id}" data-ind="${k}">Open for ${money(cost.total)}</button>`}</td></tr>`;
+      <td>${o ? `<button class="btn sm" data-a="office" data-id="${o.id}">Manage</button>` : `<button class="btn sm primary" data-a="openOffice" data-id="${ct.id}" data-ind="${k}">Open for ${money(cost.total)}</button>${cost.capex > 0 ? ` <button class="btn sm" data-a="openOfficeFin" data-id="${ct.id}" data-ind="${k}" title="Lenders fund ${Math.round(assetFinanceLTV(k) * 100)}% of the plant">Finance the plant: ${money(cost.total - openOfficeFinancing(g, ct.id, k))} of your own</button>` : ''}`}</td></tr>`;
   }).join('')}</tbody></table>`;
   return `<div class="sheet">${head}<p>${esc(ct.blurb)}</p>${facts}<h3>Markets</h3><div class="scrollx">${markets}</div>${cityExtras.map((f) => f(g, ct)).join('')}</div>`;
 }
@@ -106,6 +106,7 @@ on('city', (d) => {
 });
 on('scout', (d) => void act(scout(ui.g!, d.id!), sfx.tick));
 on('openOffice', (d) => void act(openOffice(ui.g!, d.id!, d.ind as IndustryId), sfx.build));
+on('openOfficeFin', (d) => void act(openOffice(ui.g!, d.id!, d.ind as IndustryId, true), sfx.build));
 
 // On phones the board is wider than the screen: keep the selected city in view.
 let centred = '';

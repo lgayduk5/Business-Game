@@ -15,7 +15,7 @@ import { chance, clamp, money, pick, rand, randInt, randRange, shuffle, weighted
 
 /** How much sales and R&D effort each industry rewards (software = 1). Rivals and bots both use these. */
 export const SALES_INTENSITY: Record<IndustryId, number> = { saas: 1, consulting: 0.8, biotech: 0.5, retail: 0.35, mfg: 0.35, logistics: 0.25, energy: 0.1 };
-export const RD_INTENSITY: Record<IndustryId, number> = { saas: 1, biotech: 1.5, mfg: 0.4, consulting: 0.25, energy: 0.2, logistics: 0.2, retail: 0.1 };
+export const RD_INTENSITY: Record<IndustryId, number> = { saas: 1.6, biotech: 1.5, mfg: 0.4, consulting: 0.25, energy: 0.2, logistics: 0.2, retail: 0.1 };
 /** Marketing programmes (advertising, events, brand) as a share of revenue for an average competitor, on top of sales staff. */
 export const MKT_INTENSITY: Record<IndustryId, number> = { saas: 0.1, biotech: 0.08, retail: 0.05, consulting: 0.04, mfg: 0.03, logistics: 0.02, energy: 0.01 };
 
@@ -65,7 +65,8 @@ export function generateRivals(g: GameState, n: number): Rival[] {
       const room = 0.55 - (taken[c] ?? 0);
       if (room < 0.005) continue;
       // sized relative to what the player starts with, so rivals are established but within reach
-      const units = startUnits(ind) * d.rivalSize * randRange(g, 1.0, 2.5) * (c === hq.id ? 1.8 : 1);
+      // (in a grid industry every unit sells, so plants start smaller to give the same head start)
+      const units = startUnits(ind) * d.rivalSize * randRange(g, 1.0, 2.5) * (c === hq.id ? 1.8 : 1) * (def.grid ? 0.45 : 1);
       const share = Math.min(room, 0.1, units / marketUnits(g, c, ind));
       taken[c] = (taken[c] ?? 0) + share;
       openRivalOffice(g, r, c, ind, share);
@@ -226,8 +227,10 @@ export function rivalsDecide(g: GameState) {
       const D = marketUnits(g, ro.city, ro.ind);
       const util = ro.cap > 0 ? (ro.share * D) / ro.cap : 1;
       // capacity follows demand, if the money is there
-      if (util > 0.88 && healthy) {
+      // a plant takes as long to build for a rival as for the player, so one expansion at a time
+      if (util > 0.88 && healthy && g.turn - (ro.built ?? -99) >= Math.max(1, def.buildQ)) {
         const add = ro.cap * randRange(g, 0.1, 0.25);
+        ro.built = g.turn;
         const cost = add * (def.capPerUnit * 1000 * m.cpi + (wageOf(g, ro.city, ro.ind, 'ops') / def.opsOut) * 0.6);
         if (r.cash > cost + costs) {
           ro.cap += add;
@@ -608,10 +611,13 @@ export function bidOdds(g: GameState, r: Rival, hostile: boolean): number {
   return clamp(0.15 + r.relation / 150 + (r.distress > 0 ? 0.5 : 0) + (r.profit < 0 ? 0.15 : 0) - (pers.id === 'conservative' ? 0.15 : 0) - (pers.id === 'predator' ? 0.2 : 0), 0.02, 0.95);
 }
 /** Take a rival's offices into the player's company. */
+/** Customers an acquirer keeps: about a fifth of them use the change of owner to look elsewhere. */
+export const ACQUIRED_KEEP = 0.8;
 export function absorbIntoPlayer(g: GameState, r: Rival, offices: RivalOffice[]): number {
   const c = g.company;
   let fair = 0;
   for (const ro of offices) {
+    ro.share *= ACQUIRED_KEEP;
     const def = INDUSTRIES[ro.ind];
     if (!c.divisions.includes(ro.ind)) {
       c.divisions.push(ro.ind);

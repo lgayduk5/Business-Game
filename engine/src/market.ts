@@ -161,10 +161,17 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
     const ra = mk.rivals.map(([r, ro]) => rivalAttract(g, r, ro));
     const total = F + (pa?.A ?? 0) + ra.reduce((a, b) => a + b, 0);
 
+    // Grid industries sell into a wholesale market: a plant priced at or below the going rate sells most of its
+    // output — unless the city's plants together offer more than it needs, when they share what there is.
+    const rawGrid = (capShare: number, px: number) => (def.grid ? capShare * 0.9 * clamp(2 - px, 0, 1) ** def.elast : 0);
+    const offered = def.grid ? (o ? rawGrid((preps.get(o.id)?.capacity ?? 0) / D, priceIndex(g, o)) : 0) + mk.rivals.reduce((s2, [, ro]) => s2 + rawGrid(ro.cap / D, ro.price), 0) : 0;
+    const room = offered > 0.85 ? 0.85 / offered : 1;
+    const grid = (capShare: number, px: number) => rawGrid(capShare, px) * room;
     mk.rivals.forEach(([, ro], i) => {
       const capShare = ro.cap / D;
-      const t = Math.min(ra[i] / total, capShare * 1.08);
-      ro.share = clamp(Math.min(ro.share + def.stick * (t - ro.share), capShare * 1.15), 0, 0.95);
+      const floor = grid(capShare, ro.price);
+      const t = Math.min(Math.max(ra[i] / total, floor), capShare * 1.08);
+      ro.share = clamp(Math.min(Math.max(ro.share + def.stick * (t - ro.share), floor), capShare * 1.15), 0, 0.95);
     });
 
     if (o && pa) {
@@ -173,9 +180,10 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
       const inv = hasInventory(o.ind);
       const avail = prep.capacity + (inv ? o.inventory : 0);
       const capShare = avail / D;
-      const target = pa.A / total;
+      const floor = grid(prep.capacity / D, priceIndex(g, o)); // what the grid takes at this price, from the first quarter
+      const target = Math.max(pa.A / total, floor);
       const t = Math.min(target, capShare * 1.08);
-      o.share = clamp(Math.min(o.share + def.stick * (t - o.share), capShare * 1.15), 0, 0.95);
+      o.share = clamp(Math.min(Math.max(o.share + def.stick * (t - o.share), floor), capShare * 1.15), 0, 0.95);
       const demand = o.share * D;
       let produced: number, sold: number;
       if (inv) {

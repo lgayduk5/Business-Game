@@ -98,5 +98,9 @@ export function fillDefaults(g: GameState): GameState {
   g.company.open ??= { ...g.company.books };
   g.company.diligence ??= {};
   g.macro.prodIdx ??= 1;
+  // starting values for the end-of-game grade (older saves: the earliest record there is)
+  g.counters.startRevenue ??= g.history[0]?.revenue ? g.history[0].revenue * 4 : 0;
+  g.counters.startFounderValue ??= (g.counters.startValuation ?? g.history[0]?.valuation ?? 1) * 0.8;
+  g.rivals.forEach((r, i) => (g.counters[`rivalStart${r.id}`] ??= g.history[0]?.rivals?.[i] || r.valuation || 1));
   return g;
 }

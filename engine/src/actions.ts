@@ -1,6 +1,7 @@
 // Player actions. Each validates, mutates the state and returns {ok, msg}.
 import * as B from './books';
 import { CITY, INDUSTRIES, isCapital } from './content';
+import { plantEquity, plantValue } from './finance';
 import { market, marketUnits } from './market';
 import { news } from './mods';
 import { makeOffice, makePerson } from './newgame';
@@ -53,6 +54,19 @@ export function expandCost(g: GameState, o: Office, units: number): number {
 }
 /** Share of a plant expansion lenders will finance against the new asset (project or equipment finance). */
 export const assetFinanceLTV = (ind: IndustryId) => (INDUSTRIES[ind].capPerUnit >= 10 ? 0.7 : 0.5);
+/** Project or equipment finance secured on a plant: fixed rate, amortising, covenants waived until it is built. */
+function assetLoan(g: GameState, o: Office, lent: number, buildQ: number) {
+  const c = g.company;
+  const project = INDUSTRIES[o.ind].capPerUnit >= 10;
+  // project finance is long and cheap: lenders are secured on a plant with decades of steady output
+  const rate = Math.round((g.macro.rate + (project ? 1.8 : 3) + g.macro.spread * 0.5 + (c.ratingScore < 46 ? 1.5 : 0)) * 20) / 20;
+  const term = project ? 80 : 28;
+  c.loans.push({ id: 'ln' + (++g.uid), kind: project ? 'project' : 'equipment', name: `${CITY[o.city].name} ${project ? 'project' : 'equipment'} finance`, principal: lent, limit: 0, spread: 0, fixedRate: rate, floating: false,
+    start: g.turn, maturity: g.turn + term, amort: lent / term, minCoverage: 1.2, breaches: 0, waivedUntil: g.turn + buildQ + 2, office: o.id });
+  B.borrow(c, lent);
+  B.expense(c, 'other', lent * 0.01, 'cash');
+}
+
 export function expandCapacity(g: GameState, officeId: string, units: number, financed = false): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
@@ -64,20 +78,15 @@ export function expandCapacity(g: GameState, officeId: string, units: number, fi
   const def = INDUSTRIES[o.ind];
   const ltv = assetFinanceLTV(o.ind);
   const lent = financed ? cost * ltv : 0;
+  // a fund that owns part of the plant puts in its share of the equity, as joint-venture partners do
+  const partner = (o.minority ?? 0) * (cost - lent);
   if (financed && c.negCashTurns > 0) return no('Lenders will not finance new assets while you are overdrawn.');
-  if (cost - lent > c.books.cash) return no(`You need ${money(cost - lent)} of your own money for this${financed ? ' (lenders cover the rest)' : ''}; you have ${money(c.books.cash)}.`);
-  if (lent > 0) {
-    const project = def.capPerUnit >= 10;
-    const rate = Math.round((g.macro.rate + (project ? 2.2 : 3) + g.macro.spread * 0.5 + (c.ratingScore < 46 ? 1.5 : 0)) * 20) / 20;
-    const term = project ? 72 : 28;
-    c.loans.push({ id: 'ln' + (++g.uid), kind: project ? 'project' : 'equipment', name: `${CITY[o.city].name} ${project ? 'project' : 'equipment'} finance`, principal: lent, limit: 0, spread: 0, fixedRate: rate, floating: false,
-      start: g.turn, maturity: g.turn + term, amort: lent / term, minCoverage: 1.2, breaches: 0, waivedUntil: g.turn + def.buildQ + 2 });
-    B.borrow(c, lent);
-    B.expense(c, 'other', lent * 0.01, 'cash');
-  }
+  if (cost - lent - partner > c.books.cash) return no(`You need ${money(cost - lent - partner)} of your own money for this${financed ? ' (lenders cover the rest)' : ''}${partner ? ' (the plant’s fund pays its share)' : ''}; you have ${money(c.books.cash)}.`);
+  if (lent > 0) assetLoan(g, o, lent, def.buildQ);
+  if (partner > 0) B.issueEquity(c, partner);
   B.capex(c, cost, o);
   o.building.push({ units, ready: g.turn + def.buildQ, cost });
-  return ok(`Building ${units.toLocaleString()} units of capacity for ${money(cost)}${lent ? `, ${money(lent)} of it borrowed against the new asset` : ''}. Ready in ${def.buildQ} quarters.`);
+  return ok(`Building ${units.toLocaleString()} units of capacity for ${money(cost)}${lent ? `, ${money(lent)} of it borrowed against the new asset` : ''}${partner ? `, ${money(partner)} from the plant’s fund` : ''}. Ready in ${def.buildQ} quarters.`);
 }
 export function sellCapacity(g: GameState, officeId: string, units: number): ActionResult {
   const o = officeById(g, officeId);
@@ -92,6 +101,41 @@ export function sellCapacity(g: GameState, officeId: string, units: number): Act
   B.dispose(g.company, gross, acc, proceeds, o);
   o.cap -= units;
   return ok(`Sold capacity for ${money(proceeds)} — half its book value. Fire sales are expensive.`);
+}
+
+export const PLANT_STAKE = 0.49;
+/** Can this office's plant be part-sold? Only heavy plant with a year of running history. */
+export function canRecycle(g: GameState, o: Office): string {
+  if (INDUSTRIES[o.ind].capPerUnit < 10) return 'Only power plants and similar long-lived assets attract infrastructure funds.';
+  if (o.minority) return 'A fund already owns part of this plant.';
+  if (o.hist.length < 4 || g.turn - o.opened < 4) return 'Funds want a year of running history first.';
+  if (plantValue(g, o) <= 0) return 'The plant does not make money yet.';
+  if (plantEquity(g, o) <= 0) return 'The plant owes its lenders more than a fund would pay for it.';
+  return '';
+}
+/**
+ * Capital recycling: sell a minority stake in a running plant to an infrastructure fund and use the cash
+ * to build the next one. The fund takes its share of the plant's cash profit every quarter from then on.
+ */
+export function sellPlantStake(g: GameState, officeId: string): ActionResult {
+  const o = officeById(g, officeId);
+  if (!o) return no('No such office.');
+  const why = canRecycle(g, o);
+  if (why) return no(why);
+  const price = PLANT_STAKE * plantEquity(g, o);
+  B.issueEquity(g.company, price * 0.98); // a stake in a subsidiary: non-controlling interest, after fees
+  o.minority = PLANT_STAKE;
+  g.counters.recycled = (g.counters.recycled ?? 0) + price;
+  news(g, `${g.company.name} sold ${Math.round(PLANT_STAKE * 100)}% of its ${CITY[o.city].name} plant to an infrastructure fund for ${money(price)}.`, 'good');
+  return ok(`Sold ${Math.round(PLANT_STAKE * 100)}% of the plant for ${money(price * 0.98)} after fees. From now on the fund receives ${Math.round(PLANT_STAKE * 100)}% of what the plant earns after its own loan is serviced.`);
+}
+
+/** Sell invoices to a factor as you bill them: most receivables turn into cash at once, for a fee. */
+export const FACTOR_SHARE = 0.8;
+export const FACTOR_FEE = 0.015; // of the invoices sold, per quarter
+export function setFactoring(g: GameState, on: boolean): ActionResult {
+  g.company.factoring = on;
+  return ok(on ? `From next quarter a factor buys ${Math.round(FACTOR_SHARE * 100)}% of your invoices as you bill them, for ${(FACTOR_FEE * 100).toFixed(1)}% of their value.` : 'Factoring stopped. Receivables will build back up as customers pay on their usual terms.');
 }
 
 // ───────────── region tier ─────────────
@@ -137,7 +181,11 @@ export function openOfficeCost(g: GameState, cityId: string, ind: IndustryId): {
   const capex = units * def.capPerUnit * 1000 * g.macro.cpi * (0.6 + 0.4 * city.rent);
   return { setup, capex, units, total: setup + capex };
 }
-export function openOffice(g: GameState, cityId: string, ind: IndustryId): ActionResult {
+/** Opening a plant-heavy office can be part-financed against the plant, as an expansion can. */
+export function openOfficeFinancing(g: GameState, cityId: string, ind: IndustryId): number {
+  return openOfficeCost(g, cityId, ind).capex * assetFinanceLTV(ind);
+}
+export function openOffice(g: GameState, cityId: string, ind: IndustryId, financed = false): ActionResult {
   const c = g.company;
   if (!playing(g)) return no('The game is over.');
   if (!CITY[cityId]) return no('Unknown city.');
@@ -145,10 +193,13 @@ export function openOffice(g: GameState, cityId: string, ind: IndustryId): Actio
   if (!c.divisions.includes(ind)) return no('You do not operate in that industry yet.');
   if (c.offices.some((o) => o.city === cityId && o.ind === ind)) return no('You already have that office.');
   const cost = openOfficeCost(g, cityId, ind);
-  if (cost.total > c.books.cash) return no(`Opening here costs ${money(cost.total)}; you have ${money(c.books.cash)}.`);
+  const lent = financed && cost.capex > 0 ? openOfficeFinancing(g, cityId, ind) : 0;
+  if (lent > 0 && c.negCashTurns > 0) return no('Lenders will not finance new assets while you are overdrawn.');
+  if (cost.total - lent > c.books.cash) return no(`Opening here costs ${money(cost.total)}${lent ? `, ${money(lent)} of it lent against the plant` : ''}; you have ${money(c.books.cash)}.`);
   const def = INDUSTRIES[ind];
   const o = makeOffice(g, cityId, ind, { ops: 0, sales: 0, rnd: 0, admin: 1 }, cost.units);
   B.expense(c, 'ga', cost.setup, 'cash');
+  if (lent > 0) assetLoan(g, o, lent, 0);
   if (cost.capex > 0) B.capex(c, cost.capex, o);
   o.staff.ops.reqs = isCapital(ind) ? Math.max(1, Math.ceil((cost.units / def.opsOut) * 0.8)) : 3;
   o.staff.sales.reqs = ind === 'retail' ? 0 : 1;
@@ -277,7 +328,9 @@ export function staffingHint(g: GameState, o: Office): Record<Role, number> {
   const def = INDUSTRIES[o.ind];
   const D = marketUnits(g, o.city, o.ind);
   market(g, o.city, o.ind);
-  const want = Math.max(o.last?.demand ?? 0, (o.last?.target ?? 0) * D);
+  // staff for what you can sell next quarter: share moves only part of the way to where customers would take you
+  const next = o.share + def.stick * Math.max(0, (o.last?.target ?? o.share) - o.share);
+  const want = Math.max(o.last?.demand ?? 0, next * D);
   const ops = Math.ceil(Math.min(isCapital(o.ind) ? o.cap : Infinity, want * 1.1) / (def.opsOut * (o.last?.prodMult ?? 1)));
   const hc = headcount(o);
   return { ops, sales: o.staff.sales.n, rnd: o.staff.rnd.n, admin: Math.max(1, Math.ceil(hc / 14)) };

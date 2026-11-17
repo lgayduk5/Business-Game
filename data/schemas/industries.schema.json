@@ -87,7 +87,8 @@
         },
         "required": ["ops", "sales", "rnd", "admin"],
         "additionalProperties": false
-      }
+      },
+      "grid": { "type": "boolean", "description": "Output is sold into a wholesale market: a working plant sells most of what it makes at the going price" }
     },
     "required": ["id", "name", "marketBase", "wages", "opsOut", "start", "roles"],
     "additionalProperties": false

@@ -1,5 +1,5 @@
 // HQ: where the company stands, what needs attention, what happened.
-import { CITY, DIFF, INDUSTRIES, diffChanges, globalShare, headcount, money, turnLabel, victoryStatus, type GameState } from '@engine';
+import { CITY, DIFF, INDUSTRIES, diffChanges, globalShare, headcount, money, ttm, turnLabel, victoryStatus, type GameState } from '@engine';
 import { $, N, P, delta, esc, lineChart, type Row } from '../kit';
 import { on, render, ui } from '../store';
 import { screens } from '../shell';
@@ -21,6 +21,18 @@ export function pnlRows(g: GameState): Row[] {
   const p = q.pnl;
   return [['Revenue', money(p.revenue)], ['Cost of sales', money(-p.cogs)], ['Sales & marketing', money(-p.sm)], ['R&D', money(-p.rd)], ['General & admin', money(-p.ga)],
     ['One-offs', money(-p.other)], ['EBITDA', money(q.ebitda), true], ['Depreciation', money(-p.da)], ['Interest', money(-p.interest)], ['Gains / losses', money(p.gains)], ['Tax', money(-p.tax)], ['Net income', money(q.ni), true]];
+}
+
+/** For the first two years HQ shows a concrete target instead of a distant victory: double the revenue you started with. */
+export function starterGoal(g: GameState): { target: number; now: number } | undefined {
+  if (g.turn >= 8 || g.mode !== 'standard') return undefined;
+  const start = g.counters.startRevenue ?? 0;
+  if (start <= 0) return undefined;
+  const raw = 2 * start * g.macro.cpi;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const target = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((m) => m * mag).find((x) => x >= raw)!;
+  const now = ttm(g.company, (q) => q.pnl.revenue);
+  return now >= target ? undefined : { target, now };
 }
 
 export function macroLine(g: GameState): string {
@@ -77,7 +89,12 @@ function hq(g: GameState): string {
     }).join('')}</tbody></table></div></div>`;
 
   const best = victoryStatus(g).filter((v) => v.enabled).sort((a, b) => b.progress - a.progress)[0];
-  const goal = best ? `<div class="sheet"><div class="spread"><h2>Closest goal</h2><button class="btn sm" data-a="sub" data-k="intel" data-v="goals">All goals</button></div>
+  const start = starterGoal(g);
+  const goal = start
+    ? `<div class="sheet"><div class="spread"><h2>First goal</h2><button class="btn sm" data-a="sub" data-k="intel" data-v="goals">All goals</button></div>
+    <p style="margin-top:0"><b class="serif">Reach ${money(start.target)} of annual revenue.</b> Grow the business you have before chasing the big prizes. The ways to win the game are under <i>All goals</i>.</p>
+    <div class="meter"><i style="width:${Math.min(1, start.now / start.target) * 100}%"></i></div><p class="small muted">${money(start.now)} over the last four quarters. This goal gives way to the closest victory after two years, or as soon as you reach it.</p></div>`
+    : best ? `<div class="sheet"><div class="spread"><h2>Closest goal</h2><button class="btn sm" data-a="sub" data-k="intel" data-v="goals">All goals</button></div>
     <p style="margin-top:0"><b class="serif">${esc(best.name)}.</b> ${esc(best.desc)}</p><div class="meter"><i style="width:${best.progress * 100}%"></i></div><p class="small muted">${esc(best.detail)}</p></div>` : '';
   const news = `<div class="sheet"><h2>News</h2>${g.news.length ? `<ul class="feed">${g.news.slice(-8).reverse().map((n) => `<li class="${n.tone}"><span>${turnLabel(n.turn)}</span><span>${esc(n.text)}</span></li>`).join('')}</ul>` : '<p class="muted">Nothing to report yet.</p>'}</div>`;
   const economy = `<div class="sheet"><h2>Economy</h2>${macroLine(g)}</div>`;

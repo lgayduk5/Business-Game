@@ -1,5 +1,5 @@
 // Turn flow and the modals around it: quarterly report, menu, glossary term, game over.
-import { TERM, keepPlaying, money, needsAttention, pct, turnLabel, type GameState } from '@engine';
+import { TERM, finalGrade, keepPlaying, money, needsAttention, pct, turnLabel, type GameState } from '@engine';
 import { esc } from '../kit';
 import { on, render, runTurns, toast, ui } from '../store';
 import { modals } from '../shell';
@@ -74,7 +74,11 @@ modals.report = (g, m) => {
 modals.over = (g) => {
   const o = g!.outcome!;
   const c = g!.company;
-  return `<h2>${esc(o.title)}</h2><p class="serif" style="font-size:1.1rem">${esc(o.text)}</p>
+  const fg = o.grade ? finalGrade(g!) : undefined;
+  const grade = fg ? `<div class="sheet" style="margin:12px 0"><div class="spread"><h3 style="margin:0">How the grade was worked out</h3><b class="serif" style="font-size:1.6rem">${fg.grade}</b></div>
+      <div class="kv">${fg.rows.map(([k, v]) => `<div>${esc(k)}</div><div>${esc(v)}</div>`).join('')}<div><b>Score</b></div><div><b>${fg.score.toFixed(0)} of 100</b></div></div>
+      <p class="small muted">A (75+) or B (60+) counts as a win, as long as your stake at least tripled and your revenue at least doubled in real terms.</p></div>` : '';
+  return `<h2>${esc(o.title)}</h2><p class="serif" style="font-size:1.1rem">${esc(o.text)}</p>${grade}
     <div class="kv" style="margin:12px 0"><div>Lasted</div><div><b class="serif">${turnLabel(o.turn)}</b></div>
     <div>Final valuation</div><div><b class="serif">${money(c.valuation)}</b></div>
     <div>Your stake</div><div><b class="serif">${pct(c.cap.founder / c.cap.shares, 1)}</b></div></div>
