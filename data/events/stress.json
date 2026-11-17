@@ -277,5 +277,39 @@
       }
     ],
     "lesson": "Due diligence is cheap compared with what it finds. The seller always knows more than the buyer; the price should assume so."
+  },
+  {
+    "id": "board_ultimatum",
+    "cat": "stress",
+    "title": "The board has lost patience",
+    "text": "Your investors now own most of the company, and the losses are not shrinking. The lead director asks for an hour, alone.",
+    "w": 1.2,
+    "cool": 8,
+    "cond": { "investors": true, "founderBelow": 0.5, "loss": true, "minTurn": 12, "notFlag": "boardPatience", "maxCashQ": 6 },
+    "terms": ["dilution"],
+    "opts": [
+      {
+        "label": "Present a turnaround plan",
+        "hint": "Convince them you know the way back.",
+        "out": [
+          { "w": 0.6, "text": "They give you four more quarters.", "fx": [["flag", "boardPatience", 6]], "boost": ["exec", "CFO", 1.6] },
+          { "w": 0.4, "text": "They have heard plans before.", "fx": [["special", "oust"]] }
+        ]
+      },
+      {
+        "label": "Make the cuts they want",
+        "hint": "One job in ten, everywhere, now.",
+        "out": [{ "text": "The board is satisfied. The company is not.", "fx": [["special", "boardCuts"], ["flag", "boardPatience", 8]] }]
+      },
+      {
+        "label": "Defy them",
+        "hint": "It is your company.",
+        "out": [
+          { "w": 0.35, "text": "They back down.", "fx": [["flag", "boardPatience", 4]] },
+          { "w": 0.65, "text": "It is not your company.", "fx": [["special", "oust"]] }
+        ]
+      }
+    ],
+    "lesson": "Every funding round sells some control. Below half the votes, a founder serves at the board’s pleasure — and boards run out of pleasure after enough losing quarters."
   }
 ]

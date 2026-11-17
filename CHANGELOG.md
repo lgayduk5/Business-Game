@@ -1,5 +1,24 @@
 # Changelog
 
+## M4 — Rivals, interactions, victory, difficulty
+
+- Four to six rival companies per game with distinct personalities: aggressive
+  expander, cost-cutter, innovator, predatory acquirer, cautious conservative,
+  venture-backed disruptor. They price, hire, invest in R&D, expand, borrow, buy each
+  other and go bankrupt on the same economics as you.
+- Interactions as decisions: price wars, talent poaching, lawsuits, lobbying, smears,
+  supplier lock-ups, copying, takeover offers and hostile bids, truces, alliances,
+  cartels (and dawn raids), mergers. Hostility escalates and rivals retaliate.
+- Your moves: build relations, propose truces and alliances, poach, sue, lobby, and
+  bid for rivals (friendly or hostile).
+- Six competitive victory conditions with progress on the new Goals screen and HQ.
+  You can keep playing after a win.
+- Difficulty levels (Easy, Normal, Hard, Brutal) change rival size, competence,
+  aggression and market defence, starting cash, borrowing costs and investor appetite.
+- Board pressure: lose majority control while losing money and the board may remove you.
+- Headless AI-vs-AI balance harness (`npm run sim`) with ten scripted strategies,
+  including probes for degenerate play; results in `docs/balance.md`.
+
 ## M3 — Investments, events, macro
 
 - Investment system: upfront and ongoing cost, ramp-up, four payoff curves (steady,

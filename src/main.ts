@@ -13,6 +13,7 @@ import './ui/screens/team';
 import './ui/screens/invest';
 import './ui/screens/intel';
 import './ui/screens/events';
+import './ui/screens/rivals';
 import './ui/screens/modals';
 
 setView(() => (ui.screen === 'game' && ui.g ? shell(ui.g) : ui.screen === 'new' && ui.wizard ? wizard() : title()));

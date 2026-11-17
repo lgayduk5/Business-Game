@@ -52,5 +52,10 @@ on('close', () => {
 });
 on('sub', (d) => {
   ui.sub[d.k!] = d.v!;
+  const tab = d.k as Tab;
+  if (ui.tab !== tab && ['hq', 'map', 'ops', 'corp', 'intel'].includes(tab)) {
+    ui.tab = tab;
+    return render(false);
+  }
   render();
 });

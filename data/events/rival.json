@@ -1,1 +1,608 @@
-[]
+[
+  {
+    "id": "rival_price_war",
+    "cat": "rival",
+    "title": "{rival} starts a price war",
+    "text": "{rival} has cut prices by a fifth in {city} and is telling your customers about it, one by one.",
+    "w": 0,
+    "bind": ["rival"],
+    "terms": ["elasticity", "moat"],
+    "opts": [
+      {
+        "label": "Match them",
+        "hint": "Cut your prices 12% across the region. Keeps customers, costs margin, and they will see it as escalation.",
+        "out": [{ "text": "You match. Margins bleed on both sides.", "fx": [["special", "priceDownRegion", 12], ["hostility", 1]] }]
+      },
+      {
+        "label": "Differentiate",
+        "hint": "Spend on service and marketing instead of price.",
+        "out": [{ "text": "You sell on quality while they sell on price.", "fx": [["cost", 0.05, "sm"], ["demand", 8, 4, "office"]] }]
+      },
+      {
+        "label": "Hit their home market",
+        "hint": "Open a second front where it hurts them.",
+        "out": [
+          {
+            "text": "You undercut them on their own turf. They notice.",
+            "fx": [["cost", 0.04, "sm"], ["rivalShare", -6], ["special", "grievance"], ["hostility", 1.5]]
+          }
+        ]
+      },
+      {
+        "label": "File a predatory-pricing complaint",
+        "hint": "Cheap, slow, and usually goes nowhere.",
+        "out": [
+          { "w": 0.3, "text": "The regulator orders them to stop.", "fx": [["cost", 0.02, "other"], ["special", "endWar"]] },
+          { "w": 0.7, "text": "The complaint is filed and forgotten.", "fx": [["cost", 0.02, "other"]] }
+        ]
+      },
+      {
+        "label": "Hold your price",
+        "hint": "Let them burn money.",
+        "out": [{ "text": "You hold. Watch your share in {city} over the next quarters.", "fx": [] }]
+      }
+    ],
+    "lesson": "In a price war the winner is whoever has the lowest costs and the deepest pockets. If that is not you, compete on something else — or make peace."
+  },
+  {
+    "id": "rival_retaliation",
+    "cat": "rival",
+    "title": "{rival} hits back",
+    "text": "You went after {rival}. Now they have come for you: prices slashed in {city}, your home market, and a sales team with your customer list.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Stand firm",
+        "hint": "Defend the home market on service.",
+        "out": [{ "text": "You dig in.", "fx": [["cost", 0.04, "sm"], ["demand", 6, 4, "office"]] }]
+      },
+      {
+        "label": "Offer a truce",
+        "hint": "A payment and a handshake.",
+        "out": [
+          { "w": 0.6, "text": "{rivalCeo} accepts. Hostilities end.", "fx": [["cost", 0.03, "other"], ["special", "truce"]] },
+          { "w": 0.4, "text": "{rivalCeo} takes the meeting and declines the truce.", "fx": [] }
+        ]
+      },
+      {
+        "label": "Escalate",
+        "hint": "Match their prices and go after their people.",
+        "out": [{ "text": "It gets worse before it gets better.", "fx": [["special", "priceDownRegion", 10], ["hostility", 2], ["special", "grievance"]] }]
+      }
+    ],
+    "lesson": "Aggression invites retaliation, usually where you are most exposed. Before attacking a rival, ask what they can do to your home market."
+  },
+  {
+    "id": "rival_poach",
+    "cat": "rival",
+    "title": "{rival} is hiring your people",
+    "text": "Recruiters working for {rival} have approached a dozen of your best in {city}, with offers a third above what you pay.",
+    "w": 0,
+    "bind": ["rival"],
+    "terms": ["attrition", "keyPerson"],
+    "opts": [
+      {
+        "label": "Counter-offer",
+        "hint": "Match the money for the ones who matter.",
+        "out": [{ "text": "Most stay. Your wage bill does not.", "fx": [["cost", 0.03, "ga"], ["loyalty", 5], ["wages", 2, 4]] }]
+      },
+      {
+        "label": "Poach back",
+        "hint": "Two can play.",
+        "out": [
+          {
+            "text": "You hire two of theirs. This is now a feud.",
+            "fx": [["cost", 0.03, "ga"], ["special", "addRnd", 2], ["hostility", 1], ["special", "grievance"]]
+          }
+        ]
+      },
+      {
+        "label": "Enforce the non-competes",
+        "hint": "Lawyers’ letters to everyone who leaves.",
+        "out": [
+          { "w": 0.5, "text": "The letters work.", "fx": [["cost", 0.02, "other"], ["culture", -2]] },
+          {
+            "w": 0.5,
+            "text": "They leave anyway, and the letters are read out at their leaving drinks.",
+            "fx": [["cost", 0.02, "other"], ["culture", -3], ["staff", -5, "rnd", "office"]]
+          }
+        ]
+      },
+      {
+        "label": "Let them go",
+        "hint": "Anyone who leaves for money was going to leave.",
+        "out": [{ "text": "Several do.", "fx": [["staff", -6, "rnd", "office"], ["staff", -4, "sales", "office"], ["rivalTech", 2]] }]
+      }
+    ],
+    "lesson": "Talent raids target companies that pay below market or treat people as replaceable. The defence is built before the recruiters call."
+  },
+  {
+    "id": "rival_lawsuit",
+    "cat": "rival",
+    "title": "{rival} sues you",
+    "text": "{rival} has filed a patent suit claiming your core product infringes three of its patents. They want an injunction.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Settle",
+        "hint": "Pay a licence fee and move on.",
+        "out": [{ "text": "Expensive, and over.", "fx": [["cost", 0.08, "other"], ["hostility", -1]] }]
+      },
+      {
+        "label": "Fight it",
+        "hint": "Their patents look weak.",
+        "out": [
+          {
+            "w": 0.45,
+            "text": "The court agrees the patents are weak.",
+            "fx": [["cost", 0.03, "other"], ["rep", 1]],
+            "boost": ["flag", "patents", 2.2]
+          },
+          { "w": 0.55, "text": "You lose, and pay damages.", "fx": [["cost", 0.18, "other"], ["tech", -2]] }
+        ]
+      },
+      {
+        "label": "Counter-sue",
+        "hint": "You have patents too.",
+        "out": [
+          {
+            "w": 0.4,
+            "text": "They drop the suit rather than risk yours.",
+            "fx": [["cost", 0.05, "other"], ["hostility", 1]],
+            "boost": ["flag", "patents", 2]
+          },
+          { "w": 0.6, "text": "Both suits grind on. Only the lawyers win.", "fx": [["cost", 0.12, "other"], ["hostility", 2]] }
+        ]
+      }
+    ],
+    "lesson": "Litigation is a competitive weapon: it costs the defendant management attention even when the case is weak. A patent portfolio is as much deterrent as protection."
+  },
+  {
+    "id": "rival_lobby",
+    "cat": "rival",
+    "title": "New rules, conveniently shaped",
+    "text": "{rival} has been lobbying for new regulations in {region}. The draft happens to exempt companies exactly like {rival}.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Counter-lobby",
+        "hint": "Hire people who know the committee.",
+        "out": [
+          { "w": 0.5, "text": "The exemption is struck out.", "fx": [["cost", 0.03, "ga"]], "boost": ["flag", "lobby", 2.5] },
+          { "w": 0.5, "text": "The rules pass as drafted.", "fx": [["cost", 0.03, "ga"], ["inputs", 5, 8]] }
+        ]
+      },
+      {
+        "label": "Comply early and say so",
+        "hint": "Turn the cost into a selling point.",
+        "out": [{ "text": "You are first to be certified.", "fx": [["cost", 0.04, "ga"], ["rep", 3]] }]
+      },
+      { "label": "Ignore it", "hint": "Regulations take years.", "out": [{ "text": "These did not.", "fx": [["inputs", 6, 8]] }] }
+    ],
+    "lesson": "Regulation is a competitive arena. Incumbents use rules to raise rivals’ costs; being absent from the room is itself a decision."
+  },
+  {
+    "id": "rival_smear",
+    "cat": "rival",
+    "title": "Whispers",
+    "text": "Customers keep asking whether it is true that you are running out of money. The rumour traces back to {rival}’s sales team.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Answer with facts",
+        "hint": "Publish your numbers and call key customers.",
+        "out": [
+          { "w": 0.7, "text": "The rumour dies.", "fx": [["cost", 0.01, "sm"]], "boost": ["rep", 55, 1.5] },
+          { "w": 0.3, "text": "Denials keep it alive a little longer.", "fx": [["cost", 0.01, "sm"], ["demand", -3, 2, "all"]] }
+        ]
+      },
+      { "label": "Ignore it", "hint": "Do not dignify it.", "out": [{ "text": "Some customers hesitate.", "fx": [["demand", -5, 3, "all"]] }] },
+      {
+        "label": "Retaliate in kind",
+        "hint": "You know things about them too.",
+        "out": [{ "text": "Now both of you look bad.", "fx": [["rivalBrand", -5], ["rep", -3], ["hostility", 2], ["special", "grievance"]] }]
+      }
+    ],
+    "lesson": "A company’s perceived stability is part of its product, especially when customers depend on you for years. Reputation and a visible cash cushion are the defence."
+  },
+  {
+    "id": "rival_supplier",
+    "cat": "rival",
+    "title": "{rival} locks up your supplier",
+    "text": "Your main supplier in {region} has signed an exclusive with {rival}. Your contract ends next quarter.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Find another source",
+        "hint": "Requalify in a hurry.",
+        "out": [{ "text": "A scramble, and higher costs for a year.", "fx": [["inputs", 6, 4]] }]
+      },
+      {
+        "label": "Outbid them",
+        "hint": "Pay to break the exclusive.",
+        "out": [{ "text": "The supplier discovers it has two customers after all.", "fx": [["cost", 0.05, "cogs"], ["hostility", 1]] }]
+      },
+      {
+        "label": "Sue for interference",
+        "hint": "Your contract had a renewal clause.",
+        "out": [
+          { "w": 0.35, "text": "The court enforces your renewal.", "fx": [["cost", 0.03, "other"]] },
+          { "w": 0.65, "text": "You lose, late and expensively.", "fx": [["cost", 0.03, "other"], ["inputs", 8, 4]] }
+        ]
+      }
+    ],
+    "lesson": "A single source of supply is a lever for anyone who wants to hurt you. Dual sourcing costs a little every year and saves a lot once."
+  },
+  {
+    "id": "rival_copy",
+    "cat": "rival",
+    "title": "{rival} has cloned your product",
+    "text": "A new release from {rival} looks remarkably like yours, down to the wording in the menus.",
+    "w": 0,
+    "bind": ["rival"],
+    "terms": ["moat"],
+    "opts": [
+      {
+        "label": "Sue",
+        "hint": "It is blatant.",
+        "out": [
+          { "w": 0.5, "text": "They withdraw the release.", "fx": [["cost", 0.04, "other"], ["rivalTech", -3]], "boost": ["flag", "patents", 2] },
+          { "w": 0.5, "text": "Look-and-feel is hard to protect. You lose.", "fx": [["cost", 0.06, "other"]] }
+        ]
+      },
+      {
+        "label": "Out-innovate them",
+        "hint": "By the time they copy this version, ship the next.",
+        "out": [{ "text": "You pull ahead again.", "fx": [["cost", 0.06, "rd"], ["tech", 3]] }]
+      },
+      { "label": "Shrug", "hint": "Imitation is flattery.", "out": [{ "text": "Your lead narrows.", "fx": [["rivalTech", 4]] }] }
+    ],
+    "lesson": "A lead that can be copied is temporary. Durable advantage comes from things that are slow to imitate: scale, brand, relationships, and the pace of improvement itself."
+  },
+  {
+    "id": "rival_talent_raid",
+    "cat": "rival",
+    "title": "{rival} is courting {person}",
+    "text": "{rivalCeo} has taken {person}, your {role}, to dinner twice this month.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Match whatever they offer",
+        "hint": "Money and a new title.",
+        "out": [{ "text": "{person} stays, better paid.", "fx": [["cost", 0.02, "ga"], ["loyalty", 20]] }]
+      },
+      {
+        "label": "Let them choose",
+        "hint": "If they want to go, they should go.",
+        "out": [
+          { "w": 0.5, "text": "{person} stays, and tells you about the offer.", "fx": [["loyalty", 8]], "boost": ["culture", 60, 1.8] },
+          { "w": 0.5, "text": "{person} goes to {rival}.", "fx": [["personLeave"], ["rivalTech", 1]] }
+        ]
+      },
+      {
+        "label": "Call {rivalCeo}",
+        "hint": "A frank conversation between chief executives.",
+        "out": [{ "text": "An awkward call. They back off, for now.", "fx": [["hostility", -0.5], ["relation", -3]] }]
+      }
+    ],
+    "lesson": "Your key people are known to your rivals. Loyalty is built from pay, respect and prospects long before the dinner invitations arrive."
+  },
+  {
+    "id": "rival_trash_talk",
+    "cat": "rival",
+    "title": "{rivalCeo} takes a swing",
+    "text": "On stage at an industry event, {rivalCeo} described your company as \"a nice little business, for now\". The clip is everywhere.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Reply in kind",
+        "hint": "You have a few lines of your own.",
+        "out": [{ "text": "The feud is good for both brands and bad for relations.", "fx": [["brand", 2], ["hostility", 1], ["relation", -8]] }]
+      },
+      { "label": "Stay classy", "hint": "Say something gracious.", "out": [{ "text": "People notice the contrast.", "fx": [["rep", 2]] }] },
+      {
+        "label": "Put it on a billboard",
+        "hint": "Quote them in your advertising.",
+        "out": [{ "text": "\"A nice little business\" becomes your slogan for a season.", "fx": [["cost", 0.02, "sm"], ["brand", 3], ["hostility", 0.5]] }]
+      }
+    ],
+    "lesson": "Being attacked by a larger rival is free publicity. How you answer says more about you than what they said."
+  },
+  {
+    "id": "rival_enters",
+    "cat": "rival",
+    "title": "{rival} opens in {city}",
+    "text": "{rival} has taken office space three streets from your headquarters. Their opening party is on Thursday.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Cut prices before they land",
+        "hint": "Make the market unattractive.",
+        "out": [{ "text": "You welcome them with a price cut.", "fx": [["special", "priceDownRegion", 6]] }]
+      },
+      {
+        "label": "Lock in your customers",
+        "hint": "Long contracts at a small discount.",
+        "out": [{ "text": "Most of your base signs up before the party.", "fx": [["demand", -2, 4, "office"], ["flag", "lockin", 8]] }]
+      },
+      { "label": "Do nothing", "hint": "Competition is normal.", "out": [{ "text": "You send flowers.", "fx": [["relation", 3]] }] }
+    ],
+    "lesson": "An entrant starts with no customers and a liability of newness. Your advantage is incumbency; how much of your margin you spend defending it is the question."
+  },
+  {
+    "id": "rival_distress",
+    "cat": "rival",
+    "title": "{rival} is in trouble",
+    "text": "{rival} has missed a loan payment and its suppliers are demanding cash up front. Its people are polishing their CVs.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Buy their {city} operation",
+        "hint": "Pay cash for the office, its customers and its staff.",
+        "out": [{ "text": "The administrator is happy to deal.", "fx": [["special", "buyRivalOffice"]] }],
+        "req": { "cashS": 1 }
+      },
+      {
+        "label": "Hire their best people",
+        "hint": "Experienced staff, no recruiter fees.",
+        "out": [{ "text": "A dozen join you.", "fx": [["cost", 0.03, "ga"], ["special", "addOps", 6], ["special", "addSales", 2], ["skill", 1, "office"]] }]
+      },
+      {
+        "label": "Go after their customers",
+        "hint": "Tell the market what you know.",
+        "out": [{ "text": "Nervous customers switch.", "fx": [["cost", 0.02, "sm"], ["share", 8, "all"], ["rivalShare", -10]] }]
+      },
+      { "label": "Watch", "hint": "Let events take their course.", "out": [{ "text": "You wait.", "fx": [] }] }
+    ],
+    "lesson": "A competitor’s distress is the cheapest growth available — to those with cash on hand when it happens. This is what a strong balance sheet is for."
+  },
+  {
+    "id": "rival_truce",
+    "cat": "rival",
+    "title": "{rival} proposes a truce",
+    "text": "{rivalCeo} has asked to meet. \"This is costing us both money,\" the note says.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      { "label": "Accept", "hint": "Two years of peace.", "out": [{ "text": "You shake hands.", "fx": [["special", "truce"], ["relation", 10]] }] },
+      {
+        "label": "Accept, if they leave {city}",
+        "hint": "Press the advantage.",
+        "out": [
+          { "w": 0.4, "text": "They agree to withdraw.", "fx": [["special", "truce"], ["special", "rivalExit"]] },
+          { "w": 0.6, "text": "{rivalCeo} walks out.", "fx": [["hostility", 1], ["relation", -10]] }
+        ]
+      },
+      { "label": "Refuse", "hint": "You are winning.", "out": [{ "text": "The fight goes on.", "fx": [["hostility", 0.5]] }] }
+    ],
+    "lesson": "A war that both sides are losing can only be ended by one of them offering peace. Whether to accept depends on whose position is improving."
+  },
+  {
+    "id": "rival_partnership",
+    "cat": "rival",
+    "title": "{rival} proposes an alliance",
+    "text": "{rivalCeo} suggests working together: joint marketing in the markets you share, and a common front against the others.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Sign",
+        "hint": "Three years. Shared marketing, shared information.",
+        "out": [
+          {
+            "text": "The alliance is announced.",
+            "fx": [["special", "alliance"], ["demand", 4, 8, "all"], ["relation", 15]],
+            "chain": [["partner_betrayal", 6, 0.25]]
+          }
+        ]
+      },
+      {
+        "label": "Try a small pilot",
+        "hint": "One campaign, then see.",
+        "out": [{ "text": "A modest joint campaign, and a little more trust.", "fx": [["relation", 8], ["demand", 2, 4, "all"]] }]
+      },
+      {
+        "label": "Decline",
+        "hint": "You do not share customers with competitors.",
+        "out": [{ "text": "They take it politely.", "fx": [["relation", -5]] }]
+      }
+    ],
+    "lesson": "Alliances between competitors are unstable: each partner is tempted to learn more than it teaches. Know what you are giving them access to."
+  },
+  {
+    "id": "partner_betrayal",
+    "cat": "rival",
+    "title": "Your ally has been taking notes",
+    "text": "Customers report that {rival} is using what it learned in your alliance to pitch them directly.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "End the alliance",
+        "hint": "And say why.",
+        "out": [{ "text": "The alliance is over.", "fx": [["special", "endPact"], ["share", -4, "all"], ["hostility", 2], ["relation", -30]] }]
+      },
+      {
+        "label": "Confront them privately",
+        "hint": "Give them a chance to stop.",
+        "out": [
+          { "w": 0.5, "text": "They stop, embarrassed.", "fx": [["share", -2, "all"]] },
+          { "w": 0.5, "text": "They deny it and carry on.", "fx": [["share", -6, "all"], ["special", "endPact"], ["hostility", 2]] }
+        ]
+      }
+    ],
+    "lesson": "Trust in a competitor is a position, and positions can lose money."
+  },
+  {
+    "id": "rival_cartel",
+    "cat": "rival",
+    "title": "A quiet word",
+    "text": "Over coffee, {rivalCeo} suggests that you both \"stop being silly about prices\". Nothing in writing, of course.",
+    "w": 0,
+    "bind": ["rival"],
+    "opts": [
+      {
+        "label": "Agree, quietly",
+        "hint": "Prices up 8% on both sides. Illegal almost everywhere.",
+        "out": [
+          {
+            "text": "Margins improve at once.",
+            "fx": [["special", "priceUp", 8], ["special", "cartel"], ["flag", "cartel", 24]],
+            "chain": [["cartel_probe", 6, 0.6]]
+          }
+        ]
+      },
+      { "label": "Decline politely", "hint": "Change the subject.", "out": [{ "text": "You finish your coffee.", "fx": [["relation", -3]] }] },
+      {
+        "label": "Report it",
+        "hint": "The competition authority has a hotline.",
+        "out": [
+          {
+            "text": "{rival} is investigated and fined. They know who called.",
+            "fx": [["rep", 3], ["hostility", 3], ["rivalCash", -0.1], ["relation", -40]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Price-fixing is the most tempting crime in business because both sides profit and the victim is diffuse. It is also the one regulators reward your co-conspirator for reporting."
+  },
+  {
+    "id": "cartel_probe",
+    "cat": "rival",
+    "title": "Dawn raid",
+    "text": "Investigators arrived at seven this morning with a warrant covering all pricing communications for the last two years.",
+    "w": 0,
+    "bind": [],
+    "opts": [
+      {
+        "label": "Confess first",
+        "hint": "Apply for leniency before {rival} does.",
+        "out": [{ "text": "Reduced fine, full humiliation.", "fx": [["cost", 0.1, "other"], ["rep", -8], ["hostility", 3], ["special", "priceDown", 8]] }]
+      },
+      {
+        "label": "Deny everything",
+        "hint": "There was nothing in writing.",
+        "out": [
+          { "w": 0.3, "text": "They find nothing they can use.", "fx": [] },
+          {
+            "w": 0.7,
+            "text": "{rival} confessed first. You take the full penalty.",
+            "fx": [["cost", 0.4, "other"], ["rep", -15], ["special", "priceDown", 8]]
+          }
+        ]
+      }
+    ],
+    "lesson": "Leniency programmes make cartels a prisoner’s dilemma: the first to confess walks, and everyone knows it."
+  },
+  {
+    "id": "rival_takeover",
+    "cat": "rival",
+    "title": "{rival} wants to buy you",
+    "text": "{rivalCeo} has made a written offer for the whole company: {amount}, cash. Your investors have seen it.",
+    "w": 0,
+    "bind": ["rival"],
+    "terms": ["valuation"],
+    "opts": [
+      { "label": "Sell", "hint": "Take the money. The game ends here.", "out": [{ "text": "You sign.", "fx": [["special", "sellCompany"]] }] },
+      { "label": "Refuse", "hint": "Not for sale.", "out": [{ "text": "{rivalCeo} does not take it well.", "fx": [["hostility", 1]] }] },
+      {
+        "label": "Propose a partnership instead",
+        "hint": "There may be a deal short of a sale.",
+        "out": [
+          { "w": 0.4, "text": "They agree to a truce and a joint venture.", "fx": [["special", "truce"], ["relation", 20]] },
+          { "w": 0.6, "text": "They wanted the company, not a friend.", "fx": [["hostility", 1]] }
+        ]
+      }
+    ],
+    "lesson": "An offer for the company puts a price on the alternative to everything you are planning. Sometimes the right answer is yes."
+  },
+  {
+    "id": "rival_hostile_bid",
+    "cat": "rival",
+    "title": "Hostile bid",
+    "text": "{rival} has gone over your head to shareholders with an offer of {amount} for the company. You own less than half the votes.",
+    "w": 0,
+    "bind": ["rival"],
+    "terms": ["dilution"],
+    "opts": [
+      {
+        "label": "Poison pill",
+        "hint": "Lawyers, bankers and a rights plan.",
+        "out": [
+          { "w": 0.65, "text": "The bid fails.", "fx": [["cost", 0.06, "other"], ["valuation", 5, 2]] },
+          { "w": 0.35, "text": "Shareholders take the money.", "fx": [["cost", 0.06, "other"], ["special", "takeover"]] }
+        ]
+      },
+      {
+        "label": "Find a white knight",
+        "hint": "Sell 15% to a friendly investor who will vote with you.",
+        "out": [{ "text": "The friendly block defeats the bid.", "fx": [["equity", 15, 1.1]] }]
+      },
+      {
+        "label": "Buy back shares",
+        "hint": "Shrink the float and raise your own stake.",
+        "out": [
+          { "w": 0.7, "text": "The buyback lifts the price above the bid.", "fx": [["special", "buyback10"], ["valuation", 5, 2]] },
+          { "w": 0.3, "text": "Not enough. Shareholders tender.", "fx": [["special", "buyback10"], ["special", "takeover"]] }
+        ],
+        "req": { "cashS": 1.5 }
+      },
+      {
+        "label": "Recommend the offer",
+        "hint": "Take the premium. The game ends here.",
+        "out": [{ "text": "The board recommends acceptance.", "fx": [["special", "sellCompany"]] }]
+      }
+    ],
+    "lesson": "Once you sell more than half the company you are an employee of the shareholders. A depressed share price and a low founder stake are an invitation."
+  },
+  {
+    "id": "rival_merger",
+    "cat": "rival",
+    "title": "A merger of equals",
+    "text": "{rivalCeo} proposes combining {rival} with your company. You would be chief executive; their shareholders would own a share in proportion to value.",
+    "w": 0,
+    "bind": ["rival"],
+    "terms": ["integration"],
+    "opts": [
+      {
+        "label": "Merge",
+        "hint": "One company, twice the size, two cultures.",
+        "out": [{ "text": "The merger completes. Now comes the hard part.", "fx": [["special", "mergeRival"]] }]
+      },
+      { "label": "Decline", "hint": "You would rather compete.", "out": [{ "text": "You decline, on good terms.", "fx": [["relation", -5]] }] }
+    ],
+    "lesson": "Mergers of equals double scale overnight and usually take years to integrate. Most of the value is lost in culture, not strategy."
+  },
+  {
+    "id": "lawsuit_verdict",
+    "cat": "rival",
+    "title": "Verdict",
+    "text": "The court has ruled on your suit against {rival}.",
+    "w": 0,
+    "bind": [],
+    "opts": [
+      {
+        "label": "Read the judgment",
+        "hint": "Litigation is uncertain.",
+        "out": [
+          {
+            "w": 0.35,
+            "text": "You win. {rival} pays damages and changes its product.",
+            "fx": [["cash", 0.15], ["rivalTech", -3], ["rivalCash", -0.05]],
+            "boost": ["flag", "patents", 2.2]
+          },
+          { "w": 0.65, "text": "You lose, and pay their costs.", "fx": [["cost", 0.05, "other"]] }
+        ]
+      }
+    ],
+    "lesson": "A lawsuit is an investment with a binary payoff and a certain cost. File when the odds and the stakes justify it, not when you are angry."
+  }
+]

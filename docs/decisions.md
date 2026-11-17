@@ -91,3 +91,46 @@ Design decisions made while building, newest milestone last. Each entry: what, a
 31. **Financial investments sit on the balance sheet as securities**, capitalised
     project spend as property depreciated over five years; write-offs go through the
     P&L as non-cash losses so the cash-flow statement still ties.
+
+## M4 — rivals, victory, difficulty
+
+32. **Rivals run on the same market model as the player** (same demand, attractiveness
+    and share equations) with a simplified cost model. They differ by personality
+    (price, sales and R&D intensity, expansion appetite, leverage, aggression,
+    acquisitiveness, grudge) and are tuned per difficulty.
+33. **Rivals start "established but within reach":** each office is one to a few times
+    the size of the player's starting operation, not a share of the city. Early
+    versions sized them by market share and they began 30–60× the player's size.
+34. **Escalation is stateful.** Each rival tracks relation (−100…100), hostility (0–10)
+    and unanswered grievances. Your attacks (poaching, lawsuits, escalation choices in
+    events) create grievances; rivals with a grudge retaliate, usually in your home
+    market. Truces and alliances suspend hostile moves for 2–3 years.
+35. **One rival action per quarter at most**, delivered as an event card with options,
+    so interactions are decisions rather than background noise.
+36. **Victory conditions are competitive, not just absolute.** The first harness run
+    showed every honest strategy winning on every difficulty because absolute
+    thresholds are eventually passed through industry growth and inflation. Now: Titan
+    = most valuable company in the industry *and* above a bar; Category king = largest
+    world share *and* above a bar; Blue chip = listed, profitable, above the IPO price
+    and worth more than half your rivals for two years; Pioneer = technology leader at
+    a high bar plus a completed moonshot; Good company = reputation 85, ESG 80,
+    profitable, above a revenue bar for two years; Last one standing. Bars scale with
+    difficulty and inflation.
+37. **Investors price the business, not the cash.** The harness found a money machine:
+    raising every round offered compounded the valuation because cash was valued at a
+    premium. Pre-money now values operations at the offered multiple and cash at par;
+    investors need a growth story or a pipeline and decline companies with more than
+    two to three years of runway. The private-company discount applies only to the
+    operating business.
+38. **Difficulty changes how well rivals are run, not just their size**: sales and R&D
+    intensity, operational quality, how many cities they will enter, and how hard they
+    defend markets where you are taking share (price cuts and extra sales effort).
+    Brutal also charges you a point more on loans and makes investors warier.
+39. **Rival operational quality improves over time**, as the player's does through
+    skill and training. Without it, a player who invested in quality ended up three
+    times as attractive as any rival by year 15.
+40. **The balance harness (`npm run sim`) is part of the toolchain.** Scripted bots use
+    only player actions. Targets for the best honest strategy: Easy ≈ always, Normal
+    ≈ 80–90%, Hard ≈ 60–80%, Brutal ≈ 20–30%. The bots act on exact numbers every
+    quarter, so they are stronger than a typical first-time player. Probe bots look for
+    degenerate strategies; the report flags any that beat honest play.

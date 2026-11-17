@@ -1,5 +1,5 @@
 // HQ: where the company stands, what needs attention, what happened.
-import { CITY, INDUSTRIES, globalShare, headcount, money, pct, turnLabel, type GameState } from '@engine';
+import { CITY, INDUSTRIES, globalShare, headcount, money, pct, turnLabel, victoryStatus, type GameState } from '@engine';
 import { $, N, P, delta, esc, lineChart, type Row } from '../kit';
 import { on, render, ui } from '../store';
 import { screens } from '../shell';
@@ -72,9 +72,12 @@ function hq(g: GameState): string {
       <td>${l ? `<span class="chip ${l.bind === 'demand' ? '' : 'warn'}">${BIND_TEXT[l.bind][0].replace('Limited by ', '')}</span>` : ''}</td></tr>`;
     }).join('')}</tbody></table></div></div>`;
 
+  const best = victoryStatus(g).filter((v) => v.enabled).sort((a, b) => b.progress - a.progress)[0];
+  const goal = best ? `<div class="sheet"><div class="spread"><h2>Closest goal</h2><button class="btn sm" data-a="sub" data-k="intel" data-v="goals">All goals</button></div>
+    <p style="margin-top:0"><b class="serif">${esc(best.name)}.</b> ${esc(best.desc)}</p><div class="meter"><i style="width:${best.progress * 100}%"></i></div><p class="small muted">${esc(best.detail)}</p></div>` : '';
   const news = `<div class="sheet"><h2>News</h2>${g.news.length ? `<ul class="feed">${g.news.slice(-8).reverse().map((n) => `<li class="${n.tone}"><span>${turnLabel(n.turn)}</span><span>${esc(n.text)}</span></li>`).join('')}</ul>` : '<p class="muted">Nothing to report yet.</p>'}</div>`;
   const economy = `<div class="sheet"><h2>Economy</h2>${macroLine(g)}</div>`;
-  return `${notes.join('')}<div class="grid2">${position}${chart}${offices}${economy}${news}</div>`;
+  return `${notes.join('')}<div class="grid2">${position}${chart}${offices}${goal}${economy}${news}</div>`;
 }
 screens.hq = hq;
 

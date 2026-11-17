@@ -2,6 +2,7 @@
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, INV, NAMES } from './content';
 import { news, tempMod } from './mods';
+import { DIFF } from './newgame';
 import { companyHeadcount, exec, execBonus } from './people';
 import type { ActionResult, Company, EquityOffer, GameState, IndustryId, Loan, LoanOffer } from './types';
 import { clamp, money, nextUid, normal, pick, randRange } from './util';
@@ -85,7 +86,7 @@ export function refreshLoanOffers(g: GameState) {
   const r = creditRating(g);
   c.rating = r.rating;
   c.ratingScore = r.score;
-  const spread = Math.max(0.4, r.spread + g.macro.spread * 0.5 + FOUNDER[c.founder].loanSpread - execBonus(c, 'CFO'));
+  const spread = Math.max(0.4, r.spread + g.macro.spread * 0.5 + FOUNDER[c.founder].loanSpread + DIFF[g.difficulty].spread - execBonus(c, 'CFO'));
   const ebitda = Math.max(0, B.ttm(c, (q) => q.ebitda));
   const rev = B.ttm(c, (q) => q.pnl.revenue);
   const b = c.books;
@@ -249,8 +250,10 @@ export function revalue(g: GameState) {
     c.valParts.surprise = surprise;
     c.valuation = cap.price * cap.shares;
   } else {
+    // Private companies trade at a discount for illiquidity — on the business, not on the cash in the bank.
+    const net = v.parts.cash - v.parts.debt;
     c.valParts.discount = 0.8;
-    c.valuation = v.equity * 0.8;
+    c.valuation = Math.max(0, 0.8 * (v.equity - net) + net);
     cap.price = c.valuation / cap.shares;
   }
 }
@@ -274,15 +277,20 @@ export function refreshEquityOffer(g: GameState) {
   if (g.turn - cap.lastRoundTurn < 3 && cap.rounds > 0) return;
   const s = g.macro.sentiment;
   const growth = revenueGrowth(c);
-  // Investors need a story: growth, or a pipeline, or simply a young company with promise.
-  const appetite = (s - 0.55) * 1.6 + clamp(growth, -0.3, 1) * 0.6 + (g.turn < 10 ? 0.4 : 0) + (pipelineValue(g) > 0 ? 0.3 : 0);
-  if (appetite < 0.35) return;
-  const enthusiasm = clamp(randRange(g, 0.8, 1.15) * (0.85 + 0.2 * Math.min(1, appetite)), 0.6, 1.3);
-  const pre = Math.max(400_000, c.valuation * enthusiasm);
+  const last = c.quarters[c.quarters.length - 1];
+  const costs = last ? Math.max(1, last.pnl.revenue - last.ebitda) : 1;
+  const runway = c.books.cash / costs;
+  // Investors need a story — growth, a pipeline, or a young company with promise — and a reason you need the money.
+  const appetite = DIFF[g.difficulty].appetite + (s - 0.8) * 1.5 + clamp(growth - 0.1, -0.4, 1) * 1.1 + (g.turn < 8 ? 0.5 : 0) + (pipelineValue(g) > 0 ? 0.35 : 0) - (runway > 12 ? 0.6 : runway > 8 ? 0.25 : 0);
+  if (appetite < 0.2) return;
+  const enthusiasm = clamp(randRange(g, 0.85, 1.12) * (0.9 + 0.15 * Math.min(1, appetite)), 0.7, 1.25);
+  // They price the business and take the cash at face value.
+  const net = c.books.cash + c.books.securities - c.books.debt;
+  const pre = Math.max(400_000, (c.valuation - net) * enthusiasm + net);
   const down = cap.lastPost > 0 && pre < cap.lastPost * 0.9;
   g.equityOffer = {
-    round: ROUNDS[Math.min(cap.rounds, ROUNDS.length - 1)], investor: pick(g, NAMES.investors), pre, maxPct: s < 0.8 ? 0.35 : 0.25,
-    note: down ? 'This would be a down round: a lower valuation than your last raise. Expect unhappy employees and earlier investors.' : s < 0.8 ? 'Capital is scarce right now; investors want a bigger stake.' : 'Standard terms. One board seat.',
+    round: ROUNDS[Math.min(cap.rounds, ROUNDS.length - 1)], investor: pick(g, NAMES.investors), pre, maxPct: s < 0.9 ? 0.3 : 0.25,
+    note: down ? 'This would be a down round: a lower valuation than your last raise. Expect unhappy employees and earlier investors.' : s < 0.9 ? 'Capital is scarce right now; investors want a bigger stake.' : 'Standard terms. One board seat.',
   };
 }
 

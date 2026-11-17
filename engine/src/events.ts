@@ -502,6 +502,20 @@ function boosted(g: GameState, ctx: EventCtx, o: Outcome): number {
   return w;
 }
 
+const FATAL = new Set(['sellCompany', 'takeover', 'oust']);
+/** Expected value of an option by the engine's own yardstick (used by bots and the balance harness, never shown). */
+export function optionEV(g: GameState, pe: PendingEvent, i: number): number {
+  const opt = EVENT[pe.id].opts[i];
+  const ws = opt.out.map((o) => boosted(g, pe.ctx, o));
+  const tot = ws.reduce((a, b) => a + b, 0) || 1;
+  let ev = 0;
+  opt.out.forEach((o, k) => {
+    const fatal = (o.fx ?? []).some((f) => f[0] === 'special' && FATAL.has(f[1]));
+    ev += ((fatal ? -1e15 : outcomeValue(g, o)) * ws[k]) / tot;
+  });
+  return ev;
+}
+
 export interface EventView { uid: number; def: EventDef; title: string; text: string; options: { label: string; hint: string; enabled: boolean; odds: string }[] }
 export function viewEvent(g: GameState, pe: PendingEvent): EventView {
   const def = EVENT[pe.id];

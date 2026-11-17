@@ -10,11 +10,26 @@ import { generateRivals } from './rivals';
 import type { Difficulty, ExecRole, GameState, IndustryId, NewGameOpts, Office, Person, RegionId, RegionPolicy, VictoryId } from './types';
 import { clamp, hashSeed, nextUid, normal, pick, randInt } from './util';
 
-export const DIFF: Record<Difficulty, { label: string; cash: number; rivals: number; rivalSize: number; rivalEff: number; aggression: number; events: number; capTarget: number; blurb: string }> = {
-  easy: { label: 'Easy', cash: 1.4, rivals: 4, rivalSize: 0.6, rivalEff: 1.06, aggression: 0.6, events: 0.8, capTarget: 2e9, blurb: 'More starting cash, smaller and gentler rivals, fewer shocks.' },
-  normal: { label: 'Normal', cash: 1.0, rivals: 5, rivalSize: 1.0, rivalEff: 1.0, aggression: 1.0, events: 1.0, capTarget: 5e9, blurb: 'Rivals play by the same economics you do.' },
-  hard: { label: 'Hard', cash: 0.85, rivals: 5, rivalSize: 1.4, rivalEff: 0.96, aggression: 1.3, events: 1.15, capTarget: 10e9, blurb: 'Bigger, leaner rivals that retaliate quickly.' },
-  brutal: { label: 'Brutal', cash: 0.7, rivals: 6, rivalSize: 1.9, rivalEff: 0.92, aggression: 1.7, events: 1.3, capTarget: 20e9, blurb: 'Entrenched incumbents, tight money, and no patience.' },
+export interface DiffDef {
+  label: string; blurb: string;
+  cash: number; // starting cash multiplier
+  rivals: number; rivalSize: number; rivalEff: number; aggression: number;
+  rivalSales: number; rivalRd: number; rivalMax: number; // how well rivals are run: S&M and R&D intensity, office cap
+  defend: number; // how hard rivals fight back where you are taking their customers
+  rivalOps: number; // operational quality edge of rivals (people and process)
+  events: number; capTarget: number;
+  spread: number; // extra points lenders charge you
+  appetite: number; // investor appetite adjustment
+}
+export const DIFF: Record<Difficulty, DiffDef> = {
+  easy: { label: 'Easy', cash: 1.4, rivals: 4, rivalSize: 0.6, rivalEff: 1.06, aggression: 0.6, rivalSales: 0.8, rivalRd: 0.8, rivalMax: 8, defend: 0, rivalOps: -4, events: 0.8, capTarget: 2e9, spread: -0.5, appetite: 0.2,
+    blurb: 'More starting cash, smaller and gentler rivals, cheaper money, fewer shocks.' },
+  normal: { label: 'Normal', cash: 1.0, rivals: 5, rivalSize: 1.0, rivalEff: 1.0, aggression: 1.0, rivalSales: 1.0, rivalRd: 1.0, rivalMax: 12, defend: 0.6, rivalOps: 3, events: 1.0, capTarget: 5e9, spread: 0, appetite: 0,
+    blurb: 'Rivals play by the same economics you do.' },
+  hard: { label: 'Hard', cash: 0.85, rivals: 5, rivalSize: 1.4, rivalEff: 0.95, aggression: 1.3, rivalSales: 1.35, rivalRd: 1.35, rivalMax: 15, defend: 1.3, rivalOps: 10, events: 1.15, capTarget: 10e9, spread: 0.5, appetite: -0.1,
+    blurb: 'Bigger, better-run rivals that defend their markets and retaliate quickly.' },
+  brutal: { label: 'Brutal', cash: 0.7, rivals: 6, rivalSize: 1.9, rivalEff: 0.9, aggression: 1.7, rivalSales: 1.7, rivalRd: 1.6, rivalMax: 19, defend: 2, rivalOps: 15, events: 1.3, capTarget: 20e9, spread: 1, appetite: -0.2,
+    blurb: 'Entrenched, lean incumbents who fight for every customer. Tight money, no patience.' },
 };
 
 export function makePerson(g: GameState, role: ExecRole, office?: Office, quality = 0): Person {

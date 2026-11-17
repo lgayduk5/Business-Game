@@ -53,5 +53,11 @@ on('choose', (d) => {
 });
 on('eventDone', () => {
   ui.modal = null;
-  if (!nextPrompt.open(ui.g!)) render();
+  const g = ui.g!;
+  if (g.status !== 'playing' && !g.continued) {
+    g.status === 'won' ? sfx.win() : sfx.lose();
+    ui.modal = { kind: 'over', data: { sticky: true } };
+    return render();
+  }
+  if (!nextPrompt.open(g)) render();
 });

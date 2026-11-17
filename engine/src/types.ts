@@ -119,7 +119,7 @@ export interface RivalPersonalityDef {
   label: string;
   blurb: string;
   price: number; // preferred price index
-  sales: number; // preferred sales intensity
+  sales: number; // sales and marketing spend as a share of revenue
   rd: number; // R&D as share of revenue
   expand: number; // probability weight of opening new offices
   leverage: number; // target debt / annual revenue

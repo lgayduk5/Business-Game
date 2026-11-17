@@ -2,6 +2,7 @@
 // dynamics and units sold for the player's offices and every rival office.
 import { CITY, FOUNDER, INDUSTRIES, PERSONALITY, hasInventory } from './content';
 import { cycleMult, fxOf } from './macro';
+import { DIFF } from './newgame';
 import { invSum, tempMod } from './mods';
 import { execBonus, gmOf, marketWage, type Prep } from './people';
 import type { AttractBreakdown, GameState, IndustryId, Office, OfficeResult, Rival, RivalOffice } from './types';
@@ -89,13 +90,17 @@ export function playerAttract(g: GameState, o: Office, D: number, mktShare: numb
   return { quality, q, b, m, p, pres, mods, A: m * q * b * p * pres * mods, total: 0, effort, need, marketing };
 }
 
-export function rivalQuality(r: Rival, ind: IndustryId): number {
+/** Rivals get better at operating over time, as the player does through skill and training; better-run on harder levels. */
+export function rivalOpsQuality(g: GameState, r: Rival): number {
+  return PERSONALITY[r.personality].quality + DIFF[g.difficulty].rivalOps + Math.min(20, 0.2 * g.turn) + Math.min(6, r.offices.length * 0.5);
+}
+export function rivalQuality(g: GameState, r: Rival, ind: IndustryId): number {
   const def = INDUSTRIES[ind];
-  return def.techW * (r.tech[ind] ?? def.startTech) + (1 - def.techW) * PERSONALITY[r.personality].quality;
+  return def.techW * (r.tech[ind] ?? def.startTech) + (1 - def.techW) * rivalOpsQuality(g, r);
 }
 export function rivalAttract(g: GameState, r: Rival, ro: RivalOffice): number {
   const def = INDUSTRIES[ro.ind];
-  const q = (rivalQuality(r, ro.ind) / refQuality(g)) ** def.wq;
+  const q = (rivalQuality(g, r, ro.ind) / refQuality(g)) ** def.wq;
   const b = (0.6 + (0.8 * r.brand) / 100) ** def.wb;
   const m = def.organic + Math.min(1.8, ro.sales ** 0.8);
   const pres = Math.min(1, 0.35 + 0.11 * (g.turn - ro.opened));
@@ -206,4 +211,12 @@ export function globalShare(g: GameState, ind: IndustryId): number {
   }
   for (const o of g.company.offices) if (o.ind === ind) mine += o.share * marketUnits(g, o.city, o.ind) * localPrice(g, o.city, o.ind);
   return tot > 0 ? mine / tot : 0;
+}
+
+/** A rival's share of the world market in an industry. */
+export function rivalGlobalShare(g: GameState, r: Rival, ind: IndustryId): number {
+  let tot = 0, theirs = 0;
+  for (const c of Object.values(CITY)) tot += marketUnits(g, c.id, ind) * localPrice(g, c.id, ind);
+  for (const ro of r.offices) if (ro.ind === ind) theirs += ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind);
+  return tot > 0 ? theirs / tot : 0;
 }
