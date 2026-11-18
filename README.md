@@ -21,11 +21,12 @@ number on screen explains where it came from.
      the glossary.
 3. **Read the quarterly report and answer events.** Most quarters bring a decision with
    real trade-offs; some chain into consequences later.
-4. **Win** by becoming the most valuable company in your industry (Titan), dominating
-   world market share (Category king), staying a profitable public company (Blue chip),
-   leading on technology with a completed moonshot (Pioneer), building an admired
-   company (Good company), or outlasting every rival (Last one standing). Two quarters
-   of negative cash is insolvency.
+4. **Win** by becoming the most valuable company in your industry (Titan), leading the
+   sales of named companies (Category king), staying a profitable public company (Blue
+   chip), leading on technology with a completed moonshot (Pioneer), building an admired
+   company (Good company), or outlasting every established rival (Last one standing).
+   If none happens, the game ends after 25 years with a grade from A to F; A or B is a
+   win. Two quarters of negative cash is insolvency.
 
 Tap any dotted number to see the arithmetic behind it. *Fast-forward* runs quiet quarters
 and stops when something needs you. The game saves itself every quarter.
@@ -34,10 +35,17 @@ New to it? A short checklist on HQ walks you through your first quarters. When t
 ends, *Read the review* shows how much of your result came from the market, your
 strategy, your execution and luck — and what to try next time.
 
-**Other ways to play:** *Scenario challenges* (six prepared situations with one goal and
-a deadline, such as surviving a cash crunch or a rate shock), *Sandbox* (no bankruptcy,
-the whole map visible) and *Surprise me* (a random industry, city and founder from a
-seed you can share).
+Small decisions can be left to your COO (on by default; change it in the menu), and
+each office shows a forecast of next quarter if nothing changes.
+
+**Other ways to play:** *Learn the ropes* (five short chapters, each opening one layer of
+the game), *Scenario challenges* (seven prepared situations with one goal and a
+deadline, each with bronze, silver and gold medals and a Brutal version), the *Daily
+challenge* (the same world for everyone on a given day, with a score code to share),
+*Sprint* (ten years, graded at the end), *Ironman* (one life, no rewinds), *Sandbox* (no
+bankruptcy, the whole map visible) and *Surprise me* (a random industry, city and
+founder from a seed you can share). When a game ends you can replay any of its last
+four quarters.
 
 ## Run, test, build
 
@@ -45,7 +53,7 @@ seed you can share).
 npm install
 npm run dev        # play at http://localhost:5173
 npm test           # headless engine tests (Vitest)
-npm run sim        # AI-vs-AI balance harness → docs/balance.md
+npm run sim        # AI-vs-AI balance harness → docs/balance.md (add -- --sprint for Sprint)
 npm run build      # static production build in dist/ (relative paths, works from any sub-path)
 npm run preview    # serve the production build locally
 ```

@@ -205,3 +205,35 @@ Design decisions made while building, newest milestone last. Each entry: what, a
 59. **Native wrappers are documented, not built** (see `docs/native-wrappers.md`). Game
     code needs no changes for Tauri or Capacitor; only the storage module would change
     if native file saves are wanted later.
+
+## Review response (three waves)
+
+60. **Rivals run on the player's economics.** One valuation function, one cost model,
+    one set of lenders and investors. Titan is a race against rivals' value, so a
+    different formula for them was a hidden thumb on the scale.
+61. **A company starts with a year of history**, played on a throwaway copy with no
+    events and a calm economy, so the first quarter does not jump the valuation and
+    every office has results to read at turn 0.
+62. **The game ends in a grade, not a draw.** Rank (40), founder wealth against the
+    industry (35) and progress towards a victory (25). A or B wins if the founder's stake
+    tripled and revenue doubled in real terms; Sprint ranks by growth and needs the
+    stake to grow by half.
+63. **Pacing has a measured target: under half of quarters with a card.** Cards
+    already waiting count against the draw, rival cards come at most every fourth
+    quarter, and small cards (no crisis, rival, financing or ownership change, nothing
+    over 4% of a quarter's revenue) can go to the COO, who picks the option with the best
+    worst case — a sensible default, never the hidden best answer.
+64. **Rewind is a learning tool, not a save-scum.** It is offered from the end screen,
+    goes back at most four quarters, is counted, and is off in Ironman and daily games.
+    Because the engine is deterministic, only what the player changes changes.
+65. **The field never empties.** Entrants arrive at the difficulty's per-decade rate;
+    "Last one standing" counts rivals that have lasted three years, so a newcomer does
+    not block it.
+66. **Personalities are data.** Each personality's hostile-move weights and behaviour
+    flags live in `data/rivals.json`, so a new personality needs no code unless it brings
+    a new behaviour.
+67. **Policies use the investment modifiers.** A policy is a standing set of `InvFx`
+    effects, so every system that reads investment effects reads policies too.
+68. **The full harness runs 12 seeds per cell.** At 6, several red-flag checks sat on
+    their thresholds and flipped with sampling noise.
+

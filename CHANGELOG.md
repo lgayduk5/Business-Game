@@ -1,5 +1,38 @@
 # Changelog
 
+## Review response — three waves
+
+Everything the panel review recommended, with status per item in `docs/review-response.md`.
+
+- **Fixes:** buyback cap table, slider focus, phone overflow, saving mid-quarter and on
+  close, an update prompt for the installed app, scenario turn handling.
+- **Honesty:** difficulty cards with the real settings and measured win rates; industry
+  difficulty chips; every event option shows what it costs.
+- **Rivals on your rules:** the same cost lines, valuation function, lenders and
+  investors as the player; valuations blend revenue and EBITDA multiples and respond to
+  interest rates; tax by country; the Canadian dollar; a variable IPO pop.
+- **A year of history** before the game starts, so turn 0 shows a trading business.
+- **Balance:** Easy, Normal, Hard and Brutal on their targets; consulting gets credit
+  lines, retainers and factoring; energy gets plant-level project finance and capital
+  recycling. The harness runs 12 seeds per cell and flags any probe that reaches a
+  victory more often than honest play.
+- **Pacing:** fewer than half of quarters open with a card; small cards can go to the
+  COO; rival moves arrive at most every fourth quarter.
+- **Information:** a next-quarter forecast on each office, year marks and toggles on
+  charts, office cards on phones, a tutorial that retires after two years.
+- **Endings and modes:** a graded A–F ending; Sprint (ten years); Ironman; a daily
+  challenge with a shareable score code; rewind the last year from the end screen; a
+  five-chapter Learner campaign; scenario medals, Brutal versions and a consulting
+  scenario.
+- **Competitors:** startups and a late Big Tech giant enter mid-game; every new division
+  has incumbents; rivals change CEOs, list, spin off, suffer scandals; five new
+  personalities; your nemesis on HQ with the history of the feud.
+- **Content:** ten new event cards including a take-private exit and activist
+  investors; company policies, earnings guidance, stock options, input-price locks,
+  franchising, consulting tenders and yearly PPA auctions.
+
+Not yet done: industry tech trees, named key customers, and the five new industries.
+
 ## M6 — Polish, balance, tutorial, offline
 
 - Balance pass with the harness across all seven industries and four difficulties
