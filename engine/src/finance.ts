@@ -260,6 +260,7 @@ export interface ValueInputs {
   cash: number;
   debt: number;
   pipeline?: number; // risk-adjusted R&D still in progress
+  cip?: number; // plant under construction, at cost: it earns nothing yet, but it is worth what it cost to build
   promise?: number; // what a young company is worth on its story alone
   assets?: number; // what the assets would fetch
   minority?: number; // value of stakes in its plants that outside funds own
@@ -287,13 +288,13 @@ export function valueCompany(x: ValueInputs): { equity: number; parts: Record<st
   const qualityF = (1 + (x.tech - 50) / 250) * (1 + (x.brand - 30) / 300) * (0.9 + (0.2 * x.reputation) / 100);
   const rateF = clamp(1 - 0.04 * (x.rate - 3), 0.75, 1.15);
   const ops = ((1 - ebitdaW) * byRev + ebitdaW * byEbitda) * qualityF * x.sentiment * rateF;
-  const pipeline = x.pipeline ?? 0, promise = x.promise ?? 0, assets = x.assets ?? 0;
-  const ev = Math.max(ops + pipeline, promise, assets);
+  const pipeline = x.pipeline ?? 0, promise = x.promise ?? 0, assets = x.assets ?? 0, cip = x.cip ?? 0;
+  const ev = Math.max(ops + pipeline + cip, promise, assets);
   const minority = x.minority ?? 0;
   const equity = Math.max(0, ev + x.cash - x.debt - minority);
   return {
     equity,
-    parts: { minority, rev: x.rev, ebitda: x.ebitda, mult, growth: x.growth, growthF, margin, target, marginF, byRev, byEbitda, ebitdaMult, ebitdaW, qualityF, sentiment: x.sentiment, rate: x.rate, rateF, ops, pipeline, promise, assets, ev, cash: x.cash, debt: x.debt },
+    parts: { minority, rev: x.rev, ebitda: x.ebitda, mult, growth: x.growth, growthF, margin, target, marginF, byRev, byEbitda, ebitdaMult, ebitdaW, qualityF, sentiment: x.sentiment, rate: x.rate, rateF, ops, pipeline, cip, promise, assets, ev, cash: x.cash, debt: x.debt },
   };
 }
 
@@ -342,6 +343,15 @@ export function noteAcquisition(g: GameState, paid: number, rivalId?: number) {
   g.counters[k] = (g.counters[k] ?? 0) + Math.max(0, paid) / g.macro.cpi;
 }
 
+/**
+ * Share of a new plant's cost still carried at cost: valuation works from the last twelve months of sales, which take
+ * a year to include a new plant in full, so until then the part not yet in them counts at what it cost.
+ */
+export const rampCarry = (g: GameState, r: { done: number }) => Math.max(0, 1 - (g.turn - r.done + 1) / 4);
+/** Plant under construction, plus the part of recently finished plant that the accounts do not yet reflect, at cost. */
+export const plantAtCost = (g: GameState) =>
+  g.company.offices.reduce((s, o) => s + o.building.reduce((t, b) => t + b.cost, 0) + (o.ramp ?? []).reduce((t, r) => t + r.cost * rampCarry(g, r), 0), 0);
+
 /** The player's company, valued. Returns equity value and every factor that went into it. */
 export function valuation(g: GameState): { equity: number; parts: Record<string, number> } {
   const c = g.company;
@@ -351,6 +361,9 @@ export function valuation(g: GameState): { equity: number; parts: Record<string,
     rev: B.ttm(c, (q) => q.pnl.revenue), ebitda: B.ttm(c, (q) => q.ebitda), growth: revenueGrowth(c), mix: revenueMix(c),
     tech: c.tech[c.primary] ?? 40, brand: c.brand, reputation: c.reputation, sentiment, rate: g.macro.rate,
     cash: b.cash + b.securities, debt: b.debt, pipeline: pipelineValue(g),
+    // a plant being built is carried at cost until it runs (without this, building one on borrowed money wiped out the
+    // equity until the plant came online: the loan counted at once, the plant not at all)
+    cip: plantAtCost(g),
     promise: 2.2e6 * g.macro.cpi * sentiment * (1 + companyHeadcount(c) / 40) * Math.exp(-g.turn / 24),
     assets: 0.5 * (b.ppe - b.accDep) + 0.6 * b.ar + 0.4 * b.inventory,
     // the funds' stakes, valued as the market values the rest of the company (no infrastructure-fund premium)

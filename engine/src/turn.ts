@@ -3,7 +3,7 @@ import { advise, trackAttribution } from './advisor';
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, REGION_LIST, EVENT, hasInventory } from './content';
 import { autoDelegate, drawEvents, queueEvent } from './events';
-import { covenantStatus, payTaxes, plantDebtService, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
+import { covenantStatus, payTaxes, plantDebtService, rampCarry, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
@@ -41,10 +41,12 @@ function completeBuilds(g: GameState) {
     for (const b of o.building) {
       if (b.ready <= g.turn) {
         o.cap += b.units;
+        (o.ramp ??= []).push({ cost: b.cost, done: g.turn });
         news(g, `New capacity is online in ${CITY[o.city].name}: +${Math.round(b.units).toLocaleString()} units a quarter.`, 'good');
       }
     }
     o.building = o.building.filter((b) => b.ready > g.turn);
+    if (o.ramp) o.ramp = o.ramp.filter((r) => rampCarry(g, r) > 0);
   }
   for (const s of g.scouting) {
     if (s.ready <= g.turn) {

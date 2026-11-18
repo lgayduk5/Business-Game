@@ -498,6 +498,8 @@ export interface Office {
   training: number; // 0..3
   cap: number; // facility capacity, units/quarter
   building: { units: number; ready: number; cost: number }[];
+  /** Plant finished in the last year: valued partly at cost until a full year of its sales is in the accounts. */
+  ramp?: { cost: number; done: number }[];
   ppe: number; // gross
   accDep: number;
   share: number;
@@ -785,6 +787,8 @@ export interface Rival {
   aid?: number;
   /** What has passed between it and you, newest last. */
   feud?: { turn: number; who: 'you' | 'them'; text: string }[];
+  /** Plant bought in the last year, valued partly at cost until its sales are in the accounts (as for the player). */
+  ramp?: { cost: number; done: number }[];
 }
 
 export interface Macro {

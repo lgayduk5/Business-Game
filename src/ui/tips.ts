@@ -46,7 +46,8 @@ export function valuationTip(g: GameState): string {
     ['Operating value', money(v.ops ?? 0), true],
   );
   if ((v.pipeline ?? 0) > 0) rows.push(['+ R&D pipeline (risk-adjusted)', money(v.pipeline)]);
-  if ((v.ev ?? 0) > (v.ops ?? 0) + (v.pipeline ?? 0) + 1) rows.push(['Floor: promise or asset value', money(v.ev)]);
+  if ((v.cip ?? 0) > 0) rows.push(['+ New plant not yet in a year of sales, at cost', money(v.cip)]);
+  if ((v.ev ?? 0) > (v.ops ?? 0) + (v.pipeline ?? 0) + (v.cip ?? 0) + 1) rows.push(['Floor: promise or asset value', money(v.ev)]);
   rows.push(['+ cash', money(v.cash ?? 0)], ['− debt', money(v.debt ?? 0)]);
   if (c.cap.isPublic) rows.push(['× market premium to fair value', x2(v.premium ?? 1)]);
   else rows.push(['× private-company discount', '0.80']);

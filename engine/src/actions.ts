@@ -200,7 +200,10 @@ export function openOffice(g: GameState, cityId: string, ind: IndustryId, financ
   const o = makeOffice(g, cityId, ind, { ops: 0, sales: 0, rnd: 0, admin: 1 }, cost.units);
   B.expense(c, 'ga', cost.setup, 'cash');
   if (lent > 0) assetLoan(g, o, lent, 0);
-  if (cost.capex > 0) B.capex(c, cost.capex, o);
+  if (cost.capex > 0) {
+    B.capex(c, cost.capex, o);
+    o.ramp = [{ cost: cost.capex, done: g.turn }]; // valued at cost while its first year of sales comes in
+  }
   o.staff.ops.reqs = isCapital(ind) ? Math.max(1, Math.ceil((cost.units / def.opsOut) * 0.8)) : 3;
   o.staff.sales.reqs = ind === 'retail' ? 0 : 1;
   c.offices.push(o);

@@ -309,9 +309,21 @@ Design decisions made while building, newest milestone last. Each entry: what, a
 84. **Events about one industry stay in it.** In a company with several industries, a card gated on some of
     them binds to one, and its company-wide effects (share, demand, capacity, prices) apply only there. A
     single-industry company is unaffected.
-85. **Rivals that find no market do not enter.** A newcomer that could not open anywhere (every market it
+85. **New plant is valued at cost until a year of its sales is in the accounts.** Valuation works from the
+    last twelve months, and took the greater of the operating value and the asset value, so a plant built
+    on borrowed money counted for nothing while its loan counted in full: an energy company's valuation sat
+    at zero for most of a year after every expansion. Plant under construction, and the part of new plant
+    the trailing year does not yet reflect (tapering over four quarters), now count at cost — for rivals
+    exactly as for the player.
+86. **Rivals that find no market do not enter.** A newcomer that could not open anywhere (every market it
     wanted already crowded) used to stay in the game with its funding and no business, counted in the
     end-of-game ranking.
-86. **A finished game takes no more decisions.** Cards still waiting are cleared when the game ends (a
+87. **A finished game takes no more decisions.** Cards still waiting are cleared when the game ends (a
     takeover offer could otherwise turn a win into a sale), and cards about a rival that is gone, an office
     that closed, a person who left or a loan that was repaid are dropped.
+88. **Energy is Tough, not Expert.** With new plant valued at cost (85), investing no longer costs you at the end
+    of a game, and energy plays like the other tough industries: honest strategies win about three games in four
+    (Sprint: about seven in ten), above the Expert band. The label follows the measurement, as the harness requires;
+    the Expert tier stays defined for a future industry. The same change lifted retail, which had sat on the Tough
+    ceiling since the second review, a point over it; local independents are a little stronger (fringe 14 → 15),
+    which brings it back inside.

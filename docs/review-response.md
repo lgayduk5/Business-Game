@@ -109,7 +109,7 @@ A step-by-step review of the engine, the interface and the content, then about 1
 player who takes random actions with random arguments — in every industry, difficulty and mode (full game, Sprint,
 sandbox, Ironman, four daily challenges, every scenario and its Brutal version) — with invariant checks after every
 action, card and quarter (`npm run playtest`, decision 80), and a browser pass over every tab, sub-tab and modal at
-phone and desktop widths. Design choices in decisions 80–86.
+phone and desktop widths. Design choices in decisions 80–88.
 
 | Finding | Status | Notes |
 | --- | --- | --- |
@@ -117,13 +117,13 @@ phone and desktop widths. Design choices in decisions 80–86.
 | Negative goodwill after buying plant below its value (energy rivals, deal targets) | Done | Plant booked at the price paid (decision 82). |
 | "Buy their office" card charged more than it showed | Done | Charges the price on the card. |
 | Takeover offer with a blank price ("offer: , cash") | Done | Offers have a floor; a blank amount can no longer render. |
-| Newcomers entering with no offices, counted in the ranking | Done | They do not enter (decision 85). |
+| Newcomers entering with no offices, counted in the ranking | Done | They do not enter (decision 86). |
 | Grade A or B on a game recorded as lost; Sprint rule text wrong | Done | Letter capped at C without the growth, with a row saying why; rule text from the engine (decision 83). |
 | Industry cards applied to the wrong industry in a multi-industry company | Done | Bound to their industry, effects scoped to it (decision 84). |
 | Cards about rivals, offices, people or loans that are gone | Done | Dropped at the start of each quarter and after every action; a lapsed lawsuit says so. |
-| Decisions still possible after the game ended; header one quarter ahead | Done | Queue cleared at the end (decision 86); header shows the last quarter played. |
+| Decisions still possible after the game ended; header one quarter ahead | Done | Queue cleared at the end (decision 87); header shows the last quarter played. |
 | CFO's cash-against-profit note worded one way only | Done | Each driver worded the way it moved (test). |
 | "$10.5M of sales went unserved" on $595K of revenue | Done | Reworded: what customers would buy beyond what you can deliver. |
 | "Profitable" note promised tax losses that did not exist; AI card said software customers "pay for hours" | Done | |
-| Valuation at zero for most of a year after building a plant on borrowed money | **Not yet** | A fix exists — plant under construction and plant not yet a year in the accounts counted at cost, for rivals as for the player — but it removes an end-game penalty on investing that the balance was tuned around: energy would win 76% (Sprint 72%) instead of 62% (52%), above the Expert band, and retail would move a point over the Tough band. It needs a decision on energy's label before it goes in. |
+| Valuation at zero for most of a year after building a plant on borrowed money | Done | Plant under construction, and new plant not yet a year in the accounts, count at cost — for rivals as for the player (decision 85). It removed an end-game penalty on investing, so energy now plays as Tough (decision 88); retail's independents are a little stronger to keep it in its band. |
 | Valuation swings of 4× or more in a quarter | Noted | Mostly leveraged energy companies early on (a thin slice of equity under a project loan) and plant step-ups read as growth; partly the item above. |

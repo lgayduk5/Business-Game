@@ -2,7 +2,7 @@
 
 ## Third review: playtest across every mode and industry
 
-Design choices in decisions 80–86. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the
+Design choices in decisions 80–88. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the
 bots and a random-action player in every industry, difficulty and mode, checked after every action and quarter.
 
 **Bugs**
@@ -25,6 +25,13 @@ bots and a random-action player in every industry, difficulty and mode, checked 
   the queue; a lawsuit against a rival that no longer exists now lapses with a note.
 - **After the game ended,** decisions still waiting could be taken (a takeover offer could turn a win into a sale), and
   the header showed the quarter after the last one.
+- **Valuation fell to zero for most of a year** after an energy company built a plant on borrowed money: the loan
+  counted at once, the plant only once a year of its sales was in the accounts, so investing near the end of a game
+  lowered your grade. New plant now counts at cost until then, for rivals as for you.
+
+**Balance**
+- **Energy is now labelled Tough** (it was Expert): without the end-game penalty on investing, honest strategies win
+  about three energy games in four. Retail's local independents are a little stronger, keeping it inside the Tough band.
 
 **Teaching text**
 - The CFO's "cash against profit" note described every driver in one direction ("+$36K from more inventory on the

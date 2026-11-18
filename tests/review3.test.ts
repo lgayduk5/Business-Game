@@ -1,9 +1,9 @@
 // The third review: bugs found by playing every industry and mode with invariant checks after every action.
 import { describe, expect, it } from 'vitest';
 import {
-  CITIES, EVENT, INDUSTRIES, SPECIALS, absorbIntoPlayer, advise, bindCtx, books, drawEvents, endTurn, equityOf, fill, finalGrade, fire,
+  CITIES, EVENT, INDUSTRIES, SPECIALS, absorbIntoPlayer, advise, bindCtx, books, drawEvents, endTurn, equityOf, expandCapacity, fill, finalGrade, fire,
   gradeRule, launchDivision, maybeEntrant, netIncome, newGame, openOffice, outcomeCash, plantFairValue, pruneStale, queueEvent, resolveEvent, scheduleEvent,
-  takeoverPrice, totalAssets, totalLiabilities, type GameState, type IndustryId,
+  takeoverPrice, totalAssets, totalLiabilities, valuation, type GameState, type IndustryId,
 } from '../engine/src/index';
 import { opts, play } from './helpers';
 
@@ -188,6 +188,31 @@ describe('the CFO explains cash against profit in the right direction', () => {
     const note = advise(g).find((n) => n.title === 'Cash came in faster than profit');
     expect(note?.text).toMatch(/running down inventory/);
     expect(note?.text).not.toMatch(/more inventory on the shelves/);
+  });
+});
+
+describe('a plant being built', () => {
+  it('is valued at cost, so financing one does not wipe out the equity', () => {
+    const g = newGame(opts({ industry: 'energy', city: cityFor('energy'), seed: 'cip' }));
+    play(g, 2);
+    g.company.books.cash = 30e6;
+    const o = g.company.offices[0];
+    const before = valuation(g).equity;
+    expect(expandCapacity(g, o.id, 400, true).ok).toBe(true);
+    const cost = o.building[0].cost;
+    // only the arrangement fee leaves: cash and debt move by the plant's cost, and the plant is counted at it
+    expect(Math.abs(valuation(g).equity - before)).toBeLessThan(0.02 * cost);
+  });
+  it('and a new plant counts at cost until a year of its sales is in the accounts', () => {
+    const g = newGame(opts({ industry: 'energy', city: cityFor('energy'), seed: 'ramp' }));
+    play(g, 2);
+    g.company.books.cash = 60e6;
+    const city = CITIES.find((c) => c.ind.energy >= 1 && c.id !== g.company.home && (g.discovered[c.id] ?? 0) >= 1)!.id;
+    expect(openOffice(g, city, 'energy').ok).toBe(true);
+    const o = g.company.offices.find((x) => x.city === city)!;
+    expect(o.ramp?.length).toBe(1);
+    for (let i = 0; i < 5; i++) endTurn(g);
+    expect(o.ramp?.length ?? 0).toBe(0);
   });
 });
 

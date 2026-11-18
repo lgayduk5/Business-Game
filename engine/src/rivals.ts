@@ -3,7 +3,7 @@
 import * as B from './books';
 import { CITIES, CITY, EVENT, INDUSTRIES, PERSONALITY, PERSONALITIES, RIVAL_CEOS, RIVAL_COLORS, RIVAL_NAMES, hasInventory, isCapital } from './content';
 import { queueEvent, scaleS, scheduleEvent, SPECIALS } from './events';
-import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, noteAcquisition, noteRivalExit, privateValue, scoreCredit, valueCompany, type LocalProfit } from './finance';
+import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, noteAcquisition, noteRivalExit, privateValue, rampCarry, scoreCredit, valueCompany, type LocalProfit } from './finance';
 import { fxOf, inputIndex } from './macro';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news } from './mods';
@@ -190,6 +190,8 @@ export function rivalValuation(g: GameState, r: Rival, mix?: Partial<Record<Indu
     rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), growth: rivalGrowth(r), mix: mix ?? rivalQuarter(g, r).mix,
     tech: r.tech[ind] ?? INDUSTRIES[ind].startTech, brand: r.brand, reputation: 50, sentiment: g.macro.sentiment, rate: g.macro.rate,
     cash: r.cash, debt: r.debt, assets: 0.5 * plant + 0.6 * r.ar + 0.4 * r.inv,
+    // new plant at cost until a year of its sales is in the accounts, exactly as for the player
+    cip: (r.ramp ?? []).reduce((s, x) => s + x.cost * rampCarry(g, x), 0),
   });
   return { equity: r.isPublic ? v.equity : privateValue(v.equity, r.cash, r.debt), parts: v.parts };
 }
@@ -259,6 +261,7 @@ export function rivalsDecide(g: GameState) {
         if (r.cash > cost + costs) {
           ro.cap += add;
           r.cash -= cost;
+          if (isCapital(ro.ind)) (r.ramp ??= []).push({ cost: add * def.capPerUnit * 1000 * m.cpi, done: g.turn });
         }
       } else if (util < 0.5 && !isCapital(ro.ind)) ro.cap *= 0.92;
       // price: personality anchor, nudged by how full they are; wars override
@@ -293,6 +296,7 @@ export function rivalsDecide(g: GameState) {
         const cost = cap * def.capPerUnit * 1000 * m.cpi + 150_000 * m.cpi;
         if (r.cash > cost + costs * 2) {
           r.cash -= cost;
+          if (isCapital(ind)) (r.ramp ??= []).push({ cost: cap * def.capPerUnit * 1000 * m.cpi, done: g.turn });
           openRivalOffice(g, r, c.id, ind, 0);
           if ((g.discovered[c.id] ?? 0) >= 1) news(g, `${r.name} has opened in ${c.name}.`, 'rival');
           const mine = g.company.offices.find((o) => o.city === c.id && o.ind === ind);
@@ -378,6 +382,7 @@ export function rivalsFinancials(g: GameState) {
   let acted = !rivalCardFree(g);
   const asked = acted;
   for (const r of alive(g)) {
+    if (r.ramp) r.ramp = r.ramp.filter((x) => rampCarry(g, x) > 0);
     const pers = PERSONALITY[r.personality];
     const q = rivalQuarter(g, r);
     const tax = countryTax(q.local, q.pretax, r.nolBy, { country: CITY[r.hq].country, rate: CITY[r.hq].tax });
