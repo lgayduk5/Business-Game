@@ -66,6 +66,9 @@ npm run preview    # serve the production build locally
 
 `npm run smoke` drives the built game in Chrome at phone and desktop sizes and saves
 screenshots to `shots/` (needs Playwright and Chrome installed on the machine).
+`npm run playtest` plays about a thousand games in every industry, difficulty and mode — the
+bots and a player who takes random actions — and fails if the books stop balancing, a number
+goes bad, a card points at something that is gone, or any text shows a blank or "undefined".
 
 ## Install it as an app
 
@@ -93,7 +96,7 @@ Actions**. All paths are relative, so the game works at `https://<user>.github.i
 | `data/` | All content as JSON — industries, cities, events, investments, scenarios, glossary — with schemas in `data/schemas/`. |
 | `src/` | The UI (plain DOM), Web Audio sound, IndexedDB saves, and the web worker that runs turns. |
 | `tests/` | Headless tests: statements tie out, determinism, content schemas, every event option, scenarios, saves. |
-| `scripts/` | Icon generator, balance harness, browser smoke test, JSON formatter. |
+| `scripts/` | Icon generator, balance harness, invariant playtest, browser smoke test, JSON formatter. |
 | `docs/` | [Design](docs/design.md), [decision log](docs/decisions.md), [balance report](docs/balance.md), [content guide](docs/content-guide.md), [native-wrapper notes](docs/native-wrappers.md). |
 
 To add events, investments or industries, edit the JSON in `data/` — see

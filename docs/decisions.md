@@ -289,3 +289,29 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     strategies by industry and difficulty, for the full game and for Sprints); the cards read it.
     `npm run sim:check` fails if it, or either report, is stale or lists a red flag.
 79. **Grades are A, B, C, D and F.** E is gone; D now starts at 25.
+
+## Third review (playtest across every mode and industry)
+
+80. **An invariant playtest.** `npm run playtest` plays about 1,000 games — the honest bots and a "chaos"
+    player who takes random actions with random arguments, in every industry, difficulty and mode,
+    every scenario and its Brutal version — and checks after every action, card and quarter that the
+    books balance, numbers are finite, the cap table adds up, cards point at things that still exist,
+    a save replays identically, the forecast changes nothing, and no text shows "undefined" or an
+    unfilled placeholder. It found the bugs below; it runs by hand rather than in CI (a few minutes).
+81. **Deferred revenue is refunded, not left as negative receivables.** It can only shrink by being
+    earned; when service is cut faster than that, the customers who paid in advance get their money back.
+82. **Goodwill is never negative.** Buying plant for less than 60% of what it would cost to build (common in
+    energy, where plants are big and valuations small) books the plant at the price paid. The card for
+    buying a rival's office charges the price it shows (it charged the plant's value when that was higher).
+83. **An A or B means a win.** The growth test (stake ×3 and revenue ×2 in real terms; ×1.25 and ×1.5 in a
+    Sprint) used to sit outside the letter, so a game could end "lost" with an A. A high score without the
+    growth now stops at C, with a line saying why, and the end screen's rule comes from the engine.
+84. **Events about one industry stay in it.** In a company with several industries, a card gated on some of
+    them binds to one, and its company-wide effects (share, demand, capacity, prices) apply only there. A
+    single-industry company is unaffected.
+85. **Rivals that find no market do not enter.** A newcomer that could not open anywhere (every market it
+    wanted already crowded) used to stay in the game with its funding and no business, counted in the
+    end-of-game ranking.
+86. **A finished game takes no more decisions.** Cards still waiting are cleared when the game ends (a
+    takeover offer could otherwise turn a win into a sale), and cards about a rival that is gone, an office
+    that closed, a person who left or a loan that was repaid are dropped.

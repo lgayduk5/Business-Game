@@ -407,6 +407,8 @@ export interface EventCtx {
   ind?: IndustryId;
   amount?: number;
   note?: string;
+  /** The event is about `ind` alone (the company also has other industries): its company-wide effects stay there. */
+  scoped?: boolean;
 }
 
 export interface PendingEvent {

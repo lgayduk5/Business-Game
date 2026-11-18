@@ -627,7 +627,7 @@
     "id": "ai_shift",
     "cat": "market",
     "title": "AI changes the work",
-    "text": "New AI tools can now do a large part of what your people in {city} do. Customers are starting to ask why they pay for hours a machine could do.",
+    "text": "New AI tools can now do a large part of what your people in {city} do. Customers are starting to ask why they pay people for work a machine could do.",
     "cond": { "ind": ["saas", "consulting"], "minTurn": 16 },
     "bind": ["office"],
     "once": true,

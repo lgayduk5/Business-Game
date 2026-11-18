@@ -42,6 +42,13 @@ function blank(g: GameState, ind: IndustryId, p: Personality, hq: string): Rival
   return r;
 }
 
+/** Take back a rival that found no market to enter. */
+function discard(g: GameState, r: Rival): undefined {
+  g.rivals = g.rivals.filter((x) => x !== r);
+  for (const k of [`rivalStart${r.id}`, `rivalStartEV${r.id}`]) delete g.counters[k];
+  return undefined;
+}
+
 function finish(g: GameState, r: Rival) {
   seedRivalAccounts(g, r);
   r.valuation = rivalValuation(g, r).equity;
@@ -98,7 +105,11 @@ export function rivalsForDivisions(g: GameState) {
     const need = clamp(2 + (chance(g, 0.5) ? 1 : 0) - there, 0, 3);
     const pool = PERSONALITIES.filter((p) => !p.late).map((p) => p.id);
     const made: Rival[] = [];
-    for (let i = 0; i < need; i++) made.push(spawnRival(g, ind, pick(g, pool), true));
+    for (let i = 0; i < need; i++) {
+      const r = spawnRival(g, ind, pick(g, pool), true);
+      if (r.offices.length) made.push(r);
+      else discard(g, r);
+    }
     for (const r of made) r.known = true;
     if (made.length) news(g, `${INDUSTRIES[ind].name} has its incumbents: ${made.map((r) => `${r.name} (${PERSONALITY[r.personality].label.toLowerCase()})`).join(', ')}.`, 'rival');
   }
@@ -119,6 +130,7 @@ export function maybeEntrant(g: GameState): Rival | undefined {
   const giant = g.turn >= 24 && !g.rivals.some((r) => r.personality === 'bigtech') && chance(g, 0.3);
   const p: Personality = giant ? 'bigtech' : weighted(g, ['disruptor', 'disruptor', 'disruptor', 'coop', 'expander'] as Personality[], () => 1)!;
   const r = spawnRival(g, ind, p, false);
+  if (!r.offices.length) return discard(g, r); // every market it would enter is already crowded
   r.known = true;
   const where = r.offices.map((o) => CITY[o.city].name).join(' and ');
   const mine = r.offices.find((o) => c.offices.some((x) => x.city === o.city && x.ind === o.ind));

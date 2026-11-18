@@ -365,6 +365,9 @@ function liquidate(g: GameState, r: Rival) {
 /** Post-market: revenue, costs, cash, technology, distress, consolidation, and moves against the player. */
 /** At most one rival card every fourth quarter (review wave 3): rivals keep acting on the map in between, but you are
  *  not asked to respond each time, and their moves count against the quarter's share of decision cards. */
+/** What a rival offers for the whole company: a premium on its value, and something even when the market values it at next to nothing. */
+export const takeoverPrice = (g: GameState, hostile: boolean) => Math.max(g.company.valuation, 250_000 * g.macro.cpi) * (hostile ? 1.3 : 1.15);
+
 export const RIVAL_CARD_GAP = 4;
 export const rivalCardFree = (g: GameState) => !g.queue.some((e) => EVENT[e.id]?.cat === 'rival') && g.turn - (g.counters.rivalCard ?? -99) >= RIVAL_CARD_GAP;
 
@@ -496,7 +499,7 @@ export function rivalsFinancials(g: GameState) {
           const p = pick(g, c.people);
           ctx.person = p.id;
         }
-        if (id === 'rival_takeover' || id === 'rival_hostile_bid') ctx.amount = c.valuation * (id === 'rival_takeover' ? 1.15 : 1.3);
+        if (id === 'rival_takeover' || id === 'rival_hostile_bid') ctx.amount = takeoverPrice(g, id === 'rival_hostile_bid');
         acted = queueEvent(g, id, ctx);
         if (acted) {
           r.lastMove = g.turn;
@@ -666,8 +669,17 @@ export function bidOdds(g: GameState, r: Rival, hostile: boolean): number {
 /** Take a rival's offices into the player's company. */
 /** Customers an acquirer keeps: about a fifth of them use the change of owner to look elsewhere. */
 export const ACQUIRED_KEEP = 0.75;
-export function absorbIntoPlayer(g: GameState, r: Rival, offices: RivalOffice[]): number {
+/** What the plant in some rival offices is worth to a buyer: 60% of what it would cost to build. */
+export const plantFairValue = (offices: RivalOffice[]) => offices.reduce((s, ro) => s + (isCapital(ro.ind) ? ro.cap * INDUSTRIES[ro.ind].capPerUnit * 1000 * 0.6 : 0), 0);
+/**
+ * Fold rival offices into the player's company and return the value of the property taken on. The plant is
+ * booked at its fair value, or at `paid` if less (a bargain: the price is allocated to the plant and there is
+ * no goodwill), so goodwill is never negative.
+ */
+export function absorbIntoPlayer(g: GameState, r: Rival, offices: RivalOffice[], paid = Infinity): number {
   const c = g.company;
+  const all = plantFairValue(offices);
+  const scale = all > paid ? Math.max(0, paid) / all : 1;
   let fair = 0;
   for (const ro of offices) {
     ro.share *= ACQUIRED_KEEP;
@@ -678,7 +690,7 @@ export function absorbIntoPlayer(g: GameState, r: Rival, offices: RivalOffice[])
     }
     const staff = { ops: Math.max(1, Math.round((ro.cap / def.opsOut) * 0.9)), sales: Math.max(0, Math.round(ro.sales * (marketUnits(g, ro.city, ro.ind) / def.salesCover))), rnd: 0, admin: 1 };
     staff.admin = Math.max(1, Math.round((staff.ops + staff.sales) / 14));
-    const ppe = isCapital(ro.ind) ? ro.cap * def.capPerUnit * 1000 * 0.6 : 0;
+    const ppe = isCapital(ro.ind) ? ro.cap * def.capPerUnit * 1000 * 0.6 * scale : 0;
     fair += ppe;
     let o = c.offices.find((x) => x.city === ro.city && x.ind === ro.ind);
     if (o) {
@@ -720,7 +732,7 @@ export function bidForRival(g: GameState, id: number, hostile: boolean): ActionR
   const before = companyHeadcount(c);
   const offices = r.offices.slice();
   noteAcquisition(g, price + Math.max(0, r.debt) * 0.5);
-  const fair = absorbIntoPlayer(g, r, offices);
+  const fair = absorbIntoPlayer(g, r, offices, price + Math.max(0, r.debt) * 0.5);
   // property is added inside absorbIntoPlayer; book the purchase against it
   c.books.ppe += fair;
   c.books.goodwill += cashPart - fair + (price - cashPart);
@@ -801,14 +813,15 @@ Object.assign(SPECIALS, {
     const ro = r?.offices.find((x) => x.city === ctx.city) ?? r?.offices[0];
     if (!r || !ro) return null;
     const price = Math.min(c.books.cash * 0.8, ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind) * 2.5);
-    const fair = absorbIntoPlayer(g, r, [ro]);
-    noteAcquisition(g, Math.max(price, fair));
+    // the price on the card is what is paid; plant worth more than that is booked at the price
+    const fair = absorbIntoPlayer(g, r, [ro], price);
+    noteAcquisition(g, price);
     c.books.ppe += fair;
-    c.books.goodwill += Math.max(0, price - fair);
-    c.books.cash -= Math.max(price, fair);
-    c.cfTags.acq -= Math.max(price, fair);
+    c.books.goodwill += price - fair;
+    c.books.cash -= price;
+    c.cfTags.acq -= price;
     r.cash += price;
-    return `Bought ${r.name}'s ${CITY[ro.city].name} operation for ${money(Math.max(price, fair))}`;
+    return `Bought ${r.name}'s ${CITY[ro.city].name} operation for ${money(price)}`;
   },
   mergeRival: (g: GameState, ctx: EventCtx) => {
     const r = rivalById(g, ctx.rival);

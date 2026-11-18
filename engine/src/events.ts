@@ -115,6 +115,13 @@ export function bindCtx(g: GameState, def: EventDef): EventCtx | null {
       ctx.loan = l.id;
     }
   }
+  // An event about some industries only: name the one it is about, and, in a company that also has others,
+  // keep its company-wide effects in that industry (a software outage should not cost the stores customers).
+  const inds = def.cond?.ind;
+  if (inds) {
+    ctx.ind ??= inds.includes(co.primary) ? co.primary : co.divisions.find((d) => inds.includes(d));
+    if (ctx.ind && co.divisions.some((d) => !inds.includes(d))) ctx.scoped = true;
+  }
   return ctx;
 }
 
@@ -128,7 +135,7 @@ export function fill(g: GameState, s: string, ctx: EventCtx): string {
   const map: Record<string, string> = {
     company: co.name, city: CITY[city]?.name ?? '', office: o?.name ?? '', region: REGIONS[ctx.region ?? CITY[city].region].name,
     rival: r?.name ?? 'a competitor', rivalCeo: r?.ceo ?? 'their CEO', person: p?.name ?? 'a senior colleague', role: p ? (p.role === 'GM' ? 'general manager' : p.role) : 'manager',
-    ind: INDUSTRIES[ctx.ind ?? co.primary].name.toLowerCase(), loan: l?.name ?? 'your loan', amount: ctx.amount ? money(ctx.amount) : '',
+    ind: INDUSTRIES[ctx.ind ?? co.primary].name.toLowerCase(), loan: l?.name ?? 'your loan', amount: ctx.amount !== undefined ? money(ctx.amount) : 'a sum',
   };
   return s.replace(/\{(\w+)\}/g, (_, k) => map[k] ?? '');
 }
@@ -148,8 +155,27 @@ export const EVENT_RATE = 0.4;
 
 const CAT_W = { macro: 0.8, market: 1, operational: 1, regulatory: 0.8, opportunity: 1, stress: 0.7, rival: 0 } as const;
 
+/**
+ * Cards about a rival that has gone, an office that has closed, a person who has left or a loan that has been
+ * repaid no longer apply: drop them, waiting or scheduled. Run at the start of each quarter and after every action.
+ */
+export function pruneStale(g: GameState) {
+  const co = g.company;
+  const stale = (ctx: EventCtx) =>
+    (ctx.rival !== undefined && !g.rivals.some((r) => r.id === ctx.rival && r.alive)) ||
+    (ctx.office !== undefined && !co.offices.some((o) => o.id === ctx.office)) ||
+    (ctx.person !== undefined && !co.people.some((p) => p.id === ctx.person)) ||
+    (ctx.loan !== undefined && !co.loans.some((l) => l.id === ctx.loan));
+  for (const s of g.scheduled) {
+    if (s.id === 'lawsuit_verdict' && stale(s.ctx)) news(g, `Your lawsuit against ${g.rivals.find((r) => r.id === s.ctx.rival)?.name ?? 'a competitor'} lapsed: there is no longer anyone to collect from.`, 'info');
+  }
+  g.queue = g.queue.filter((pe) => !stale(pe.ctx));
+  g.scheduled = g.scheduled.filter((s) => !stale(s.ctx));
+}
+
 /** Called at the start of each quarter: deliver scheduled events, then draw from the deck. */
 export function drawEvents(g: GameState) {
+  pruneStale(g);
   const due = g.scheduled.filter((s) => s.turn <= g.turn);
   g.scheduled = g.scheduled.filter((s) => s.turn > g.turn);
   for (const s of due) queueEvent(g, s.id, s.ctx);
@@ -181,12 +207,12 @@ function targets(g: GameState, scope: Scope | undefined, ctx: EventCtx, dflt: Sc
     const o = co.offices.find((x) => x.id === ctx.office) ?? co.offices.slice().sort((a, b) => headcount(b) - headcount(a))[0];
     return o ? [o] : [];
   }
-  if (s === 'region') return co.offices.filter((o) => CITY[o.city].region === (ctx.region ?? CITY[co.home].region));
-  if (s === 'ind') return co.offices.filter((o) => o.ind === (ctx.ind ?? co.primary));
+  if (s === 'region') return co.offices.filter((o) => CITY[o.city].region === (ctx.region ?? CITY[co.home].region) && (!ctx.scoped || o.ind === ctx.ind));
+  if (s === 'ind' || ctx.scoped) return co.offices.filter((o) => o.ind === (ctx.ind ?? co.primary));
   return co.offices;
 }
 const modScope = (scope: Scope | undefined, ctx: EventCtx, co: GameState['company']) =>
-  scope === 'office' ? { office: ctx.office ?? co.offices[0]?.id } : scope === 'region' ? { region: ctx.region ?? CITY[co.home].region } : scope === 'ind' ? { ind: ctx.ind ?? co.primary } : {};
+  scope === 'office' ? { office: ctx.office ?? co.offices[0]?.id } : scope === 'region' ? { region: ctx.region ?? CITY[co.home].region, ...(ctx.scoped ? { ind: ctx.ind } : {}) } : scope === 'ind' || ctx.scoped ? { ind: ctx.ind ?? co.primary } : {};
 const where = (g: GameState, scope: Scope | undefined, ctx: EventCtx) =>
   scope === 'office' ? ` in ${CITY[ctx.city ?? g.company.home].name}` : scope === 'region' ? ` in ${REGIONS[ctx.region ?? CITY[g.company.home].region].short}` : '';
 const sg = (n: number, unit = '') => `${n >= 0 ? '+' : '−'}${Math.abs(n)}${unit}`;
@@ -205,13 +231,13 @@ export const SPECIALS: Record<string, Special> = {
     const co = g.company;
     for (const reg of Object.keys(co.policy) as RegionId[]) {
       if (ctx.region && arg < 0 && reg !== ctx.region) continue;
-      for (const k of co.divisions) co.policy[reg].price[k] = clamp((co.policy[reg].price[k] ?? 1) * (1 + Math.abs(arg) / 100), 0.5, 1.8);
+      for (const k of ctx.scoped && ctx.ind ? [ctx.ind] : co.divisions) co.policy[reg].price[k] = clamp((co.policy[reg].price[k] ?? 1) * (1 + Math.abs(arg) / 100), 0.5, 1.8);
     }
     return `Prices raised ${Math.abs(arg)}%`;
   },
-  priceDown: (g, _ctx, arg) => {
+  priceDown: (g, ctx, arg) => {
     const co = g.company;
-    for (const reg of Object.keys(co.policy) as RegionId[]) for (const k of co.divisions) co.policy[reg].price[k] = clamp((co.policy[reg].price[k] ?? 1) * (1 - arg / 100), 0.5, 1.8);
+    for (const reg of Object.keys(co.policy) as RegionId[]) for (const k of ctx.scoped && ctx.ind ? [ctx.ind] : co.divisions) co.policy[reg].price[k] = clamp((co.policy[reg].price[k] ?? 1) * (1 - arg / 100), 0.5, 1.8);
     return `Prices cut ${arg}%`;
   },
   fixDebt: (g) => {
@@ -389,7 +415,7 @@ export function applyFx(g: GameState, fx: Fx[], ctx: EventCtx): string[] {
       case 'tech': { const k = ctx.ind && co.divisions.includes(ctx.ind) ? ctx.ind : co.primary; co.tech[k] = clamp((co.tech[k] ?? 0) + f[1], 5, 100); say(`Technology ${sg(f[1])}`); break; }
       case 'loyalty': { const p = co.people.find((x) => x.id === ctx.person); for (const x of p ? [p] : co.people) x.loyalty = clamp(x.loyalty + f[1], 0, 100); say(`Loyalty ${sg(f[1])}${p ? ` for ${p.name}` : ' among key people'}`); break; }
       case 'demand': addMod(g, { kind: 'demand', pct: f[1], quarters: f[2], src: 'event', ...modScope(f[3], ctx, co) }); say(`Customer pull ${sg(f[1], '%')}${where(g, f[3], ctx)} for ${f[2]} quarters`); break;
-      case 'market': addMod(g, { kind: 'market', pct: f[1], quarters: f[2], src: 'event', ...(f[3] === 'region' ? { region: ctx.region ?? CITY[co.home].region } : f[3] === 'ind' ? { ind: ctx.ind ?? co.primary } : {}) }); say(`Whole market ${sg(f[1], '%')} for ${f[2]} quarters`); break;
+      case 'market': addMod(g, { kind: 'market', pct: f[1], quarters: f[2], src: 'event', ...(f[3] === 'region' ? { region: ctx.region ?? CITY[co.home].region } : f[3] === 'ind' || ctx.scoped ? { ind: ctx.ind ?? co.primary } : {}) }); say(`Whole market ${sg(f[1], '%')} for ${f[2]} quarters`); break;
       case 'wages': addMod(g, { kind: 'wages', pct: f[1], quarters: f[2], src: 'event' }); say(`Wage costs ${sg(f[1], '%')} for ${f[2]} quarters`); break;
       case 'inputs': addMod(g, { kind: 'inputs', pct: hasFlag(g, 'hedged') && f[1] > 0 ? f[1] / 2 : f[1], quarters: f[2], src: 'event' }); say(`Input costs ${sg(hasFlag(g, 'hedged') && f[1] > 0 ? f[1] / 2 : f[1], '%')} for ${f[2]} quarters${hasFlag(g, 'hedged') && f[1] > 0 ? ' (hedges absorbed half)' : ''}`); break;
       case 'capacity': addMod(g, { kind: 'capacity', pct: f[1], quarters: f[2], src: 'event', ...modScope(f[3], ctx, co) }); say(`Capacity ${sg(f[1], '%')}${where(g, f[3], ctx)} for ${f[2]} quarters`); break;
@@ -610,7 +636,7 @@ export function viewEvent(g: GameState, pe: PendingEvent): EventView {
 export interface EventResult { title: string; choice: string; text: string; effects: string[]; lesson: string; luck: number; terms: string[] }
 export function resolveEvent(g: GameState, uid: number, optIdx: number): EventResult | null {
   const pe = g.queue.find((e) => e.uid === uid);
-  if (!pe) return null;
+  if (!pe || (g.status !== 'playing' && !g.continued)) return null;
   const def = EVENT[pe.id];
   const opt: EventOption | undefined = def.opts[optIdx];
   if (!opt || !evalCond(g, opt.req, pe.ctx)) return null;
@@ -630,6 +656,7 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   const effects = applyFx(g, out.fx ?? [], pe.ctx);
   for (const [id, delay, p] of out.chain ?? []) if (chance(g, p ?? 1)) scheduleEvent(g, id, delay, pe.ctx);
   g.queue = g.queue.filter((e) => e.uid !== uid);
+  if (g.status !== 'playing' && !g.continued) g.queue = []; // that choice ended the game (a sale, a takeover)
   g.attribution.luck += luck;
   if (Math.abs(luck) > 0.04 * scaleS(g)) g.attribution.notes.push({ turn: g.turn, kind: 'luck', text: `${title}: ${text}`, value: luck });
   g.eventLog.push({ turn: g.turn, id: def.id, title, choice, result: text, luck, cat: def.cat });

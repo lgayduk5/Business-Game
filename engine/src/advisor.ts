@@ -65,7 +65,15 @@ export function advise(g: GameState): AdvisorNote[] {
   // ── cash versus profit
   const gap = q.cf.cfo - q.ni;
   if (Math.abs(gap) > Math.max(25_000, Math.abs(q.ni) * 0.4, rev * 0.08)) {
-    const items: [number, string][] = [[-q.cf.dAR, 'customers owing you more'], [-q.cf.dInv, 'more inventory on the shelves'], [q.cf.dAP, 'paying suppliers later'], [q.cf.dDef, 'customers paying in advance'], [q.cf.da + q.cf.noncash, 'non-cash charges like depreciation']];
+    // each driver, worded for the way it moved: [effect on cash, if it added cash, if it took cash]
+    const drivers: [number, string, string][] = [
+      [-q.cf.dAR, 'customers paying down what they owed', 'customers owing you more'],
+      [-q.cf.dInv, 'running down inventory', 'more inventory on the shelves'],
+      [q.cf.dAP, 'paying suppliers later', 'paying suppliers sooner'],
+      [q.cf.dDef, 'customers paying in advance', 'earning revenue customers had paid for in advance'],
+      [q.cf.da + q.cf.noncash, 'non-cash charges like depreciation', 'gains that brought in no cash'],
+    ];
+    const items: [number, string][] = drivers.map(([v, more, less]) => [v, v >= 0 ? more : less]);
     const big = items.filter(([v]) => Math.abs(v) > Math.abs(gap) * 0.2).sort((a, b) => Math.abs(b[0]) - Math.abs(a[0])).slice(0, 2);
     add(gap < 0 ? 5 : 2, { who: 'CFO', tone: gap < 0 ? 'warn' : 'info', title: gap < 0 ? 'Profit did not turn into cash' : 'Cash came in faster than profit', text: `Operations ${q.cf.cfo >= 0 ? 'produced' : 'used'} ${money(Math.abs(q.cf.cfo))} against net income of ${money(q.ni)}. ${big.map(([v, t]) => `${v >= 0 ? '+' : '−'}${money(Math.abs(v))} from ${t}`).join('; ')}.`, terms: ['workingCapital', 'cashFlow'] });
   }
@@ -86,7 +94,7 @@ export function advise(g: GameState): AdvisorNote[] {
   for (const o of c.offices) {
     const l = o.last;
     if (!l || g.turn - o.opened < 2) continue;
-    if (l.bind !== 'demand' && l.lost > rev * 0.05) add(5, { who: 'COO', tone: 'warn', title: `${CITY[o.city].name} is turning customers away`, text: `About ${money(l.lost)} of sales went unserved because of ${l.bind === 'facility' ? 'plant capacity — build, or raise prices until demand fits' : 'too few people — hire, or raise prices'}.`, terms: ['capacity'] });
+    if (l.bind !== 'demand' && l.lost > rev * 0.05) add(5, { who: 'COO', tone: 'warn', title: `${CITY[o.city].name} is turning customers away`, text: `Customers would buy about ${money(l.lost)} a quarter more than you can deliver, held back by ${l.bind === 'facility' ? 'plant capacity — build, or raise prices until demand fits' : 'too few people — hire, or raise prices'}.`, terms: ['capacity'] });
     else if (l.util < 0.6 && headcount(o) > 4) add(4, { who: 'COO', tone: 'warn', title: `${CITY[o.city].name} is ${pct(1 - l.util)} idle`, text: `You are paying for capacity customers are not using. Add sales effort, sharpen the price, or slim the team.`, terms: ['utilisation', 'fixedCosts'] });
     if (l.contribution < -0.15 * Math.max(l.revenue, 1) && g.turn - o.opened > 6) add(4, { who: 'COO', tone: 'warn', title: `${CITY[o.city].name} loses money on its own account`, text: `It cost ${money(-l.contribution)} more than it earned last quarter, before any head-office costs. Fix it or consider closing it.`, terms: ['contribution'] });
   }
@@ -117,7 +125,7 @@ export function advise(g: GameState): AdvisorNote[] {
   const close = victoryStatus(g).filter((v) => v.enabled && v.progress > 0.8).sort((a, b) => b.progress - a.progress)[0];
   if (close) add(2, { who: 'Chair', tone: 'good', title: `Within reach: ${close.name}`, text: `${close.desc} ${close.detail}` });
   // ── good news
-  if (pq && q.ni > 0 && pq.ni <= 0) add(3, { who: 'CFO', tone: 'good', title: 'Profitable', text: 'Net income turned positive this quarter. Losses carried forward will shelter the first profits from tax.', terms: ['taxLoss'] });
+  if (pq && q.ni > 0 && pq.ni <= 0) add(3, { who: 'CFO', tone: 'good', title: 'Profitable', text: `Net income turned positive this quarter.${c.nol > 0 ? ` ${money(c.nol)} of losses carried forward will shelter the first profits from tax.` : ''}`, terms: c.nol > 0 ? ['taxLoss'] : [] });
   const best = Math.max(...c.quarters.slice(0, -1).map((x) => x.pnl.revenue), 0);
   if (rev > best * 1.02 && c.quarters.length > 4 && revenueGrowth(c) > 0.15) add(1, { who: 'CMO', tone: 'good', title: 'Record quarter', text: `Revenue of ${money(rev)} is the highest yet, ${pct(revenueGrowth(c))} up on a year ago.` });
 

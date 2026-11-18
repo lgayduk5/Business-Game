@@ -1,5 +1,5 @@
 // App state, render loop, event delegation and the bridge to the engine worker.
-import { endTurn, needsAttention, type ActionResult, type Difficulty, type FounderId, type GameState, type IndustryId, type RegionId } from '@engine';
+import { endTurn, needsAttention, pruneStale, type ActionResult, type Difficulty, type FounderId, type GameState, type IndustryId, type RegionId } from '@engine';
 import { fmtLive, getTip, resetTips } from './kit';
 
 export type Tab = 'hq' | 'map' | 'ops' | 'corp' | 'intel';
@@ -95,6 +95,7 @@ export function toast(msg: string, bad = false) {
 }
 /** Run an engine action, tell the player what happened, re-render. */
 export function act(r: ActionResult, sound?: () => void) {
+  if (ui.g) pruneStale(ui.g); // a card about an office just closed, or a rival just bought, no longer applies
   toast(r.msg, !r.ok);
   if (r.ok) sound?.();
   render();

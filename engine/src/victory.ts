@@ -216,13 +216,28 @@ export function finalGrade(g: GameState): FinalGrade {
   const goal = Math.max(0, ...victoryStatus(g).filter((v) => v.enabled).map((v) => v.progress));
   const goalPts = 25 * goal;
   const score = rankPts + wealthPts + goalPts;
-  const [, grade, label] = (sprint ? SPRINT_GRADES : GRADES).find(([min]) => score >= min)!;
+  const bands = sprint ? SPRINT_GRADES : GRADES;
+  let [, grade, label] = bands.find(([min]) => score >= min)!;
+  // a winning letter also needs real growth: a high score without it stops at C, so the letter and the result agree
+  const grew = stakeGrew(sprint, multiple, vsMarket) && grewUp(g, sprint ? SPRINT_MIN_REVENUE : 2);
+  const capped = (grade === 'A' || grade === 'B') && !grew;
+  if (capped) [, grade, label] = bands.find(([, k]) => k === 'C')!;
   const x = (n: number) => (n >= 10 ? n.toFixed(0) : n.toFixed(1)) + '×';
   return {
-    grade, label, score, won: (grade === 'A' || grade === 'B') && stakeGrew(sprint, multiple, vsMarket) && grewUp(g, sprint ? SPRINT_MIN_REVENUE : 2), rank, companies: alive.length + 1, multiple, goal, market,
+    grade, label, score, won: (grade === 'A' || grade === 'B'), rank, companies: alive.length + 1, multiple, goal, market,
     rows: [[`${byGrowth ? `Rank by growth (your business ${x(myGrowth)} in real terms)` : 'Rank by value'}: ${rank} of ${alive.length + 1}`, `${rankPts} of 40`, rankPts], [`Your stake grew ${x(multiple)} in real terms; the typical rival ${x(market)}`, `${wealthPts.toFixed(0)} of 35`, wealthPts],
-      [`Closest goal reached ${pct(goal)}`, `${goalPts.toFixed(0)} of 25`, goalPts]],
+      [`Closest goal reached ${pct(goal)}`, `${goalPts.toFixed(0)} of 25`, goalPts],
+      ...(capped ? [[`Not enough growth for an A or B (${sprint ? 'stake 1.25× and revenue 1.5×' : 'stake 3× and revenue 2×'} in real terms)`, 'grade stops at C', 0] as [string, string, number]] : [])],
   };
+}
+
+/** What a winning grade takes, in words, for the end screen. */
+export function gradeRule(sprint: boolean): string {
+  const [a, b] = sprint ? SPRINT_GRADES : GRADES;
+  const growth = sprint
+    ? `your stake grew by at least a quarter (or kept half its value while doing twice as well as the typical rival's) and revenue by half in real terms`
+    : `your stake at least tripled and revenue at least doubled in real terms`;
+  return `A (${a[0]}+) or B (${b[0]}+) counts as a win, as long as ${growth}. Without that growth the grade stops at C.`;
 }
 
 export function checkEnd(g: GameState) {

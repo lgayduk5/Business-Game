@@ -39,7 +39,7 @@ function officeView(g: GameState): string {
   const hint = staffingHint(g, o);
 
   const status = l
-    ? `<div class="note ${l.bind === 'demand' ? '' : 'warn'}"><b>${BIND_TEXT[l.bind][0]}.</b><p>${BIND_TEXT[l.bind][1]}${l.lost > 1000 ? ` About ${money(l.lost)} of sales a quarter is going unserved.` : ''}</p></div>`
+    ? `<div class="note ${l.bind === 'demand' ? '' : 'warn'}"><b>${BIND_TEXT[l.bind][0]}.</b><p>${BIND_TEXT[l.bind][1]}${l.lost > 1000 ? ` Customers would buy about ${money(l.lost)} a quarter more than you can deliver.` : ''}</p></div>`
     : `<div class="note"><b>Not trading yet.</b><p>Set up the team and end the quarter.</p></div>`;
 
   const quarter = l ? `<div class="sheet"><h2>Last quarter</h2><div class="kv">
@@ -118,7 +118,7 @@ function forecastView(g: GameState, o: Office): string {
       <div>Revenue</div><div>${$(n.revenue, 'Likely revenue', how, [['Units sold', units(n.sold)], ['Last quarter', l ? money(l.revenue) : '—']])}${vs(n.revenue, l?.revenue)}</div>
       <div>Contribution</div><div>${$(n.contribution, 'Likely contribution', 'What this office would earn after its own costs next quarter. ' + how, [['Last quarter', l ? money(l.contribution) : '—']], ['contribution'])}</div>
       <div>Company cash at quarter end</div><div>${$(f.cash, 'Likely cash', 'Cash for the whole company at the end of the coming quarter, after every office, head office, interest, tax and building already committed.', [['Cash today', money(g.company.books.cash)], ['Cash from operations', money(f.cfo)], ['Net income', money(f.ni)]], ['cashFlow'])}</div>
-    </div>${turnedAway ? `<p class="small hi">On this plan you would turn away about ${money(n.lost)} of sales: ${n.bind === 'facility' ? 'the plant is the limit' : 'there are not enough people'}.</p>` : ''}
+    </div>${turnedAway ? `<p class="small hi">On this plan customers would want about ${money(n.lost)} more than you can deliver: ${n.bind === 'facility' ? 'the plant is the limit' : 'there are not enough people'}.</p>` : ''}
     ${f.cash < 0 ? '<p class="small neg">On this plan the company runs out of cash next quarter.</p>' : ''}</div>`;
 }
 

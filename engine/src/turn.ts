@@ -227,7 +227,12 @@ export function endTurn(g: GameState): void {
   if (g.macro.gap < -1.5) B.writeOffAR(c, c.books.ar * clamp(0.003 * (-g.macro.gap - 1), 0, 0.02));
   // a factor buys most invoices as they are billed: receivables fall, for a fee
   const arKeep = c.factoring ? arTarget * (1 - FACTOR_SHARE) : arTarget;
-  B.collect(c, Math.max(0, c.books.ar - arKeep));
+  // Deferred revenue can only shrink by being earned. When it shrinks faster than that (service cut back or
+  // stopped, prepaid contracts cancelled), the customers who paid in advance are owed the difference: refund it.
+  if (c.books.ar < 0) {
+    if (c.books.ar < -1000) news(g, `Customers who had paid in advance were refunded ${money(-c.books.ar)} for service you no longer provide.`, 'bad');
+    B.collect(c, c.books.ar);
+  } else B.collect(c, Math.max(0, c.books.ar - arKeep));
   if (c.factoring) B.interest(c, FACTOR_FEE * FACTOR_SHARE * revenue);
   const dpo = revenue > 0 ? dpoW / revenue : INDUSTRIES[c.primary].dpo;
   B.payAP(c, Math.max(0, c.books.ap - (apSpend * dpo) / 90));
@@ -308,6 +313,8 @@ export function endTurn(g: GameState): void {
   };
   g.advisor = advise(g);
   checkEnd(g);
+  // a finished game takes no more decisions (a takeover offer still waiting could otherwise undo a win)
+  if (g.status !== 'playing' && !g.continued) g.queue = [];
 
   // ── roll into the next quarter
   g.turn++;

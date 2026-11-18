@@ -143,6 +143,7 @@ export function sellSecurities(c: Company, book: number, proceeds: number) {
 }
 /** Asset purchase: fair-value property plus goodwill for the premium. */
 export function acquire(c: Company, price: number, fairPpe: number, o?: Office) {
+  fairPpe = Math.min(fairPpe, Math.max(0, price)); // a bargain: the whole price goes to the property, and no goodwill
   c.books.ppe += fairPpe;
   if (o) o.ppe += fairPpe;
   c.books.goodwill += price - fairPpe;

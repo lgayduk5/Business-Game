@@ -1,5 +1,39 @@
 # Changelog
 
+## Third review: playtest across every mode and industry
+
+Design choices in decisions 80–86. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the
+bots and a random-action player in every industry, difficulty and mode, checked after every action and quarter.
+
+**Bugs**
+- **Negative receivables** in software (and anything with prepaid revenue) when revenue fell sharply: deferred
+  revenue unwound with nothing earned against it. Customers who paid in advance are now refunded.
+- **Negative goodwill** after buying a rival or a deal target for less than its plant was worth (common in energy).
+  The plant is booked at the price paid.
+- **"Buy their office" charged more than the card said** (the plant's value when that was higher than the price shown,
+  even beyond the 80%-of-cash cap). It now charges the price on the card.
+- **Takeover offers read "an offer for the whole company: , cash"** when the company was valued at nothing. Offers now
+  name a price (never under about $290K in today's money), and a blank amount can no longer appear.
+- **Ghost rivals:** a newcomer that found every market crowded entered with its funding and no offices ("has entered
+  Software in ."), and counted in the end-of-game ranking. It now does not enter.
+- **Grade A, result "lost":** the growth test sat outside the letter. A high score without the growth now stops at C
+  and says why; the end screen's rule was also wrong for a Sprint (it showed the full game's bands and growth test).
+- **Cards for a company with several industries** applied to the wrong one: a software "renewals are slipping" card
+  cut share in a retailer's stores, a biotech card's technology gain went to the primary industry. Industry cards now
+  stay in their industry (single-industry games are unchanged).
+- **Cards that no longer apply** (a rival bought or bankrupt, an office closed, a person gone, a loan repaid) stayed in
+  the queue; a lawsuit against a rival that no longer exists now lapses with a note.
+- **After the game ended,** decisions still waiting could be taken (a takeover offer could turn a win into a sale), and
+  the header showed the quarter after the last one.
+
+**Teaching text**
+- The CFO's "cash against profit" note described every driver in one direction ("+$36K from more inventory on the
+  shelves" when stock had fallen). Each driver is now worded the way it moved.
+- "About $10.5M of sales went unserved" (on $595K of revenue) described demand the office could win over time, not
+  sales lost that quarter; it now says "customers would buy about $X a quarter more than you can deliver".
+- "Profitable" no longer promises losses carried forward when there are none; the AI-tools card no longer says
+  software customers "pay for hours".
+
 ## Second review
 
 Status per item in `docs/review-response.md` (second review section); design choices in decisions 69–79.

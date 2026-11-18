@@ -1,13 +1,13 @@
 {
   "full": {
-    "fingerprint": "62cc1b72a7f6e337",
+    "fingerprint": "2193638401d52689",
     "seeds": 12,
     "cells": {
       "saas": {
         "easy": { "games": 48, "win": 1, "bankrupt": 0, "best": 1 },
         "normal": { "games": 48, "win": 0.98, "bankrupt": 0, "best": 1 },
         "hard": { "games": 48, "win": 0.85, "bankrupt": 0, "best": 1 },
-        "brutal": { "games": 48, "win": 0.33, "bankrupt": 0.06, "best": 0.58 }
+        "brutal": { "games": 48, "win": 0.31, "bankrupt": 0.06, "best": 0.58 }
       },
       "retail": {
         "easy": { "games": 48, "win": 0.85, "bankrupt": 0.13, "best": 1 },
@@ -16,7 +16,7 @@
         "brutal": { "games": 48, "win": 0.67, "bankrupt": 0.13, "best": 0.83 }
       },
       "mfg": {
-        "easy": { "games": 48, "win": 0.79, "bankrupt": 0.04, "best": 1 },
+        "easy": { "games": 48, "win": 0.79, "bankrupt": 0.06, "best": 1 },
         "normal": { "games": 48, "win": 0.63, "bankrupt": 0.1, "best": 0.75 },
         "hard": { "games": 48, "win": 0.46, "bankrupt": 0.17, "best": 0.5 },
         "brutal": { "games": 48, "win": 0.25, "bankrupt": 0.23, "best": 0.42 }
@@ -25,36 +25,36 @@
         "easy": { "games": 48, "win": 1, "bankrupt": 0, "best": 1 },
         "normal": { "games": 48, "win": 0.9, "bankrupt": 0.02, "best": 0.92 },
         "hard": { "games": 48, "win": 0.6, "bankrupt": 0.04, "best": 0.75 },
-        "brutal": { "games": 48, "win": 0.21, "bankrupt": 0.02, "best": 0.42 }
+        "brutal": { "games": 48, "win": 0.19, "bankrupt": 0.02, "best": 0.33 }
       },
       "energy": {
         "easy": { "games": 48, "win": 1, "bankrupt": 0, "best": 1 },
         "normal": { "games": 48, "win": 0.77, "bankrupt": 0.04, "best": 0.92 },
-        "hard": { "games": 48, "win": 0.48, "bankrupt": 0, "best": 0.67 },
-        "brutal": { "games": 48, "win": 0.23, "bankrupt": 0, "best": 0.42 }
+        "hard": { "games": 48, "win": 0.46, "bankrupt": 0, "best": 0.67 },
+        "brutal": { "games": 48, "win": 0.21, "bankrupt": 0, "best": 0.33 }
       },
       "consulting": {
         "easy": { "games": 48, "win": 1, "bankrupt": 0, "best": 1 },
         "normal": { "games": 48, "win": 0.9, "bankrupt": 0, "best": 1 },
         "hard": { "games": 48, "win": 0.63, "bankrupt": 0.1, "best": 0.83 },
-        "brutal": { "games": 48, "win": 0.17, "bankrupt": 0.42, "best": 0.33 }
+        "brutal": { "games": 48, "win": 0.17, "bankrupt": 0.44, "best": 0.33 }
       },
       "biotech": {
-        "easy": { "games": 48, "win": 0.9, "bankrupt": 0, "best": 1 },
-        "normal": { "games": 48, "win": 0.81, "bankrupt": 0.02, "best": 1 },
+        "easy": { "games": 48, "win": 0.88, "bankrupt": 0, "best": 1 },
+        "normal": { "games": 48, "win": 0.79, "bankrupt": 0.02, "best": 1 },
         "hard": { "games": 48, "win": 0.69, "bankrupt": 0.06, "best": 0.92 },
-        "brutal": { "games": 48, "win": 0.29, "bankrupt": 0.08, "best": 0.33 }
+        "brutal": { "games": 48, "win": 0.27, "bankrupt": 0.08, "best": 0.33 }
       }
     }
   },
   "sprint": {
-    "fingerprint": "62cc1b72a7f6e337",
+    "fingerprint": "2193638401d52689",
     "seeds": 12,
     "cells": {
       "saas": {
         "easy": { "games": 48, "win": 1, "bankrupt": 0, "best": 1 },
         "normal": { "games": 48, "win": 0.94, "bankrupt": 0, "best": 1 },
-        "hard": { "games": 48, "win": 0.83, "bankrupt": 0, "best": 1 },
+        "hard": { "games": 48, "win": 0.85, "bankrupt": 0, "best": 1 },
         "brutal": { "games": 48, "win": 0.52, "bankrupt": 0, "best": 0.58 }
       },
       "retail": {
@@ -67,10 +67,10 @@
         "easy": { "games": 48, "win": 0.69, "bankrupt": 0, "best": 0.92 },
         "normal": { "games": 48, "win": 0.35, "bankrupt": 0.02, "best": 0.42 },
         "hard": { "games": 48, "win": 0.46, "bankrupt": 0.02, "best": 0.58 },
-        "brutal": { "games": 48, "win": 0.21, "bankrupt": 0.06, "best": 0.42 }
+        "brutal": { "games": 48, "win": 0.19, "bankrupt": 0.06, "best": 0.33 }
       },
       "logistics": {
-        "easy": { "games": 48, "win": 0.92, "bankrupt": 0, "best": 1 },
+        "easy": { "games": 48, "win": 0.94, "bankrupt": 0, "best": 1 },
         "normal": { "games": 48, "win": 0.58, "bankrupt": 0, "best": 0.83 },
         "hard": { "games": 48, "win": 0.29, "bankrupt": 0, "best": 0.5 },
         "brutal": { "games": 48, "win": 0.06, "bankrupt": 0, "best": 0.17 }
@@ -89,9 +89,9 @@
       },
       "biotech": {
         "easy": { "games": 48, "win": 0.46, "bankrupt": 0, "best": 0.67 },
-        "normal": { "games": 48, "win": 0.5, "bankrupt": 0, "best": 0.92 },
-        "hard": { "games": 48, "win": 0.46, "bankrupt": 0.02, "best": 0.67 },
-        "brutal": { "games": 48, "win": 0.21, "bankrupt": 0, "best": 0.42 }
+        "normal": { "games": 48, "win": 0.46, "bankrupt": 0, "best": 0.92 },
+        "hard": { "games": 48, "win": 0.48, "bankrupt": 0.02, "best": 0.67 },
+        "brutal": { "games": 48, "win": 0.19, "bankrupt": 0, "best": 0.33 }
       }
     }
   }

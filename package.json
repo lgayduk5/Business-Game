@@ -15,7 +15,8 @@
     "sim": "tsx scripts/sim.ts",
     "sim:ci": "tsx scripts/sim.ts --ci",
     "sim:check": "tsx scripts/sim.ts --check",
-    "smoke": "node scripts/ui-smoke.mjs"
+    "smoke": "node scripts/ui-smoke.mjs",
+    "playtest": "tsx scripts/playtest.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
