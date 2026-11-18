@@ -107,7 +107,7 @@ async function main() {
   const CI = args.includes('--ci');
   const SPRINT = args.includes('--sprint');
   const TURNS = SPRINT ? 40 : Number(opt('turns', '100'));
-  const SEEDS = Number(opt('seeds', CI ? '3' : '6'));
+  const SEEDS = Number(opt('seeds', CI ? '3' : '12'));
   const BOT_IDS = opt('bots', Object.keys(BOTS).join(',')).split(',');
   const DIFFS = opt('diff', 'easy,normal,hard,brutal').split(',') as Difficulty[];
   const INDS = opt('ind', IND_LIST.map((i) => i.id).join(',')).split(',') as IndustryId[];

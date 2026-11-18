@@ -52,7 +52,7 @@ export const DIFF: Record<Difficulty, DiffDef> = {
     label: 'Brutal', who: 'A test, not a story. Expect to lose a few companies.',
     expect: 'Even a very good plan wins only about one game in three.', // 38%
     cash: 0.7, rivals: 6, rivalSize: 1.9, rivalEff: 0.9, aggression: 1.7, rivalSales: 1.7, rivalRd: 1.6, rivalMax: 19, defend: 2, rivalOps: 15,
-    events: 1.3, recession: 1.4, spread: 1, appetite: -0.2,
+    events: 1.3, recession: 1.4, spread: 2, appetite: -0.2,
     titan: 15e9, kingShare: 0.45, techBar: 91, goodRev: 200e6, ipoMinRev: 80e6, entrants: 3.5,
   },
 };
