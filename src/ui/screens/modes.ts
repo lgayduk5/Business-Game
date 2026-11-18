@@ -20,7 +20,7 @@ setupExtras.push(() => {
   const w = ui.wizard!;
   return `<h3>Length</h3><div class="choices">
       <button class="choice" data-a="wzFlag" data-k="sprint" data-v="0" aria-pressed="${!w.sprint}"><b>Full game</b><span class="muted">Twenty-five years. Win by one of six victories, or by your grade at the end.</span></button>
-      <button class="choice" data-a="wzFlag" data-k="sprint" data-v="1" aria-pressed="${!!w.sprint}"><b>Sprint</b><span class="muted">Ten years, then a grade from A to F. The victory bars are lower, but ten years is short: in testing a good plan earns a winning grade in about one Sprint in three on Normal.</span></button></div>
+      <button class="choice" data-a="wzFlag" data-k="sprint" data-v="1" aria-pressed="${!!w.sprint}"><b>Sprint</b><span class="muted">Ten years, then a grade from A to F. The victory bars are lower, but ten years is short: in testing a good plan earns a winning grade in a little under half of Sprints on Normal.</span></button></div>
     ${w.mode === 'standard' ? `<h3>Ironman</h3><div class="choices">
       <button class="choice" data-a="wzFlag" data-k="ironman" data-v="0" aria-pressed="${!w.ironman}"><b>Off</b><span class="muted">Save slots, save files, and replaying the last year from the final review.</span></button>
       <button class="choice" data-a="wzFlag" data-k="ironman" data-v="1" aria-pressed="${!!w.ironman}"><b>Ironman</b><span class="muted">One life. The game saves itself and nothing else: no slots, no save files, no rewinds. Your result carries the badge.</span></button></div>` : ''}`;

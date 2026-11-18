@@ -13,7 +13,8 @@
       "quality": 52,
       "eff": 1.03,
       "acquisitive": 0.2,
-      "grudge": 0.6
+      "grudge": 0.6,
+      "moves": { "war": 2, "poach": 1, "lawsuit": 0.5, "lobby": 0.3 }
     },
     {
       "id": "costcutter",
@@ -28,7 +29,8 @@
       "quality": 44,
       "eff": 0.9,
       "acquisitive": 0.1,
-      "grudge": 0.8
+      "grudge": 0.8,
+      "moves": { "war": 3, "poach": 0.5, "lawsuit": 0.5, "lobby": 0.5 }
     },
     {
       "id": "innovator",
@@ -43,7 +45,8 @@
       "quality": 62,
       "eff": 1.02,
       "acquisitive": 0.15,
-      "grudge": 0.4
+      "grudge": 0.4,
+      "moves": { "war": 0.3, "poach": 2.5, "lawsuit": 1.5, "lobby": 0.4 }
     },
     {
       "id": "predator",
@@ -58,7 +61,8 @@
       "quality": 50,
       "eff": 0.98,
       "acquisitive": 0.9,
-      "grudge": 0.9
+      "grudge": 0.9,
+      "moves": { "war": 1, "poach": 1, "lawsuit": 1.5, "lobby": 1 }
     },
     {
       "id": "conservative",
@@ -73,7 +77,8 @@
       "quality": 58,
       "eff": 0.99,
       "acquisitive": 0.1,
-      "grudge": 0.3
+      "grudge": 0.3,
+      "moves": { "war": 0.3, "poach": 0.4, "lawsuit": 1, "lobby": 2.5 }
     },
     {
       "id": "disruptor",
@@ -88,7 +93,102 @@
       "quality": 55,
       "eff": 1.08,
       "acquisitive": 0.05,
-      "grudge": 0.5
+      "grudge": 0.5,
+      "moves": { "war": 2.5, "poach": 2, "lawsuit": 0.3, "lobby": 0.2 }
+    },
+    {
+      "id": "dynasty",
+      "label": "Family dynasty",
+      "blurb": "Three generations at the helm. Never sells, and never forgets a slight.",
+      "price": 1.06,
+      "sales": 0.16,
+      "rd": 0.04,
+      "expand": 0.05,
+      "leverage": 0.1,
+      "aggression": 0.35,
+      "quality": 60,
+      "eff": 1,
+      "acquisitive": 0.1,
+      "grudge": 1,
+      "moves": { "war": 0.6, "poach": 0.6, "lawsuit": 1.5, "lobby": 1.2 },
+      "neverSells": true,
+      "grudgeDecay": 0.25,
+      "privately": true
+    },
+    {
+      "id": "state",
+      "label": "State champion",
+      "blurb": "Backed by its government. Starts price wars it can afford to lose, and regulators at home look the other way.",
+      "price": 0.88,
+      "sales": 0.2,
+      "rd": 0.05,
+      "expand": 0.1,
+      "leverage": 0.7,
+      "aggression": 0.65,
+      "quality": 50,
+      "eff": 1.04,
+      "acquisitive": 0.3,
+      "grudge": 0.6,
+      "moves": { "war": 3.5, "poach": 0.5, "lawsuit": 0.5, "lobby": 2 },
+      "subsidised": true,
+      "homeShield": true,
+      "privately": true
+    },
+    {
+      "id": "bigtech",
+      "label": "Big Tech entrant",
+      "blurb": "Arrives late with more cash than the rest of the industry put together, and goes straight for your best market.",
+      "price": 0.97,
+      "sales": 0.32,
+      "rd": 0.12,
+      "expand": 0.14,
+      "leverage": 0.05,
+      "aggression": 0.6,
+      "quality": 64,
+      "eff": 1.02,
+      "acquisitive": 0.5,
+      "grudge": 0.5,
+      "moves": { "war": 1.5, "poach": 3, "lawsuit": 1, "lobby": 0.5 },
+      "late": true,
+      "targetsBest": true,
+      "neverSells": true
+    },
+    {
+      "id": "pe",
+      "label": "Private-equity roll-up",
+      "blurb": "Buys with borrowed money and cuts costs. When rates rise, it sells what it can.",
+      "price": 1.02,
+      "sales": 0.15,
+      "rd": 0.02,
+      "expand": 0.06,
+      "leverage": 1.1,
+      "aggression": 0.45,
+      "quality": 48,
+      "eff": 0.94,
+      "acquisitive": 0.85,
+      "grudge": 0.4,
+      "moves": { "war": 0.8, "poach": 0.8, "lawsuit": 1, "lobby": 0.8 },
+      "ratesSell": true,
+      "privately": true
+    },
+    {
+      "id": "coop",
+      "label": "Co-operative",
+      "blurb": "Owned by its members. Cheap, thin margins, and customers who stay out of loyalty.",
+      "price": 0.84,
+      "sales": 0.08,
+      "rd": 0.06,
+      "expand": 0.06,
+      "leverage": 0.1,
+      "aggression": 0.15,
+      "quality": 54,
+      "eff": 1.03,
+      "acquisitive": 0,
+      "grudge": 0.2,
+      "moves": { "war": 0.5, "poach": 0.2, "lawsuit": 0.2, "lobby": 0.6 },
+      "neverSells": true,
+      "community": true,
+      "privately": true
     }
   ],
   "names": [
@@ -107,7 +207,30 @@
     "Redwater",
     "Atlas Row",
     "Corvid",
-    "Polaris"
+    "Polaris",
+    "Ardent Works",
+    "Bellwether",
+    "Cobalt & Finch",
+    "Driftwood",
+    "Emberline",
+    "Foxglove",
+    "Granite Row",
+    "Hollis Bay",
+    "Ironbark",
+    "Juniper Hill",
+    "Keystone Ridge",
+    "Lattice",
+    "Meridian West",
+    "Orchard Lane",
+    "Pinecrest",
+    "Quill & Co",
+    "Redcliff",
+    "Silverline",
+    "Thornbury",
+    "Upland",
+    "Vantage Point",
+    "Wildrose",
+    "Yarrow"
   ],
   "ceos": [
     "Ingrid Vos",
@@ -121,7 +244,18 @@
     "Leila Haddad",
     "Kenji Mori",
     "Beatriz Santos",
-    "Oliver Grant"
+    "Oliver Grant",
+    "Ines Castell",
+    "Tomás Ferreira",
+    "Grace Okafor",
+    "Hiroshi Tanabe",
+    "Marcus Lindqvist",
+    "Priya Raman",
+    "Owen Gallagher",
+    "Sofia Mendes",
+    "Daniel Ostrowski",
+    "Amara Nwosu",
+    "Felix Brandt"
   ],
-  "colors": ["#e07a5f", "#6fa8dc", "#b39ddb", "#e6b450", "#7fb685", "#d98ac2"]
+  "colors": ["#e07a5f", "#6fa8dc", "#b39ddb", "#e6b450", "#7fb685", "#d98ac2", "#6b8f71", "#a0522d", "#4f6d9a", "#8e6c8a"]
 }

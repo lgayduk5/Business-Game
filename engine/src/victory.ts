@@ -34,7 +34,7 @@ export function victoryBars(ind: IndustryId, d: Difficulty, sprint = false): [na
     ['Blue chip', `listed (needs ${money(D.ipoMinRev * Math.min(1, I.capTarget))} revenue), profitable and worth ${money(titan * 0.25)} for two years`],
     ['Pioneer', `a moonshot, then technology ${techBar(d, sprint)}+ and the lead for a year`],
     ['Good company', `reputation 85 and ESG 80 on ${money(D.goodRev * moneyScale(sprint))} of revenue, for two years`],
-    ['Last one standing', 'every rival gone, and your revenue at least doubled'],
+    ['Last one standing', 'every established rival gone, and your revenue at least doubled'],
   ];
 }
 const ipoPrice = (g: GameState) => g.company.cap.holders.find((h) => h.round === 'IPO')?.price ?? 0;
@@ -64,6 +64,10 @@ export function victoryStatus(g: GameState): VictoryStatus[] {
   const grew = grewUp(g);
   const profitable = B.ttm(c, (q) => q.ni) > 0;
   const need = VICTORY_NEED;
+  // startups keep arriving, so the field never quite empties: only rivals that have lasted three years count
+  const established = (r: GameState['rivals'][number]) => r.since === undefined || g.turn - r.since >= 12;
+  const counted = g.rivals.filter((r) => established(r) || !r.alive);
+  const standing = alive.filter(established);
   return [
     mk('marketCap', 'Titan', `Be the most valuable company in the industry, worth at least ${money(cap)}, for two quarters running.`,
       0.95 * Math.min(c.valuation / cap, c.valuation / Math.max(1, topRival)), `You: ${money(c.valuation)}. Most valuable rival: ${money(topRival)}. Bar: ${money(cap)}.`, c.valuation >= cap && c.valuation > topRival, need.marketCap),
@@ -79,9 +83,9 @@ export function victoryStatus(g: GameState): VictoryStatus[] {
       tech >= bar && tech >= topTech && c.moonshots >= 1, need.innovation),
     mk('reputation', 'Good company', `Reputation 85 and ESG 80, profitably, on at least ${money(goodRev)} of revenue, for two years.`,
       Math.min(c.reputation / 85, c.esg / 80, rev / goodRev) * 0.9, `Reputation ${c.reputation.toFixed(0)}, ESG ${c.esg.toFixed(0)}, revenue ${money(rev)}.`, c.reputation >= 85 && c.esg >= 80 && rev >= goodRev && lastNI > 0, need.reputation),
-    mk('lastStanding', 'Last one standing', 'Every rival bankrupt or bought, while your own business at least doubled its revenue (in real terms) since the start.',
-      (g.rivals.length ? (g.rivals.length - alive.length) / g.rivals.length : 0) * (grew ? 1 : 0.9), `${g.rivals.length - alive.length} of ${g.rivals.length} rivals gone. Revenue ${grew ? 'has' : 'has not yet'} doubled since the start.`,
-      g.rivals.length > 0 && !alive.length && grew, need.lastStanding),
+    mk('lastStanding', 'Last one standing', 'Every established rival bankrupt or bought (newcomers under three years old do not count), while your own business at least doubled its revenue (in real terms) since the start.',
+      (counted.length ? (counted.length - standing.length) / counted.length : 0) * (grew ? 1 : 0.9), `${counted.length - standing.length} of ${counted.length} established rivals gone. Revenue ${grew ? 'has' : 'has not yet'} doubled since the start.`,
+      counted.length > 0 && !standing.length && grew, need.lastStanding),
   ];
 }
 

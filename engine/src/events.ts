@@ -5,6 +5,7 @@ import { addNol, dilute, founderStake, outsideShares, retireShares } from './fin
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news, setFlag } from './mods';
 import { DIFF } from './difficulty';
+import { feud } from './feud';
 import { companyHeadcount, exec, headcount, personLeaves } from './people';
 import type { Cond, EventCtx, EventDef, EventOption, Fx, GameState, Office, Outcome, PendingEvent, RegionId, Role, Scope } from './types';
 import { ROLES } from './types';
@@ -630,6 +631,8 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   g.attribution.luck += luck;
   if (Math.abs(luck) > 0.04 * scaleS(g)) g.attribution.notes.push({ turn: g.turn, kind: 'luck', text: `${title}: ${text}`, value: luck });
   g.eventLog.push({ turn: g.turn, id: def.id, title, choice, result: text, luck, cat: def.cat });
+  const rival = pe.ctx.rival !== undefined ? g.rivals.find((r) => r.id === pe.ctx.rival) : undefined;
+  if (rival && def.cat === 'rival') feud(g, rival, 'them', `${title}. You: ${choice.toLowerCase()}. ${text}`);
   if (g.eventLog.length > 200) g.eventLog.shift();
   // Colour the news by how it turned out against the odds (or the outcome's own tone), not by whether money was spent.
   const tone = out.tone ?? (luck > 0.005 * scaleS(g) ? 'good' : luck < -0.005 * scaleS(g) ? 'bad' : 'info');

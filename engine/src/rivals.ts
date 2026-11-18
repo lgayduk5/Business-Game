@@ -7,6 +7,7 @@ import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthO
 import { fxOf, inputIndex } from './macro';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news } from './mods';
+import { feud } from './feud';
 import { DIFF } from './difficulty';
 import { makeOffice } from './newgame';
 import { companyHeadcount } from './people';
@@ -21,6 +22,7 @@ export const MKT_INTENSITY: Record<IndustryId, number> = { saas: 0.1, biotech: 0
 
 const wageOf = (g: GameState, city: string, ind: IndustryId, role: 'ops' | 'sales' | 'admin') => INDUSTRIES[ind].wages[role] * 1000 * CITY[city].wage * g.macro.wageIdx * fxOf(g, city);
 const alive = (g: GameState) => g.rivals.filter((r) => r.alive);
+export { ctxForRival };
 export const rivalById = (g: GameState, id: number | undefined) => g.rivals.find((r) => r.id === id);
 
 /** Scale of a start-up operation in an industry, units a quarter (what the player starts with). */
@@ -38,7 +40,7 @@ export function openRivalOffice(g: GameState, r: Rival, city: string, ind: Indus
 export function generateRivals(g: GameState, n: number): Rival[] {
   const d = DIFF[g.difficulty];
   const ind = g.company.primary;
-  const pers = shuffle(g, PERSONALITIES).slice(0, n);
+  const pers = shuffle(g, PERSONALITIES.filter((p) => !p.late)).slice(0, n);
   const names = shuffle(g, RIVAL_NAMES);
   const ceos = shuffle(g, RIVAL_CEOS);
   // random keys are drawn once per item so the order does not depend on the sort algorithm (keeps seeds portable across browsers)
@@ -178,7 +180,7 @@ export const rivalCredit = (g: GameState, r: Rival) =>
   scoreCredit({ rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), interest: (r.debt * (g.macro.rate + r.spread)) / 100, debt: r.debt, cash: r.cash, breaches: 0, cfo: 0.5 });
 
 /** An established rival has a year of history and the working capital its trade needs. */
-function seedRivalAccounts(g: GameState, r: Rival) {
+export function seedRivalAccounts(g: GameState, r: Rival) {
   const q = rivalQuarter(g, r);
   const back = [0.92, 0.946, 0.973, 1]; // about 11% a year of growth behind it
   r.rev = q.rev;
@@ -210,9 +212,12 @@ const overlapOffice = (g: GameState, r: Rival): Office | undefined => {
   return undefined;
 };
 const ctxFor = (g: GameState, r: Rival, o?: Office): EventCtx => {
+  return ctxForRival(g, r, o);
+};
+function ctxForRival(g: GameState, r: Rival, o?: Office): EventCtx {
   const off = o ?? overlapOffice(g, r) ?? g.company.offices[0];
   return { rival: r.id, office: off.id, city: off.city, region: CITY[off.city].region, ind: off.ind };
-};
+}
 
 /** Pre-market decisions: prices, sales effort, capacity, expansion, financing. */
 export function rivalsDecide(g: GameState) {
@@ -377,21 +382,28 @@ export function rivalsFinancials(g: GameState) {
     const avgShare = r.offices.length ? r.offices.reduce((s, o) => s + o.share, 0) / r.offices.length : 0;
     r.brand += 0.05 * (clamp(18 + 9 * r.offices.length ** 0.7 + 120 * avgShare, 0, 90) - r.brand);
     r.valuation = rivalValuation(g, r, q.mix).equity;
-    r.isPublic = r.isPublic || r.valuation > 1e9 * m.cpi;
     r.known = rivalKnown(g, r);
-    r.hostility = clamp(r.hostility - 0.12, 0, 10);
+    r.hostility = clamp(r.hostility - 0.12 * (pers.grudgeDecay ?? 1), 0, 10);
+    if (pers.community) r.brand = Math.max(r.brand, 45); // members stay loyal
     r.relation += (0 - r.relation) * 0.03;
     if (r.pact && r.pactUntil < g.turn) {
       r.pact = undefined;
       if (r.known) news(g, `Your agreement with ${r.name} has lapsed.`, 'rival');
     }
 
-    // distress and bankruptcy
+    // distress and bankruptcy (a state champion is bailed out, three times at most)
+    if (r.cash < 0 && pers.subsidised && (r.aid ?? 0) < 3) {
+      const aid = Math.max(-r.cash, 0) + Math.max(1, r.rev - r.profit);
+      r.cash += aid;
+      r.debt += aid * 0.5;
+      r.aid = (r.aid ?? 0) + 1;
+      if (r.known) news(g, `${r.name} has received ${money(aid)} of state aid.`, 'rival');
+    }
     if (r.cash < 0) {
       r.distress++;
       if (r.distress === 2 && r.known && EVENT.rival_distress && !acted) acted = queueEvent(g, 'rival_distress', ctxFor(g, r));
       if (r.distress >= 4) {
-        const buyer = alive(g).filter((x) => x !== r && x.cash > r.rev * 2).sort((a, b) => PERSONALITY[b.personality].acquisitive - PERSONALITY[a.personality].acquisitive)[0];
+        const buyer = PERSONALITY[r.personality].neverSells ? undefined : alive(g).filter((x) => x !== r && x.cash > r.rev * 2).sort((a, b) => PERSONALITY[b.personality].acquisitive - PERSONALITY[a.personality].acquisitive)[0];
         if (buyer && chance(g, 0.5 + PERSONALITY[buyer.personality].acquisitive * 0.4)) {
           buyer.cash -= r.rev * 1.5;
           absorb(g, buyer, r);
@@ -406,7 +418,7 @@ export function rivalsFinancials(g: GameState) {
 
     // consolidation: acquirers buy weaker rivals
     if (pers.acquisitive > 0.4 && g.turn > 8 && chance(g, 0.025 * pers.acquisitive * d.aggression)) {
-      const prey = alive(g).filter((x) => x !== r && x.valuation < r.valuation * 0.5 && x.valuation < (r.cash + r.rev * 4) * 1.2).sort((a, b) => a.valuation - b.valuation)[0];
+      const prey = alive(g).filter((x) => x !== r && !PERSONALITY[x.personality].neverSells && x.valuation < r.valuation * 0.5 && x.valuation < (r.cash + r.rev * 4) * 1.2).sort((a, b) => a.valuation - b.valuation)[0];
       if (prey) {
         const price = prey.valuation * 1.3;
         r.cash -= price * 0.35;
@@ -438,10 +450,10 @@ export function rivalsFinancials(g: GameState) {
     if (chance(g, pHostile)) {
       const weak = c.valuation < r.valuation * 0.6 || c.negCashTurns > 0;
       const opts: [string, number][] = [
-        ['rival_price_war', ov ? ({ costcutter: 3, disruptor: 2.5, expander: 2, predator: 1, innovator: 0.3, conservative: 0.3 }[r.personality]) : 0],
-        ['rival_poach', { innovator: 2.5, disruptor: 2, expander: 1, predator: 1, costcutter: 0.5, conservative: 0.4 }[r.personality]],
-        ['rival_lawsuit', { innovator: 1.5, predator: 1.5, conservative: 1, costcutter: 0.5, expander: 0.5, disruptor: 0.3 }[r.personality]],
-        ['rival_lobby', { conservative: 2.5, predator: 1, costcutter: 0.5, innovator: 0.4, expander: 0.3, disruptor: 0.2 }[r.personality]],
+        ['rival_price_war', ov ? pers.moves.war : 0],
+        ['rival_poach', pers.moves.poach],
+        ['rival_lawsuit', pers.moves.lawsuit],
+        ['rival_lobby', pers.moves.lobby],
         ['rival_smear', 0.6 * aggr],
         ['rival_supplier', ov && INDUSTRIES[c.primary].varCost > 0.2 ? 0.8 : 0],
         ['rival_copy', (c.tech[c.primary] ?? 0) > (r.tech[c.primary] ?? 0) + 6 ? 1.5 : 0],
@@ -533,6 +545,7 @@ export function proposeTruce(g: GameState, id: number): ActionResult {
   if (!cool(g, r, 'truce', 4)) return fail('They turned you down recently. Ask again in a year.');
   if (chance(g, truceOdds(g, r))) {
     startPact(g, r, 'truce', 8);
+    feud(g, r, 'you', 'A truce: two years without hostile moves.');
     news(g, `${g.company.name} and ${r.name} have agreed to stop fighting, for now.`, 'rival');
     return { ok: true, msg: `${r.ceo} agrees: no hostile moves from either side for two years.` };
   }
@@ -566,7 +579,10 @@ export function poachTalent(g: GameState, id: number): ActionResult {
   r.grievances++;
   r.hostility = clamp(r.hostility + 1, 0, 10);
   r.relation = clamp(r.relation - 15, -100, 100);
-  if (!chance(g, 0.6)) return { ok: false, msg: `The approach leaked. Nobody came across, and ${r.name} is furious.` };
+  if (!chance(g, 0.6)) {
+    feud(g, r, 'you', 'You tried to poach their engineers; the approach leaked.');
+    return { ok: false, msg: `The approach leaked. Nobody came across, and ${r.name} is furious.` };
+  }
   const o = overlapOffice(g, r) ?? c.offices[0];
   const n = randInt(g, 2, 4);
   const s = o.staff.rnd;
@@ -574,6 +590,7 @@ export function poachTalent(g: GameState, id: number): ActionResult {
   s.n += n;
   s.fresh += n;
   for (const k of r.industries) r.tech[k] = clamp((r.tech[k] ?? 30) - 1.5, 5, 100);
+  feud(g, r, 'you', `You poached ${n} of their engineers.`);
   return { ok: true, msg: `${n} of their best joined you in ${CITY[o.city].name}. ${r.name} will not forget it.` };
 }
 export function sueRival(g: GameState, id: number): ActionResult {
@@ -588,6 +605,7 @@ export function sueRival(g: GameState, id: number): ActionResult {
   r.grievances++;
   r.hostility = clamp(r.hostility + 2, 0, 10);
   scheduleEvent(g, 'lawsuit_verdict', 3, ctxFor(g, r));
+  feud(g, r, 'you', 'You sued them.');
   return { ok: true, msg: `Suit filed against ${r.name}. Expect a verdict in about three quarters.` };
 }
 export function lobbyAgainst(g: GameState, id: number): ActionResult {
@@ -600,6 +618,11 @@ export function lobbyAgainst(g: GameState, id: number): ActionResult {
   B.expense(c, 'ga', cost, 'cash');
   r.hostility = clamp(r.hostility + 1, 0, 10);
   r.relation = clamp(r.relation - 10, -100, 100);
+  feud(g, r, 'you', 'You lobbied regulators against them.');
+  if (PERSONALITY[r.personality].homeShield && CITY[r.hq].country === CITY[c.home].country) {
+    c.reputation = clamp(c.reputation - 2, 0, 100);
+    return { ok: false, msg: `Regulators will not act against ${r.name}: it is the government's own champion. Your reputation took a small knock.` };
+  }
   if (chance(g, 0.5)) {
     r.cash -= r.rev * 0.2;
     r.eff *= 1.02;
@@ -614,6 +637,7 @@ export function bidPrice(g: GameState, r: Rival, hostile: boolean): number {
 }
 export function bidOdds(g: GameState, r: Rival, hostile: boolean): number {
   const pers = PERSONALITY[r.personality];
+  if (pers.neverSells) return 0.02; // a family firm, a co-op or a giant is not for sale at any price
   if (hostile) return r.isPublic ? 0.6 : 0.25 + (r.distress > 0 ? 0.4 : 0);
   return clamp(0.15 + r.relation / 150 + (r.distress > 0 ? 0.5 : 0) + (r.profit < 0 ? 0.15 : 0) - (pers.id === 'conservative' ? 0.15 : 0) - (pers.id === 'predator' ? 0.2 : 0), 0.02, 0.95);
 }
@@ -668,6 +692,7 @@ export function bidForRival(g: GameState, id: number, hostile: boolean): ActionR
     r.hostility = clamp(r.hostility + (hostile ? 3 : 0.5), 0, 10);
     r.relation = clamp(r.relation - (hostile ? 30 : 5), -100, 100);
     if (hostile) r.grievances++;
+    feud(g, r, 'you', hostile ? 'Your hostile bid for them failed.' : 'They turned down your offer to buy them.');
     return { ok: false, msg: hostile ? `${r.name}'s board fought you off. You have made an enemy.` : `${r.ceo} declined. "Not for sale."` };
   }
   const before = companyHeadcount(c);

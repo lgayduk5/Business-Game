@@ -19,6 +19,8 @@ export * from './invest';
 export * from './mna';
 export * from './events';
 export * from './rivals';
+export * from './feud';
+export * from './competitors';
 export * from './advisor';
 export * from './victory';
 export * from './scenarios';

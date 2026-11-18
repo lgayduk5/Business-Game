@@ -6,7 +6,7 @@ export type RegionId = 'nae' | 'naw' | 'latam' | 'europe' | 'mea' | 'apac';
 export type ExpCat = 'cogs' | 'sm' | 'rd' | 'ga' | 'other';
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'brutal';
 export type VictoryId = 'marketCap' | 'dominance' | 'ipo' | 'innovation' | 'reputation' | 'lastStanding';
-export type Personality = 'expander' | 'costcutter' | 'innovator' | 'predator' | 'conservative' | 'disruptor';
+export type Personality = 'expander' | 'costcutter' | 'innovator' | 'predator' | 'conservative' | 'disruptor' | 'dynasty' | 'state' | 'bigtech' | 'pe' | 'coop';
 export type FounderId = 'engineer' | 'sales' | 'finance' | 'operator' | 'serial' | 'scientist' | 'heir' | 'consultant';
 export type SupplyMode = 'lean' | 'balanced' | 'resilient';
 export type ExecRole = 'GM' | 'CFO' | 'CTO' | 'COO' | 'CMO' | 'CHRO';
@@ -136,6 +136,26 @@ export interface RivalPersonalityDef {
   eff: number; // cost multiplier (lower is leaner)
   acquisitive: number; // appetite for takeovers
   grudge: number; // how strongly it retaliates
+  /** Weights of its hostile moves: price wars, poaching, lawsuits, lobbying. */
+  moves: { war: number; poach: number; lawsuit: number; lobby: number };
+  /** Cannot be bought, by you or anyone (a family firm, a co-op, a giant). */
+  neverSells?: boolean;
+  /** How fast its hostility cools, against 1 for most (a dynasty remembers for years). */
+  grudgeDecay?: number;
+  /** Owned privately, by a family, a state, a fund or its members: never lists its shares. */
+  privately?: boolean;
+  /** The state tops up its cash when it runs out (three times at most). */
+  subsidised?: boolean;
+  /** Regulators in its home country will not act against it. */
+  homeShield?: boolean;
+  /** Appears only as a late entrant, never at the start. */
+  late?: boolean;
+  /** Enters by attacking the player's best market. */
+  targetsBest?: boolean;
+  /** Sells offices to pay down debt when interest rates rise. */
+  ratesSell?: boolean;
+  /** Members stay loyal: its brand never falls below a floor. */
+  community?: boolean;
 }
 
 export type Curve = 'steady' | 'backloaded' | 'decaying' | 'risky';
@@ -732,6 +752,14 @@ export interface Rival {
   valuation: number;
   distress: number;
   known: boolean; // discovered by player
+  /** When it came into the game (absent for the founding field). */
+  since?: number;
+  /** Turn of its last change of chief executive. */
+  ceoSince?: number;
+  /** State aid received (state champions only). */
+  aid?: number;
+  /** What has passed between it and you, newest last. */
+  feud?: { turn: number; who: 'you' | 'them'; text: string }[];
 }
 
 export interface Macro {

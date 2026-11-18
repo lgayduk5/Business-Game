@@ -32,28 +32,28 @@ export const DIFF: Record<Difficulty, DiffDef> = {
     expect: 'A sensible plan wins about 9 games in 10. Mistakes are forgiven.', // balance report: best honest strategy 88%
     cash: 1.6, rivals: 4, rivalSize: 0.6, rivalEff: 1.08, aggression: 0.5, rivalSales: 0.75, rivalRd: 0.75, rivalMax: 8, defend: 0, rivalOps: -6,
     events: 0.6, recession: 0.6, spread: -0.5, appetite: 0.25,
-    titan: 1.5e9, kingShare: 0.3, techBar: 82, goodRev: 25e6, ipoMinRev: 25e6, entrants: 1.5,
+    titan: 1.5e9, kingShare: 0.3, techBar: 79, goodRev: 25e6, ipoMinRev: 25e6, entrants: 1.5,
   },
   normal: {
     label: 'Normal', who: 'You know what a balance sheet is and want a fair fight.',
     expect: 'A good plan wins about 6 games in 10; a careless one goes broke.', // 62%
     cash: 1.0, rivals: 5, rivalSize: 1.0, rivalEff: 1.0, aggression: 1.0, rivalSales: 1.0, rivalRd: 1.0, rivalMax: 12, defend: 0.6, rivalOps: 3,
     events: 1.0, recession: 1.0, spread: 0, appetite: 0,
-    titan: 4e9, kingShare: 0.35, techBar: 88, goodRev: 50e6, ipoMinRev: 40e6, entrants: 2.5,
+    titan: 4e9, kingShare: 0.35, techBar: 85, goodRev: 50e6, ipoMinRev: 40e6, entrants: 2.5,
   },
   hard: {
     label: 'Hard', who: 'You have won on Normal and want rivals who punish mistakes.',
     expect: 'A good plan wins about half the time. Slack gets punished.', // 50%
     cash: 0.85, rivals: 5, rivalSize: 1.4, rivalEff: 0.95, aggression: 1.3, rivalSales: 1.35, rivalRd: 1.35, rivalMax: 15, defend: 1.3, rivalOps: 10,
     events: 1.15, recession: 1.2, spread: 0.5, appetite: -0.1,
-    titan: 8e9, kingShare: 0.4, techBar: 91, goodRev: 100e6, ipoMinRev: 60e6, entrants: 3,
+    titan: 8e9, kingShare: 0.4, techBar: 88, goodRev: 100e6, ipoMinRev: 60e6, entrants: 3,
   },
   brutal: {
     label: 'Brutal', who: 'A test, not a story. Expect to lose a few companies.',
     expect: 'Even a very good plan wins only about one game in three.', // 38%
     cash: 0.7, rivals: 6, rivalSize: 1.9, rivalEff: 0.9, aggression: 1.7, rivalSales: 1.7, rivalRd: 1.6, rivalMax: 19, defend: 2, rivalOps: 15,
     events: 1.3, recession: 1.4, spread: 1, appetite: -0.2,
-    titan: 15e9, kingShare: 0.45, techBar: 94, goodRev: 200e6, ipoMinRev: 80e6, entrants: 3.5,
+    titan: 15e9, kingShare: 0.45, techBar: 91, goodRev: 200e6, ipoMinRev: 80e6, entrants: 3.5,
   },
 };
 

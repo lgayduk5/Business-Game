@@ -12,6 +12,7 @@ import { invSum, news, tempMod } from './mods';
 import { companyHeadcount, execBonus, headcount, payroll, personLeaves, prepOffice, stepKeyPeople, stepPeople, type Prep } from './people';
 import { FACTOR_FEE, FACTOR_SHARE, refreshCandidates } from './actions';
 import { rivalsDecide, rivalsFinancials } from './rivals';
+import { maybeEntrant, rivalLifeEvents, rivalsForDivisions } from './competitors';
 import type { ExpCat, GameState, IndustryId, Office, Quarter, Role } from './types';
 import { ROLES } from './types';
 import { clamp, money, turnLabel } from './util';
@@ -118,6 +119,8 @@ export function endTurn(g: GameState): void {
 
   completeBuilds(g);
   stepMacro(g);
+  rivalsForDivisions(g);
+  maybeEntrant(g);
   rivalsDecide(g);
 
   const preps = new Map<string, Prep>();
@@ -262,6 +265,7 @@ export function endTurn(g: GameState): void {
   revalue(g);
   stepIPO(g);
   rivalsFinancials(g);
+  rivalLifeEvents(g);
 
   const cov = covenantStatus(g);
   for (const br of cov.breaches) {

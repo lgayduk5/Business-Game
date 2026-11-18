@@ -3,12 +3,14 @@ import {
   CITY, INDUSTRIES, PERSONALITY, bidForRival, bidOdds, bidPrice, improveRelations, lobbyAgainst, money, officeDetail, officeVisible, pct, poachTalent,
   proposeAlliance, proposeTruce, rivalById, rivalKnown, sueRival, truceOdds, turnLabel, victoryStatus,
   type CityDef, type GameState, type Rival,
+  nemesis,
 } from '@engine';
 import { $, N, esc, logo, meter, tip, explain } from '../kit';
 import { act, on, render, ui } from '../store';
 import { modals, tabDots } from '../shell';
 import { intelTabs, intelViews } from './intel';
 import { mapOverlays, cityExtras } from './map';
+import { hqExtras } from './hq';
 import { sfx } from '../../audio';
 
 const odds = (p: number) => (p >= 0.7 ? 'likely' : p >= 0.45 ? 'a coin flip' : p >= 0.2 ? 'unlikely' : 'a long shot');
@@ -49,7 +51,7 @@ function detail(g: GameState, r: Rival): string {
   const hpBar = `<div class="row" style="gap:8px;align-items:center">${meter(r.hostility / 10, r.hostility >= 3)}<span class="small">${r.hostility.toFixed(1)} / 10</span></div>`;
   const bidF = bidPrice(g, r, false), bidH = bidPrice(g, r, true);
   return `<div class="sheet"><div class="spread"><h2 style="margin:0;display:flex;gap:10px;align-items:center">${logo(r.name, r.color, 36)}${esc(r.name)}</h2><span class="chip ${moodCls(r)}">${mood(r)}</span></div>
-    <p class="small muted" style="margin:4px 0 8px">Run by ${esc(r.ceo)} from ${esc(CITY[r.hq].name)}. ${esc(p.label)}: ${esc(p.blurb)}</p>
+    <p class="small muted" style="margin:4px 0 8px">Run by ${esc(r.ceo)} from ${esc(CITY[r.hq].name)}${r.since !== undefined && r.since > 0 ? `, in the industry since ${turnLabel(r.since)}` : ''}. ${esc(p.label)}: ${esc(p.blurb)}</p>
     <div class="kv">
       <div>Revenue a year</div><div>${intel ? $(r.rev * 4, 'Rival revenue', 'Last quarter, annualised. Rivals pay the same kinds of costs you do: staff, rent, marketing, head office, R&D, interest and tax in each country.', [['EBITDA margin last quarter', r.rev > 0 ? pct(r.ebitda / r.rev) : '—'], ['Profit last quarter', money(r.profit)], ['Cash', money(r.cash)], ['Debt', money(r.debt)], ['Credit rating', r.rating], ['Raised from investors since you started', money(r.raised)]]) : N('?', 'Unknown', 'Their accounts are private. A competitive intelligence unit would tell you.')}</div>
       <div>Valuation</div><div>${intel ? $(r.valuation, 'Rival valuation', `Worked out with exactly the formula used for yours: revenue or profits times an industry multiple, adjusted for growth, margin, technology, brand, market mood and interest rates${r.isPublic ? '' : ', less the 20% private-company discount'}.`) : '?'}</div>
@@ -58,6 +60,7 @@ function detail(g: GameState, r: Rival): string {
       <div>Hostility</div><div>${tip(hpBar, explain('Hostility', 'How close they are to open warfare. It rises when you compete hard in their markets or attack them, and when they are aggressive by nature; it cools slowly on its own. Hostile rivals start price wars, poach, sue and lobby against you.', [['Grievances not yet answered', String(r.grievances)], ['Aggression of their style', pct(p.aggression)], ['Holds a grudge', pct(p.grudge)]]), 'plain')}</div>
       ${r.pact ? `<div>Agreement</div><div><b class="serif">${r.pact === 'alliance' ? 'Alliance' : 'Truce'} until ${turnLabel(r.pactUntil)}</b></div>` : ''}
     </div>
+    ${feudList(r)}
     ${markets ? `<h3>Where you meet</h3><div class="scrollx"><table class="ledger"><thead><tr><th>City</th><th class="num">Their share</th><th class="num">Yours</th><th class="num">Their price</th></tr></thead><tbody>${markets}</tbody></table></div>` : ''}
     <h3>Moves</h3>
     <div class="choices" style="grid-template-columns:1fr">
@@ -72,9 +75,26 @@ function detail(g: GameState, r: Rival): string {
     </div></div>`;
 }
 
+/** What has passed between you, newest first. */
+function feudList(r: Rival, max = 12): string {
+  const f = (r.feud ?? []).slice(-max).reverse();
+  return f.length ? `<h3>Between you</h3><ul class="feed">${f.map((x) => `<li class="${x.who === 'you' ? 'info' : 'bad'}"><span>${turnLabel(x.turn)}</span><span><b>${x.who === 'you' ? 'You' : esc(r.name)}:</b> ${esc(x.text)}</span></li>`).join('')}</ul>` : '';
+}
+
+// The nemesis: the rival with the deepest grudge, on HQ with the history of the feud.
+hqExtras.push((g) => {
+  const r = nemesis(g);
+  if (!r) return '';
+  const p = PERSONALITY[r.personality];
+  return `<div class="sheet"><div class="spread"><h2 style="margin:0;display:flex;gap:10px;align-items:center">${logo(r.name, r.color, 30)}Your nemesis</h2><button class="btn sm" data-a="rival" data-id="${r.id}">Deal with them</button></div>
+    <p class="small" style="margin:6px 0"><b>${esc(r.name)}</b>, ${esc(p.label.toLowerCase())}, run by ${esc(r.ceo)}. Hostility ${r.hostility.toFixed(1)} of 10${(p.grudgeDecay ?? 1) < 1 ? '; this one never forgets' : ''}.</p>
+    ${meter(r.hostility / 10, r.hostility >= 3)}
+    ${feudList(r, 5) || '<p class="small muted">No open clashes yet, but they are spoiling for one.</p>'}</div>`;
+});
+
 function goals(g: GameState): string {
   const vs = victoryStatus(g);
-  return `<h1>Paths to victory</h1><p class="muted">The first goal you reach wins the game. After ${g.maxTurns / 4} years, the most valuable company wins.</p>
+  return `<h1>Paths to victory</h1><p class="muted">The first goal you reach wins the game. After ${g.maxTurns / 4} years, the game ends with a grade from A to F.</p>
     <div class="grid2">${vs.map((v) => `<div class="sheet"><div class="spread"><h3 style="margin:0">${esc(v.name)}</h3>${v.met ? `<span class="chip good">${v.need > 1 ? `held ${v.streak} of ${v.need} quarters` : 'met'}</span>` : `<span class="small muted">${pct(v.progress)}</span>`}</div>
       <p class="small" style="margin:6px 0">${esc(v.desc)}</p>${meter(v.progress)}<p class="small muted" style="margin:6px 0 0">${esc(v.detail)}${v.enabled ? '' : ' — switched off in this game'}</p></div>`).join('')}</div>`;
 }

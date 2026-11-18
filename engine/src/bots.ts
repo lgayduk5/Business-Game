@@ -30,13 +30,15 @@ export interface BotParams {
   runway: number; // quarters of runway it insists on before spending
   diplomacy: 'none' | 'peace' | 'war';
   special?: 'passive' | 'gouge' | 'flipper' | 'empire' | 'raider';
+  /** Bets on one moonshot once it can comfortably afford to lose it. */
+  moonshot?: boolean;
 }
 
 export const BOTS: Record<string, BotParams> = {
   passive: { name: 'Passive', blurb: 'Does nothing at all. The floor.', sales: 0, rd: 0, price: 1, mktg: 0, expand: 1, equity: false, debt: false, invest: false, ipo: false, runway: 99, diplomacy: 'none', special: 'passive' },
   steady: { name: 'Steady', blurb: 'Profitable growth, no outside money until it is cheap.', sales: 0.25, rd: 0.1, price: 1.0, mktg: 0.03, expand: 8, equity: false, debt: true, invest: true, ipo: true, runway: 6, diplomacy: 'peace' },
   blitz: { name: 'Blitz', blurb: 'Venture-funded land grab: raise, hire, expand, worry later.', sales: 0.5, rd: 0.14, price: 0.94, mktg: 0.06, expand: 16, equity: true, debt: false, invest: true, ipo: true, runway: 3, diplomacy: 'none' },
-  premium: { name: 'Premium', blurb: 'Out-invest on R&D and charge for it.', sales: 0.3, rd: 0.2, price: 1.15, mktg: 0.04, expand: 8, equity: true, debt: false, invest: true, ipo: true, runway: 5, diplomacy: 'peace' },
+  premium: { name: 'Premium', blurb: 'Out-invest on R&D and charge for it.', sales: 0.3, rd: 0.2, price: 1.15, mktg: 0.04, expand: 8, equity: true, debt: false, invest: true, ipo: true, runway: 5, diplomacy: 'peace', moonshot: true },
   leveraged: { name: 'Leveraged', blurb: 'Debt-funded expansion; keeps all the equity.', sales: 0.35, rd: 0.1, price: 0.98, mktg: 0.04, expand: 12, equity: false, debt: true, invest: true, ipo: true, runway: 3, diplomacy: 'none' },
   // degenerate-strategy probes
   gouge: { name: 'Gouge', blurb: 'Probe: maximum price, minimum staff, harvest cash.', sales: 0.02, rd: 0, price: 1.8, mktg: 0, expand: 1, equity: false, debt: false, invest: false, ipo: false, runway: 99, diplomacy: 'none', special: 'gouge' },
@@ -238,6 +240,11 @@ const GOOD_INV = ['sales_academy', 'training_academy', 'cyber', 'culture_program
 function invest(g: GameState, p: BotParams) {
   const c = g.company;
   if (!p.invest || spare(g, p) < quarterlyCosts(g) || B.ttm(c, (q) => q.ebitda) <= 0) return;
+  // one moonshot, sized so that losing it would not hurt: the whole bet is less than a third of the spare cash
+  if (p.moonshot && INV.moonshot && c.moonshots === 0 && !c.investments.some((x) => x.def === 'moonshot') && invAvailable(g, INV.moonshot).ok
+    && invCostOf(g, 'moonshot') * 3 < spare(g, p)) {
+    if (startInvestment(g, 'moonshot').ok) return;
+  }
   for (const id of GOOD_INV) {
     const def = INV[id];
     if (!def) continue;
