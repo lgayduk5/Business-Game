@@ -26,7 +26,7 @@ export const rivalById = (g: GameState, id: number | undefined) => g.rivals.find
 /** Scale of a start-up operation in an industry, units a quarter (what the player starts with). */
 export const startUnits = (ind: IndustryId) => (INDUSTRIES[ind].start.cap > 0 ? INDUSTRIES[ind].start.cap : INDUSTRIES[ind].start.ops * INDUSTRIES[ind].opsOut);
 
-function openRivalOffice(g: GameState, r: Rival, city: string, ind: IndustryId, share: number): RivalOffice {
+export function openRivalOffice(g: GameState, r: Rival, city: string, ind: IndustryId, share: number): RivalOffice {
   const pers = PERSONALITY[r.personality];
   const D = marketUnits(g, city, ind);
   market(g, city, ind);

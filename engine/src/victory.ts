@@ -14,21 +14,26 @@ export interface VictoryStatus { id: VictoryId; name: string; desc: string; prog
 /** Quarters a condition must hold before it wins the game. */
 export const VICTORY_NEED: Record<VictoryId, number> = { marketCap: 2, dominance: 4, ipo: 8, innovation: 4, reputation: 8, lastStanding: 1 };
 
+/** Sprint games last ten years, not twenty-five, so the money bars are lower and the technology bar a little lower. */
+export const SPRINT_BARS = { money: 0.2, tech: 6 };
+const moneyScale = (sprint: boolean) => (sprint ? SPRINT_BARS.money : 1);
+const techBar = (d: Difficulty, sprint: boolean) => DIFF[d].techBar - (sprint ? SPRINT_BARS.tech : 0);
+
 /** The valuation bar for Titan, in today's money. */
 export function capTarget(g: GameState): number {
-  return DIFF[g.difficulty].titan * INDUSTRIES[g.company.primary].capTarget * g.macro.cpi;
+  return DIFF[g.difficulty].titan * INDUSTRIES[g.company.primary].capTarget * g.macro.cpi * moneyScale(!!g.rules?.sprint);
 }
 /** The bars for each way to win, for an industry and difficulty, in today's money (shown before the game starts). */
-export function victoryBars(ind: IndustryId, d: Difficulty): [name: string, bar: string][] {
+export function victoryBars(ind: IndustryId, d: Difficulty, sprint = false): [name: string, bar: string][] {
   const D = DIFF[d];
   const I = INDUSTRIES[ind];
-  const titan = D.titan * I.capTarget;
+  const titan = D.titan * I.capTarget * moneyScale(sprint);
   return [
     ['Titan', `worth ${money(titan)}, and more than any rival`],
     ['Category king', `${pct(D.kingShare)} of named companies' sales for a year, profitably, on at least double your starting revenue`],
     ['Blue chip', `listed (needs ${money(D.ipoMinRev * Math.min(1, I.capTarget))} revenue), profitable and worth ${money(titan * 0.25)} for two years`],
-    ['Pioneer', `a moonshot, then technology ${D.techBar}+ and the lead for a year`],
-    ['Good company', `reputation 85 and ESG 80 on ${money(D.goodRev)} of revenue, for two years`],
+    ['Pioneer', `a moonshot, then technology ${techBar(d, sprint)}+ and the lead for a year`],
+    ['Good company', `reputation 85 and ESG 80 on ${money(D.goodRev * moneyScale(sprint))} of revenue, for two years`],
     ['Last one standing', 'every rival gone, and your revenue at least doubled'],
   ];
 }
@@ -54,7 +59,8 @@ export function victoryStatus(g: GameState): VictoryStatus[] {
   const s = (id: VictoryId) => g.streaks[id] ?? 0;
   const mk = (id: VictoryId, name: string, desc: string, progress: number, detail: string, met: boolean, need: number): VictoryStatus => ({ id, name, desc, progress: clamp(met ? Math.max(progress, 0.9 + (0.1 * Math.min(s(id), need)) / need) : progress, 0, 1), detail, met, streak: s(id), need, enabled: en[id] });
   const ipoOk = c.cap.isPublic && lastNI > 0 && c.cap.price >= ipoPrice(g) && c.valuation >= cap * 0.25 && beaten * 2 >= alive.length;
-  const goodRev = D.goodRev * g.macro.cpi;
+  const goodRev = D.goodRev * g.macro.cpi * moneyScale(!!g.rules?.sprint);
+  const bar = techBar(d, !!g.rules?.sprint);
   const grew = grewUp(g);
   const profitable = B.ttm(c, (q) => q.ni) > 0;
   const need = VICTORY_NEED;
@@ -68,9 +74,9 @@ export function victoryStatus(g: GameState): VictoryStatus[] {
     mk('ipo', 'Blue chip', `List the company, then for two years in a row: profit every quarter, shares above the IPO price, worth at least ${money(cap * 0.25)} and more than half your rivals.`,
       c.cap.isPublic ? 0.4 + 0.5 * Math.min(1, c.valuation / (cap * 0.25)) * (beaten * 2 >= alive.length ? 1 : 0.6) : c.cap.ipoStage > 0 ? 0.3 : Math.min(0.25, (rev / (40e6 * g.macro.cpi)) * 0.25),
       c.cap.isPublic ? `Listed. ${ipoOk ? `Qualifying quarters: ${s('ipo')} of ${need.ipo}.` : lastNI <= 0 ? 'Not profitable last quarter.' : c.cap.price < ipoPrice(g) ? 'Shares are below the IPO price.' : 'Not yet big enough.'}` : 'Not listed yet.', ipoOk, need.ipo),
-    mk('innovation', 'Pioneer', `Complete a moonshot, then lead the industry in technology at ${D.techBar} or better for a year.`,
-      0.6 * Math.min(1, tech / Math.max(D.techBar, topTech)) + 0.3 * Math.min(1, c.moonshots), `Your technology ${tech.toFixed(0)}, best rival ${topTech.toFixed(0)}, ${c.moonshots} moonshot${c.moonshots === 1 ? '' : 's'} completed.`,
-      tech >= D.techBar && tech >= topTech && c.moonshots >= 1, need.innovation),
+    mk('innovation', 'Pioneer', `Complete a moonshot, then lead the industry in technology at ${bar} or better for a year.`,
+      0.6 * Math.min(1, tech / Math.max(bar, topTech)) + 0.3 * Math.min(1, c.moonshots), `Your technology ${tech.toFixed(0)}, best rival ${topTech.toFixed(0)}, ${c.moonshots} moonshot${c.moonshots === 1 ? '' : 's'} completed.`,
+      tech >= bar && tech >= topTech && c.moonshots >= 1, need.innovation),
     mk('reputation', 'Good company', `Reputation 85 and ESG 80, profitably, on at least ${money(goodRev)} of revenue, for two years.`,
       Math.min(c.reputation / 85, c.esg / 80, rev / goodRev) * 0.9, `Reputation ${c.reputation.toFixed(0)}, ESG ${c.esg.toFixed(0)}, revenue ${money(rev)}.`, c.reputation >= 85 && c.esg >= 80 && rev >= goodRev && lastNI > 0, need.reputation),
     mk('lastStanding', 'Last one standing', 'Every rival bankrupt or bought, while your own business at least doubled its revenue (in real terms) since the start.',
@@ -97,6 +103,8 @@ export const grewUp = (g: GameState) => B.ttm(g.company, (q) => q.pnl.revenue) /
 
 /** A winning grade also needs the founder's stake to have grown at least this much in real terms: standing still is not winning. */
 export const GRADE_MIN_GROWTH = 3;
+/** In a ten-year Sprint, the stake needs to grow by half (real revenue still has to double). */
+export const SPRINT_MIN_GROWTH = 1.5;
 /** Founder wealth at the start, in the game's opening money (for older saves, estimated from the opening valuation). */
 const startWealth = (g: GameState) => g.counters.startFounderValue ?? (g.counters.startValuation ?? 1) * 0.8;
 
@@ -108,27 +116,32 @@ const startWealth = (g: GameState) => g.counters.startFounderValue ?? (g.counter
  */
 export function finalGrade(g: GameState): FinalGrade {
   const c = g.company;
+  const sprint = !!g.rules?.sprint;
   const alive = g.rivals.filter((r) => r.alive);
-  const rank = 1 + alive.filter((r) => r.valuation > c.valuation).length;
-  const rankPts = [40, 30, 20, 12, 6][rank - 1] ?? 3;
   const multiple = (c.valuation * founderStake(c)) / g.macro.cpi / Math.max(1, startWealth(g));
   // judged against the industry: how the rivals' companies grew over the same years (a rival that died counts as wiped out)
-  const rivalMults = g.rivals.map((r) => {
+  const growthOf = (r: GameState['rivals'][number]) => {
     const start = g.counters[`rivalStart${r.id}`] ?? 0;
     return start > 0 ? (r.alive ? r.valuation / g.macro.cpi / start : 0.05) : NaN;
-  }).filter(Number.isFinite).sort((a, b) => a - b);
+  };
+  const rivalMults = g.rivals.map(growthOf).filter(Number.isFinite).sort((a, b) => a - b);
   const market = rivalMults.length ? rivalMults[Math.floor(rivalMults.length / 2)] : 1;
   const vsMarket = multiple / Math.max(0.01, market);
-  // half absolute (100× in real terms is full marks) and half relative to the industry (four times the typical rival is full marks)
-  const wealthPts = 35 * (0.5 * clamp(Math.log10(Math.max(1e-6, multiple)) / 2, 0, 1) + 0.5 * clamp(0.5 + 0.2 * Math.log2(Math.max(1e-6, vsMarket)), 0, 1));
+  // Rank by value. Ten years is too short to outgrow companies that started far bigger, so a Sprint ranks by how much each company grew.
+  const myGrowth = (c.valuation / g.macro.cpi) / Math.max(1, g.counters.startValuation ?? 1);
+  const rank = sprint ? 1 + alive.filter((r) => growthOf(r) > myGrowth).length : 1 + alive.filter((r) => r.valuation > c.valuation).length;
+  const rankPts = [40, 30, 20, 12, 6][rank - 1] ?? 3;
+  // half absolute (100× in real terms is full marks; 6× in a Sprint) and half relative to the industry (four times the typical rival is full marks)
+  const absMax = sprint ? Math.log10(6) : 2;
+  const wealthPts = 35 * (0.5 * clamp(Math.log10(Math.max(1e-6, multiple)) / absMax, 0, 1) + 0.5 * clamp(0.5 + 0.2 * Math.log2(Math.max(1e-6, vsMarket)), 0, 1));
   const goal = Math.max(0, ...victoryStatus(g).filter((v) => v.enabled).map((v) => v.progress));
   const goalPts = 25 * goal;
   const score = rankPts + wealthPts + goalPts;
   const [, grade, label] = GRADES.find(([min]) => score >= min)!;
   const x = (n: number) => (n >= 10 ? n.toFixed(0) : n.toFixed(1)) + '×';
   return {
-    grade, label, score, won: (grade === 'A' || grade === 'B') && multiple >= GRADE_MIN_GROWTH && grewUp(g), rank, companies: alive.length + 1, multiple, goal, market,
-    rows: [[`Rank by value: ${rank} of ${alive.length + 1}`, `${rankPts} of 40`, rankPts], [`Your stake grew ${x(multiple)} in real terms; the typical rival ${x(market)}`, `${wealthPts.toFixed(0)} of 35`, wealthPts],
+    grade, label, score, won: (grade === 'A' || grade === 'B') && multiple >= (sprint ? SPRINT_MIN_GROWTH : GRADE_MIN_GROWTH) && grewUp(g), rank, companies: alive.length + 1, multiple, goal, market,
+    rows: [[`${sprint ? 'Rank by growth' : 'Rank by value'}: ${rank} of ${alive.length + 1}`, `${rankPts} of 40`, rankPts], [`Your stake grew ${x(multiple)} in real terms; the typical rival ${x(market)}`, `${wealthPts.toFixed(0)} of 35`, wealthPts],
       [`Closest goal reached ${pct(goal)}`, `${goalPts.toFixed(0)} of 25`, goalPts]],
   };
 }
@@ -158,11 +171,14 @@ export function checkEnd(g: GameState) {
     // the game ran its course: judge the result rather than call it a draw
     const fg = finalGrade(g);
     const years = g.maxTurns / 4;
-    const where = fg.rank === 1 ? `worth more than any rival` : `the ${['', '', 'second', 'third', 'fourth', 'fifth'][fg.rank] ?? `number ${fg.rank}`} most valuable of ${fg.companies} companies`;
+    const nth = ['', '', 'second', 'third', 'fourth', 'fifth'][fg.rank] ?? `number ${fg.rank}`;
+    const where = g.rules?.sprint
+      ? (fg.rank === 1 ? 'the fastest-growing company in its industry' : `the ${nth} fastest-growing of ${fg.companies} companies`)
+      : (fg.rank === 1 ? `worth more than any rival` : `the ${nth} most valuable of ${fg.companies} companies`);
     g.status = fg.won ? 'won' : 'lost';
     g.outcome = {
       kind: fg.won ? 'won' : 'lost', how: fg.won ? 'time' : 'outlasted', title: `Grade ${fg.grade}: ${fg.label}`, turn: g.turn, grade: fg.grade,
-      text: `After ${years} years, ${c.name} is ${where}. Your stake grew ${fg.multiple >= 10 ? fg.multiple.toFixed(0) : fg.multiple.toFixed(1)}× in real terms, and you own ${pct(founderStake(c), 0)} of the company.`,
+      text: `After ${years} year${years === 1 ? '' : 's'}, ${c.name} is ${where}. Your stake grew ${fg.multiple >= 10 ? fg.multiple.toFixed(0) : fg.multiple.toFixed(1)}× in real terms, and you own ${pct(founderStake(c), 0)} of the company.`,
     };
     news(g, `${years} years on: grade ${fg.grade}.`, fg.won ? 'good' : 'info');
   }

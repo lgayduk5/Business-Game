@@ -81,6 +81,7 @@ export function migrate(g: GameState): GameState {
 /** Defaults for fields added after a save was written. Safe to run on any state, any number of times. */
 export function fillDefaults(g: GameState): GameState {
   g.counters ??= {};
+  g.rules ??= {};
   g.settings.delegate ??= true;
   g.streaks ??= {};
   g.flags ??= {};

@@ -7,6 +7,8 @@ import { isMuted, setMuted, sfx } from '../../audio';
 
 export const afterTurn: ((g: GameState) => void | Promise<void>)[] = [];
 export const menuExtras: ((g: GameState | null) => string)[] = [];
+/** Extra blocks on the game-over screen (score code, stars, rewind…). */
+export const overExtras: ((g: GameState) => string)[] = [];
 /** Opens the next thing the player must look at after a turn (events arrive at M3). */
 export const nextPrompt = { open: (_g: GameState): boolean => false };
 
@@ -80,8 +82,8 @@ modals.over = (g) => {
   const fg = o.grade ? finalGrade(g!) : undefined;
   const grade = fg ? `<div class="sheet" style="margin:12px 0"><div class="spread"><h3 style="margin:0">How the grade was worked out</h3><b class="serif" style="font-size:1.6rem">${fg.grade}</b></div>
       <div class="kv">${fg.rows.map(([k, v]) => `<div>${esc(k)}</div><div>${esc(v)}</div>`).join('')}<div><b>Score</b></div><div><b>${fg.score.toFixed(0)} of 100</b></div></div>
-      <p class="small muted">A (75+) or B (60+) counts as a win, as long as your stake at least tripled and your revenue at least doubled in real terms.</p></div>` : '';
-  return `<h2>${esc(o.title)}</h2><p class="serif" style="font-size:1.1rem">${esc(o.text)}</p>${grade}
+      <p class="small muted">A (75+) or B (60+) counts as a win, as long as your stake at least ${g!.rules.sprint ? 'grew by half' : 'tripled'} and your revenue at least doubled in real terms.</p></div>` : '';
+  return `<h2>${esc(o.title)}</h2><p class="serif" style="font-size:1.1rem">${esc(o.text)}</p>${grade}${overExtras.map((f) => f(g!)).join('')}
     <div class="kv" style="margin:12px 0"><div>Lasted</div><div><b class="serif">${turnLabel(o.turn)}</b></div>
     <div>Final valuation</div><div><b class="serif">${money(c.valuation)}</b></div>
     <div>Your stake</div><div><b class="serif">${pct(c.cap.founder / c.cap.shares, 1)}</b></div></div>

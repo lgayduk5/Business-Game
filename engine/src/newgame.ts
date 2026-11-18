@@ -40,6 +40,9 @@ export function makeOffice(g: GameState, cityId: string, ind: IndustryId, staff:
   return o;
 }
 
+/** A Sprint game lasts ten years. */
+export const SPRINT_QUARTERS = 40;
+
 const ALL_REGIONS: RegionId[] = ['nae', 'naw', 'latam', 'europe', 'mea', 'apac'];
 const perRegion = <T>(f: () => T) => Object.fromEntries(ALL_REGIONS.map((r) => [r, f()])) as Record<RegionId, T>;
 
@@ -53,7 +56,8 @@ export function newGame(opts: NewGameOpts): GameState {
   const sandbox = opts.mode === 'sandbox';
   const g: GameState = {
     v: SAVE_VERSION, id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), seed: opts.seed, rng: hashSeed(opts.seed), uid: 0, turn: 0,
-    maxTurns: 100, mode: opts.mode, scenario: opts.scenario, difficulty: opts.difficulty,
+    maxTurns: opts.sprint ? SPRINT_QUARTERS : 100, mode: opts.mode, scenario: opts.scenario, difficulty: opts.difficulty,
+    rules: { ...(opts.sprint ? { sprint: true } : {}), ...(opts.ironman ? { ironman: true } : {}), ...(opts.daily ? { daily: opts.daily } : {}) },
     settings: { victories, sandbox: { noBankruptcy: sandbox, revealMap: sandbox, noEvents: false, calmMacro: false }, tutorial: true, delegate: true },
     company: {
       name: opts.name || 'Newco', founder: opts.founder, home: opts.city, primary: opts.industry, divisions: [opts.industry], offices: [],

@@ -55,9 +55,32 @@ export async function autosave(g: GameState): Promise<void> {
   const autos = (await listSaves()).filter((x) => x.slot.startsWith('auto:'));
   for (const old of autos.slice(AUTO_KEEP)) await deleteSave(old.slot);
 }
-export async function listSaves(): Promise<SaveMeta[]> {
+async function listAll(): Promise<SaveMeta[]> {
   const all = ((await tx<Rec[]>('readonly', (s) => s.getAll() as IDBRequest<Rec[]>)) ?? [...memory.values()]) as Rec[];
   return all.map(({ state, ...m }) => (void state, m)).sort((a, b) => b.when - a.when);
+}
+/** Saved games the player can load (rewind points are kept apart). */
+export async function listSaves(): Promise<SaveMeta[]> {
+  return (await listAll()).filter((x) => !x.slot.startsWith(RW));
+}
+
+// Rewind points: the game as it stood at the start of each of its last few quarters.
+const RW = 'rw:';
+/** Keep the start of this quarter for rewinding, and drop points too old (or, after a rewind, too new) to use. */
+export async function snapshot(g: GameState, keep: number): Promise<void> {
+  if (g.status !== 'playing') return;
+  await saveTo(`${RW}${g.id}:${g.turn}`, g);
+  for (const s of (await listAll()).filter((x) => x.slot.startsWith(RW))) {
+    const [, id, turn] = s.slot.split(':');
+    if (id === g.id ? Number(turn) <= g.turn - keep || Number(turn) > g.turn : Date.now() - s.when > 30 * 864e5) await deleteSave(s.slot);
+  }
+}
+/** Rewind points for a game, newest first. */
+export async function snapshots(gameId: string): Promise<{ slot: string; turn: number }[]> {
+  return (await listAll()).filter((x) => x.slot.startsWith(`${RW}${gameId}:`)).map((x) => ({ slot: x.slot, turn: x.turn })).sort((a, b) => b.turn - a.turn);
+}
+export async function dropSnapshots(gameId: string): Promise<void> {
+  for (const s of await snapshots(gameId)) await deleteSave(s.slot);
 }
 export async function loadFrom(slot: string): Promise<GameState | null> {
   const rec = (await tx<Rec>('readonly', (s) => s.get(slot) as IDBRequest<Rec>)) ?? memory.get(slot);

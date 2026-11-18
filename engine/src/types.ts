@@ -214,8 +214,18 @@ export interface ScenarioDef {
   difficulty: Difficulty;
   turns: number;
   seed: string;
-  goal: { kind: 'valuation' | 'survive' | 'revenue' | 'share' | 'cash' | 'ipo' | 'offices' | 'profit'; value: number; text: string; maxDilution?: number; noEquity?: boolean };
+  /** `relative`: value is a multiple of the starting revenue or valuation; the text's {target} is filled in. */
+  goal: { kind: 'valuation' | 'survive' | 'revenue' | 'share' | 'cash' | 'ipo' | 'offices' | 'profit'; value: number; text: string; maxDilution?: number; noEquity?: boolean; relative?: boolean };
   setup: string; // key into scenario setup functions
+  /** Learner campaign chapter (1–5); absent for the challenges. */
+  chapter?: number;
+  /** The layer of the game a chapter opens up. */
+  layer?: string;
+  /** Campaign chapters: what the chapter teaches, and pointers shown on HQ while it is played. */
+  lesson?: string;
+  tips?: string[];
+  /** What earns the second star. */
+  bonus?: string;
 }
 
 // ───────────────────────── events ─────────────────────────
@@ -857,6 +867,10 @@ export interface GameState {
   mode: 'standard' | 'sandbox' | 'scenario';
   scenario?: string;
   difficulty: Difficulty;
+  /** How this game is played, fixed at the start (Sprint, Ironman, Daily, a Brutal scenario). */
+  rules: GameRules;
+  /** Set when the game was rewound: how the earlier run ended, for comparison. */
+  replay?: { from: number; title: string; valuation: number; founderValue: number };
   settings: Settings;
   company: Company;
   discovered: Record<string, number>; // 0 unknown, 1 scouted, 2 present
@@ -888,6 +902,17 @@ export interface GameState {
   created: number;
 }
 
+export interface GameRules {
+  /** Ten years (40 quarters) instead of twenty-five, graded at the end. */
+  sprint?: boolean;
+  /** One life: no save slots, no rewinds, no save files. */
+  ironman?: boolean;
+  /** The daily challenge for this date (YYYY-MM-DD): everyone gets the same world. */
+  daily?: string;
+  /** A scenario played on Brutal for the third star. */
+  brutal?: boolean;
+}
+
 export interface NewGameOpts {
   name: string;
   industry: IndustryId;
@@ -898,6 +923,9 @@ export interface NewGameOpts {
   mode: 'standard' | 'sandbox' | 'scenario';
   scenario?: string;
   rivals?: number;
+  sprint?: boolean;
+  ironman?: boolean;
+  daily?: string;
 }
 
 export interface ActionResult {

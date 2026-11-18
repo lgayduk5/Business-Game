@@ -22,4 +22,5 @@ export * from './rivals';
 export * from './advisor';
 export * from './victory';
 export * from './scenarios';
+export * from './modes';
 export * from './save';

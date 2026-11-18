@@ -40,7 +40,7 @@ function industryDetail(id: IndustryId, cls: string): string {
 
 function difficultyCard(d: Difficulty, w: Wizard): string {
   const D = DIFF[d];
-  const bars = w.industry ? victoryBars(w.industry as IndustryId, d).slice(0, 5) : [];
+  const bars = w.industry ? victoryBars(w.industry as IndustryId, d, !!w.sprint).slice(0, 5) : [];
   return `<button class="choice diff" data-a="wz" data-k="difficulty" data-v="${d}" aria-pressed="${w.difficulty === d}"><b>${D.label}</b>
     <span class="dl"><i>For</i>${esc(D.who)}</span>
     <span class="dl"><i>Changes</i>${diffChanges(d).map(esc).join('. ')}.</span>
@@ -74,7 +74,7 @@ export function wizard(): string {
       <h3>Difficulty</h3><p class="small muted">Victory bars are shown for ${w.industry ? esc(INDUSTRIES[w.industry as IndustryId].name) : 'your industry'}, in today's money.</p>
       <div class="choices">${DIFFICULTIES.map((d) => difficultyCard(d, w)).join('')}</div>
       <h3>Mode</h3><div class="choices">
-        <button class="choice" data-a="wz" data-k="mode" data-v="standard" aria-pressed="${w.mode === 'standard'}"><b>Standard</b><span class="muted">Play to win. Bankruptcy is permanent.</span></button>
+        <button class="choice" data-a="wz" data-k="mode" data-v="standard" aria-pressed="${w.mode === 'standard'}"><b>Standard</b><span class="muted">Play to win. Bankruptcy ends the game, though you can replay the last year from the final review.</span></button>
         <button class="choice" data-a="wz" data-k="mode" data-v="sandbox" aria-pressed="${w.mode === 'sandbox'}"><b>Sandbox</b><span class="muted">The whole map is visible and you cannot go bankrupt. For learning how things work.</span></button></div>
       ${setupExtras.map((f) => f()).join('')}
       <div class="field" style="margin-top:16px"><label for="seed">World seed</label><input id="seed" type="text" maxlength="24" value="${esc(w.seed)}" data-c="wzSeed" autocomplete="off">
@@ -135,7 +135,7 @@ on('wzNext', () => {
     return render(false);
   }
   try {
-    ui.g = newGame({ name: w.name.trim(), industry: w.industry as IndustryId, city: w.city, founder: w.founder as FounderId, difficulty: w.difficulty, seed: w.seed, mode: w.mode, scenario: w.scenario });
+    ui.g = newGame({ name: w.name.trim(), industry: w.industry as IndustryId, city: w.city, founder: w.founder as FounderId, difficulty: w.difficulty, seed: w.seed, mode: w.mode, scenario: w.scenario, sprint: w.sprint, ironman: w.mode === 'standard' && w.ironman });
   } catch (e) {
     return toast(String(e), true);
   }

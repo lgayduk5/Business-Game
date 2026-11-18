@@ -16,15 +16,18 @@ const TABS: [Tab, string, string][] = [
 export const screens: Partial<Record<Tab, (g: GameState) => string>> = {};
 export const modals: Record<string, (g: GameState | null, data: any) => string> = {};
 export const tabDots: Partial<Record<Tab, (g: GameState) => boolean>> = {};
+/** Which tabs a game shows (a campaign chapter opens one layer at a time). */
+export const tabGate = { allow: (_g: GameState, _t: Tab): boolean => true };
 
 export function shell(g: GameState): string {
   const c = g.company;
+  if (!tabGate.allow(g, ui.tab)) ui.tab = 'hq';
   const body = (screens[ui.tab] ?? screens.hq!)(g);
   const over = g.status !== 'playing' && !g.continued;
   return `<div class="shell">
     <nav class="tabs" aria-label="Sections">
       <div class="rail-brand"><span class="mark">Going Concern</span></div>
-      ${TABS.filter(([t]) => screens[t]).map(([t, label, icon]) => `<button data-a="tab" data-v="${t}" aria-current="${ui.tab === t}">${icon}<span>${label}</span>${tabDots[t]?.(g) ? '<i class="dot"></i>' : ''}</button>`).join('')}
+      ${TABS.filter(([t]) => screens[t] && tabGate.allow(g, t)).map(([t, label, icon]) => `<button data-a="tab" data-v="${t}" aria-current="${ui.tab === t}">${icon}<span>${label}</span>${tabDots[t]?.(g) ? '<i class="dot"></i>' : ''}</button>`).join('')}
     </nav>
     <header class="top">
       <span style="flex:0 0 auto">${logo(c.name, 'var(--hi)', 34)}</span>

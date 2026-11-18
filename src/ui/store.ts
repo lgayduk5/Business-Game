@@ -4,7 +4,7 @@ import { fmtLive, getTip, resetTips } from './kit';
 
 export type Tab = 'hq' | 'map' | 'ops' | 'corp' | 'intel';
 export interface Modal { kind: string; data?: any }
-export interface Wizard { step: number; industry: IndustryId | ''; city: string; founder: FounderId; difficulty: Difficulty; name: string; seed: string; mode: 'standard' | 'sandbox' | 'scenario'; scenario?: string }
+export interface Wizard { step: number; industry: IndustryId | ''; city: string; founder: FounderId; difficulty: Difficulty; name: string; seed: string; mode: 'standard' | 'sandbox' | 'scenario'; scenario?: string; sprint?: boolean; ironman?: boolean }
 
 export const ui = {
   g: null as GameState | null,

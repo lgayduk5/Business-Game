@@ -17,6 +17,7 @@ import './ui/screens/events';
 import './ui/screens/rivals';
 import './ui/screens/learn';
 import './ui/screens/files';
+import './ui/screens/modes';
 import './ui/screens/tutorial';
 import './ui/screens/modals';
 

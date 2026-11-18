@@ -224,6 +224,14 @@ function people(g: GameState) {
     if (cand && c.books.cash > quarterlyCosts(g) * 3) A.hireExec(g, cand.id);
   }
   for (const p of c.people) if (p.loyalty < 30 && (p.retained ?? -1) < g.turn && p.skill > 60 && c.books.cash > quarterlyCosts(g) * 4) A.retain(g, p.id);
+  // a scenario whose goal is a listing: hire the CFO it needs and file as soon as the checklist is clear
+  if (scenarioDef(g)?.goal.kind === 'ipo') {
+    if (!exec(c, 'CFO')) {
+      const cand = g.candidates.filter((x) => x.role === 'CFO').sort((a, b) => b.skill - a.skill)[0];
+      if (cand) A.hireExec(g, cand.id);
+    }
+    if (F.ipoChecklist(g).ok) F.startIPO(g);
+  }
 }
 
 const GOOD_INV = ['sales_academy', 'training_academy', 'cyber', 'culture_program', 'quality_system', 'succession', 'pricing_engine', 'loyalty_program', 'reliability', 'process_innovation', 'telematics', 'knowledge_platform', 'rd_lab', 'erp', 'platform', 'drug', 'storage', 'automation', 'delivery_app', 'hedging', 'sustainability', 'foundation'];

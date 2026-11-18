@@ -1,5 +1,5 @@
 // Saving, loading, importing and exporting games; title-screen entries for scenarios and saves.
-import { SCENARIOS, INDUSTRIES, CITIES, FOUNDERS, IND_LIST, hashSeed, startScenario, turnLabel, type GameState } from '@engine';
+import { INDUSTRIES, CITIES, FOUNDERS, IND_LIST, hashSeed, turnLabel, type GameState } from '@engine';
 import { esc } from '../kit';
 import { act, on, persist, render, toast, ui } from '../store';
 import { modals } from '../shell';
@@ -45,10 +45,12 @@ startHooks.push(() => {
 titleExtras.push(() => {
   const last = ui.saves[0];
   return `${last ? `<button class="btn go" data-a="loadSlot" data-slot="${esc(last.slot)}">Continue ${esc(last.name)}, ${esc(last.label)}</button>` : ''}
-    ${ui.saves.length ? `<button class="btn" data-a="loadMenu">Load a game</button>` : ''}
-    <button class="btn" data-a="scenarios">Scenario challenges</button>`;
+    ${ui.saves.length ? `<button class="btn" data-a="loadMenu">Load a game</button>` : ''}`;
 });
-menuExtras.push((g) => (g ? `<button class="btn" data-a="saveMenu">Save to a slot</button><button class="btn" data-a="export">Export save file</button>` : '') + `<button class="btn" data-a="loadMenu">Load a game</button><label class="btn" style="cursor:pointer">Import save file<input type="file" accept=".json,application/json" data-c="import" hidden></label>`);
+// Ironman games keep one autosave and nothing else: no slots and no save files to restore from.
+menuExtras.push((g) => (g && !g.rules.ironman ? `<button class="btn" data-a="saveMenu">Save to a slot</button><button class="btn" data-a="export">Export save file</button>` : '')
+  + (g?.rules.ironman ? '<p class="small muted" style="margin:0">Ironman: this game saves itself, and only once.</p>' : '')
+  + `<button class="btn" data-a="loadMenu">Load a game</button><label class="btn" style="cursor:pointer">Import save file<input type="file" accept=".json,application/json" data-c="import" hidden></label>`);
 
 modals.load = () => `<div class="spread"><h2>Load a game</h2><button class="btn sm" data-a="close">Close</button></div>
   ${ui.saves.length ? `<div class="choices" style="grid-template-columns:1fr">${ui.saves.map((s) => `<div class="choice" style="display:flex;gap:10px;align-items:center;justify-content:space-between">
@@ -64,18 +66,8 @@ modals.saveSlots = (g) => `<div class="spread"><h2>Save to a slot</h2><button cl
     return `<button class="choice" data-a="saveSlot" data-slot="slot${n}"><b>Slot ${n}</b><span class="muted">${s ? `${esc(s.name)}, ${esc(s.label)} — will be replaced` : 'Empty'}</span></button>`;
   }).join('')}</div>${g ? `<p class="small muted">Saving ${esc(g.company.name)} at ${turnLabel(g.turn)}.</p>` : ''}`;
 
-modals.scenarios = () => `<div class="spread"><h2>Scenario challenges</h2><button class="btn sm" data-a="close">Close</button></div>
-  <p class="muted">A prepared situation, one goal, and a deadline.</p>
-  <div class="choices" style="grid-template-columns:1fr">${SCENARIOS.map((s) => `<button class="choice" data-a="scenario" data-id="${s.id}"><span class="glyph">${INDUSTRIES[s.industry].icon}</span><b>${esc(s.name)}</b>
-    <span class="muted">${esc(s.blurb)}</span><br><span class="small">${esc(s.goal.text)}</span></button>`).join('')}</div>`;
-modals.scenarioBrief = (_g, m) => {
-  const s = SCENARIOS.find((x) => x.id === m.id)!;
-  return `<h2>${esc(s.name)}</h2><p class="serif" style="font-size:1.08rem;line-height:1.5">${esc(s.brief)}</p>
-    <div class="note"><b>Goal</b><p>${esc(s.goal.text)}</p></div>
-    <div class="row end"><button class="btn" data-a="scenarios">Back</button><button class="btn go" data-a="startScenario" data-id="${s.id}">Take the challenge</button></div>`;
-};
-
-function enter(g: GameState) {
+/** Open a game: the HQ of a fresh or loaded company. */
+export function enter(g: GameState) {
   ui.g = g;
   ui.screen = 'game';
   ui.tab = 'hq';
@@ -107,12 +99,14 @@ on('saveMenu', async () => {
   render();
 });
 on('saveSlot', async (d) => {
+  if (ui.g!.rules.ironman) return;
   await saveTo(d.slot!, ui.g!);
   await refreshSaves();
   ui.modal = null;
   act({ ok: true, msg: `Saved to slot ${d.slot!.replace('slot', '')}.` }, sfx.tick);
 });
 on('export', () => {
+  if (ui.g!.rules.ironman) return;
   exportSave(ui.g!);
   toast('Save file downloaded.');
 });
@@ -129,22 +123,6 @@ on('import', async (_d, el) => {
     toast((e as Error).message, true);
   }
 });
-on('scenarios', () => {
-  ui.modal = { kind: 'scenarios' };
-  render();
-});
-on('scenario', (d) => {
-  ui.modal = { kind: 'scenarioBrief', data: { id: d.id } };
-  render();
-});
-on('startScenario', (d) => {
-  const s = SCENARIOS.find((x) => x.id === d.id)!;
-  const names: Record<string, string> = { cash_crunch: 'Lakeshore Fabrication', rate_shock: 'Nordwind Energie', blitzscale: 'Rocketship Labs', turnaround: 'Bowery Dining Group', phase3: 'Charles River Therapeutics', network: 'Grachten Freight' };
-  enter(startScenario(s.id, names[s.id] ?? s.name));
-  for (const h of startHooks) h();
-  sfx.good();
-});
-
 // Seeded random start: industry, city and founder drawn from the seed.
 on('surprise', () => {
   const w = ui.wizard!;

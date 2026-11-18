@@ -296,3 +296,10 @@ input[type='text'], input[type='number'], select {
   .ledger.stack td.head { grid-column: 1 / -1; display: block; text-align: left; padding-bottom: 4px; }
   .ledger.stack td[data-label]::before { content: attr(data-label); color: var(--ink2); font-size: .82rem; text-align: left; }
 }
+
+/* Medals for scenarios and campaign chapters */
+.chip.medal-1 { background: #c9905a; color: #fff; }
+.chip.medal-2 { background: #9aa4ae; color: #fff; }
+.chip.medal-3 { background: #d4a72c; color: #1d2430; }
+ul.tips { margin: 0; padding-left: 1.2em; }
+ul.tips li { margin: 4px 0; }

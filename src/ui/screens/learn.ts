@@ -1,5 +1,5 @@
 // The learning layer in the UI: advisory board, glossary, post-mortem, scenario progress.
-import { GLOSSARY, TERM, money, pct, postMortem, scenarioDef, scenarioStatus, turnLabel, type GameState } from '@engine';
+import { GLOSSARY, TERM, goalText, money, pct, postMortem, scenarioDef, scenarioStatus, turnLabel, type GameState } from '@engine';
 import { esc, lineChart, meter } from '../kit';
 import { on, render, ui } from '../store';
 import { modals } from '../shell';
@@ -68,5 +68,5 @@ hqExtras.unshift((g: GameState) => {
   const st = scenarioStatus(g);
   if (!s || !st) return '';
   return `<div class="sheet wide" style="border-width:2.5px"><div class="spread"><h2 style="margin-top:0">${esc(s.name)}</h2><span class="chip ${st.left <= 2 ? 'warn' : ''}">${st.left} quarter${st.left === 1 ? '' : 's'} left</span></div>
-    <p style="margin-top:0">${esc(s.goal.text)}</p>${meter(st.progress)}<p class="small muted">${esc(st.detail)}</p></div>`;
+    <p style="margin-top:0">${esc(goalText(g))}${g.rules.brutal ? ' <span class="chip bad">Brutal</span>' : ''}</p>${meter(st.progress)}<p class="small muted">${esc(st.detail)}</p></div>`;
 });

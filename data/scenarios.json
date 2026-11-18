@@ -87,5 +87,145 @@
     "seed": "network",
     "goal": { "kind": "offices", "value": 5, "text": "Operate 5 offices and turn a profit (last 12 months) within 20 quarters." },
     "setup": "network"
+  },
+  {
+    "id": "bench",
+    "name": "The client walks",
+    "blurb": "A London consultancy loses its biggest client. Thirty consultants, work for half of them.",
+    "brief": "Your largest client — a third of the firm’s billings — has taken its work in-house. Thirty consultants are on the payroll and half of them are on the bench. The clients who remain pay in two months, the credit line is half drawn, and the partners will not sell equity. Get back to profit — three quarters in a row — within two years.",
+    "industry": "consulting",
+    "city": "lon",
+    "founder": "consultant",
+    "difficulty": "normal",
+    "turns": 8,
+    "seed": "bench",
+    "goal": {
+      "kind": "profit",
+      "value": 3,
+      "text": "Three consecutive quarters of positive net income within 8 quarters, without selling shares.",
+      "noEquity": true
+    },
+    "setup": "bench"
+  },
+  {
+    "id": "ch1",
+    "chapter": 1,
+    "layer": "Office",
+    "name": "Find the limit",
+    "blurb": "Customers want far more than your team can deliver.",
+    "brief": "Your San Francisco software company has more customers knocking than it can serve. An office is always held back by one thing — demand, people or plant — and money spent on anything else is wasted. Find the limit, fix it, and grow annual revenue by 60% within two years.",
+    "lesson": "Every operation has one binding constraint at a time. Fix it and the next one appears. Money spent on something that is not the constraint — more marketing when you cannot deliver, more staff when there is no demand — buys nothing.",
+    "tips": [
+      "Offices: the note at the top names what is holding the office back.",
+      "The Team table suggests how many people you need. New hires take a quarter to get up to speed.",
+      "Next quarter, if nothing changes: the forecast shows whether customers or capacity will run out first.",
+      "Once you can deliver more than customers want, the limit moves to demand. That is the next chapter."
+    ],
+    "industry": "saas",
+    "city": "sfo",
+    "founder": "engineer",
+    "difficulty": "easy",
+    "turns": 8,
+    "seed": "chapter-1",
+    "goal": { "kind": "revenue", "value": 1.6, "relative": true, "text": "Grow annual revenue to {target} within 8 quarters." },
+    "setup": "ch1"
+  },
+  {
+    "id": "ch2",
+    "chapter": 2,
+    "layer": "Region",
+    "name": "Price for profit",
+    "blurb": "Years of discounting, and a marketing budget nobody measures.",
+    "brief": "Your Chicago stores are busy and losing money. The last manager cut prices to win traffic and spent freely on advertising. Prices and marketing are set for the whole region, and customers here are less sensitive to price than he feared. Make a profit three quarters in a row within two and a half years.",
+    "lesson": "Price is the most powerful lever in the business: a few percent on price drops almost entirely to profit, while a few percent of volume does not. Marketing returns fall off quickly — the first dollars do most of the work.",
+    "tips": [
+      "Offices → Price and marketing (or Offices → Regions): the price slider shows how sensitive customers are. Below 1, a higher price loses less volume than it gains in margin.",
+      "Change one thing at a time and read the next report: revenue, margin and units sold.",
+      "Marketing: halve it and see whether sales really fall.",
+      "The map shows the other cities in your region: they share your price and marketing."
+    ],
+    "industry": "retail",
+    "city": "chi",
+    "founder": "operator",
+    "difficulty": "easy",
+    "turns": 10,
+    "seed": "chapter-2",
+    "goal": { "kind": "profit", "value": 3, "text": "Three consecutive quarters of positive net income within 10 quarters." },
+    "setup": "ch2"
+  },
+  {
+    "id": "ch3",
+    "chapter": 3,
+    "layer": "Capital",
+    "name": "Cash is not profit",
+    "blurb": "A big new client doubles the work — and pays two months after it is done.",
+    "brief": "Your New York consultancy has won its biggest client yet. The work is there and the margins are good, but every consultant you hire is paid at the end of the month and the client pays sixty days after each invoice. Grow annual revenue by 70% within two years, without selling shares and without running out of cash.",
+    "lesson": "Profit is earned when the work is delivered; cash arrives when the customer pays. A growing firm can be profitable every quarter and still run out of money, because each new sale ties up cash in receivables first. Credit lines and factoring exist to bridge that gap.",
+    "tips": [
+      "Corporate → Statements: receivables grow on the balance sheet as revenue grows. That is money earned but not yet collected.",
+      "Hire to meet the work, but no faster than your cash allows: each consultant is paid now and billed later.",
+      "Corporate → Capital: a revolving credit line borrows against your receivables; invoice factoring sells them for cash at once, for a fee.",
+      "Cash at the top of the screen is the number that ends games. Tap it to see where it went."
+    ],
+    "industry": "consulting",
+    "city": "nyc",
+    "founder": "consultant",
+    "difficulty": "easy",
+    "turns": 8,
+    "seed": "chapter-3",
+    "goal": {
+      "kind": "revenue",
+      "value": 1.7,
+      "relative": true,
+      "noEquity": true,
+      "text": "Grow annual revenue to {target} within 8 quarters, without selling shares."
+    },
+    "setup": "ch3"
+  },
+  {
+    "id": "ch4",
+    "chapter": 4,
+    "layer": "Rivals",
+    "name": "The price war",
+    "blurb": "The biggest chain in town decides to drive you out.",
+    "brief": "The largest chain in New York sells a quarter more than you do, and it has just cut prices to finish you off. Rivals have personalities, money and memories: some can be outspent, some out-built, some talked to. Within three years, outsell them in your own city.",
+    "lesson": "Competition is a game of resources and patience. A price war costs the side with the thinner margins more. Quality and brand protect share without giving away price; a truce can be cheaper than a fight; and a rival that is short of cash cannot keep cutting for long.",
+    "tips": [
+      "Intel → Rivals: see each rival’s personality, cash and credit rating, and how hostile they are.",
+      "Matching their price is not the only answer: quality (R&D) and brand let you hold customers at a higher price.",
+      "Watch their cash: an aggressive rival that runs short has to stop cutting.",
+      "Diplomacy is an option: a truce costs something, and so does a war."
+    ],
+    "industry": "retail",
+    "city": "nyc",
+    "founder": "operator",
+    "difficulty": "easy",
+    "turns": 12,
+    "seed": "chapter-4",
+    "goal": { "kind": "share", "value": 1, "text": "Outsell every rival in {city} within 12 quarters." },
+    "setup": "ch4"
+  },
+  {
+    "id": "ch5",
+    "chapter": 5,
+    "layer": "Public company",
+    "name": "Ring the bell",
+    "blurb": "A growing software company with a stock-market listing in reach.",
+    "brief": "Your software company is growing fast and investors are asking when it will list. A listing needs scale, two years of accounts, a finance chief and an open market window — and once public, every quarter is judged against what the market expected. Take the company public within three years.",
+    "lesson": "A listing turns private shares into cash and currency, at the price of scrutiny. The window opens and closes with market sentiment; the price depends on growth, margins and how sure investors are of both. After listing, missing expectations moves the share price more than the results themselves.",
+    "tips": [
+      "Corporate → Capital: the listing checklist shows what is missing.",
+      "Corporate → People: hire a Chief Financial Officer. Nobody will underwrite a listing without one.",
+      "Intel → Economy: investor sentiment must be 0.85 or better for the window to be open.",
+      "A listing takes two quarters from filing: the roadshow, then pricing. A shut window delays it."
+    ],
+    "industry": "saas",
+    "city": "sfo",
+    "founder": "engineer",
+    "difficulty": "easy",
+    "turns": 12,
+    "seed": "chapter-5",
+    "goal": { "kind": "ipo", "value": 1, "text": "Complete a stock-market listing within 12 quarters." },
+    "setup": "ch5"
   }
 ]
