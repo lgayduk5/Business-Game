@@ -101,12 +101,12 @@ screens.map = (g) => {
 
 on('city', (d) => {
   ui.sel.city = d.id;
-  sfx.tab();
+  sfx.tap();
   render();
 });
-on('scout', (d) => void act(scout(ui.g!, d.id!), sfx.tick));
-on('openOffice', (d) => void act(openOffice(ui.g!, d.id!, d.ind as IndustryId), sfx.build));
-on('openOfficeFin', (d) => void act(openOffice(ui.g!, d.id!, d.ind as IndustryId, true), sfx.build));
+on('scout', (d) => void act(scout(ui.g!, d.id!), sfx.research));
+on('openOffice', (d) => void act(openOffice(ui.g!, d.id!, d.ind as IndustryId), sfx.milestone));
+on('openOfficeFin', (d) => void act(openOffice(ui.g!, d.id!, d.ind as IndustryId, true), sfx.milestone));
 
 // On phones the board is wider than the screen: keep the selected city in view.
 let centred = '';

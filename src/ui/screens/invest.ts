@@ -113,8 +113,8 @@ regionExtras.push((g: GameState, r: RegionId) => {
 });
 
 on('invest', (d) => void act(startInvestment(ui.g!, d.id!, d.scope || undefined), sfx.build));
-on('dd', (d) => void act(diligence(ui.g!, d.id!, d.scope || undefined), sfx.tick));
-on('cancelInv', (d) => void act(cancelInvestment(ui.g!, Number(d.uid))));
+on('dd', (d) => void act(diligence(ui.g!, d.id!, d.scope || undefined), sfx.research));
+on('cancelInv', (d) => void act(cancelInvestment(ui.g!, Number(d.uid)), sfx.somber));
 on('license', (d) => void act(licenseOut(ui.g!, Number(d.uid)), sfx.cash));
-on('ddTarget', (d) => void act(diligenceTarget(ui.g!, d.id!), sfx.tick));
-on('acquire', (d) => void act(acquireTarget(ui.g!, d.id!), sfx.good));
+on('ddTarget', (d) => void act(diligenceTarget(ui.g!, d.id!), sfx.research));
+on('acquire', (d) => void act(acquireTarget(ui.g!, d.id!), sfx.acquire));

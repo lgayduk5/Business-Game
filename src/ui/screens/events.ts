@@ -12,7 +12,7 @@ nextPrompt.open = (g: GameState) => {
   if (!g.queue.length) return false;
   ui.modal = { kind: 'event', data: { sticky: true } };
   const cat = viewEvent(g, g.queue[0]).def.cat;
-  cat === 'stress' ? sfx.alert() : sfx.event();
+  cat === 'stress' ? sfx.crisis() : sfx.event();
   render();
   return true;
 };
@@ -51,7 +51,9 @@ on('choose', (d) => {
   const res = resolveEvent(g, pe.uid, Number(d.i));
   if (!res) return;
   ui.modal = { kind: 'event', data: { sticky: true, result: res, cat } };
-  res.luck < 0 ? sfx.bad() : sfx.tick();
+  sfx.stamp();
+  if (res.luck > 1) sfx.lucky(0.14);
+  else if (res.luck < -1) sfx.unlucky(0.14);
   render(false);
 });
 on('delegate', (d) => {
@@ -62,7 +64,7 @@ on('delegate', (d) => {
   const res = delegateEvent(g, pe.uid);
   if (!res) return;
   ui.modal = { kind: 'event', data: { sticky: true, result: { ...res, choice: `${res.choice} (your COO's call)` }, cat } };
-  sfx.tick();
+  sfx.stamp();
   render(false);
 });
 on('eventDone', () => {

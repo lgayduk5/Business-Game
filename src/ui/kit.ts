@@ -56,7 +56,8 @@ export const meter = (frac: number, warn = false) => `<div class="meter ${warn ?
 // ── charts (inline SVG, drawn from data — no image assets)
 // Lines the player has switched off, by chart and series name. Kept for the session.
 const HIDDEN = new Set<string>();
-export const toggleLine = (key: string) => (HIDDEN.has(key) ? HIDDEN.delete(key) : HIDDEN.add(key));
+/** Shows or hides a chart line; true if it is now shown. */
+export const toggleLine = (key: string): boolean => (HIDDEN.has(key) ? HIDDEN.delete(key) : (HIDDEN.add(key), false));
 const year = (t: number) => 1 + Math.floor(t / 4);
 
 /**

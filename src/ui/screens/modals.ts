@@ -3,7 +3,8 @@ import { TERM, finalGrade, gradeRule, keepPlaying, money, needsAttention, pct, t
 import { esc } from '../kit';
 import { on, render, runTurns, toast, ui } from '../store';
 import { modals } from '../shell';
-import { isMuted, setMuted, sfx } from '../../audio';
+import { sfx } from '../../audio';
+import { soundRow } from './sound';
 
 export const afterTurn: ((g: GameState) => void | Promise<void>)[] = [];
 export const menuExtras: ((g: GameState | null) => string)[] = [];
@@ -29,7 +30,9 @@ async function advance(turns: number) {
     st === 'won' ? sfx.win() : sfx.lose();
     ui.modal = { kind: 'over', data: { sticky: true } };
   } else {
-    sfx.print();
+    sfx.report();
+    // after the printer: a quarter that closed in the red is one away from insolvency (not in a sandbox)
+    if (ui.g.company.negCashTurns > 0 && !ui.g.settings.sandbox.noBankruptcy) sfx.warning(0.62);
     ui.modal = { kind: 'report', data: { n: r.n, reason: turns > 1 ? r.reason : '' } };
   }
   render();
@@ -44,6 +47,7 @@ on('reportDone', () => {
   if (!nextPrompt.open(ui.g!)) render();
 });
 on('showOver', () => {
+  sfx.tap();
   ui.modal = { kind: 'over', data: { sticky: true } };
   render();
 });
@@ -92,6 +96,7 @@ modals.over = (g) => {
 on('keepPlaying', () => {
   keepPlaying(ui.g!);
   ui.modal = null;
+  sfx.page();
   render();
 });
 
@@ -99,7 +104,7 @@ modals.menu = (g) => `<div class="spread"><h2>Menu</h2><button class="btn sm" da
   <div class="title-stack" style="display:grid;gap:10px">
     ${menuExtras.map((f) => f(g)).join('')}
     ${g ? `<button class="btn" data-a="toggleDelegate" title="Small cards: no crisis, no rival, nothing worth more than 4% of a quarter's sales. Your COO picks the safest option.">${g.settings.delegate ? 'Small decisions: your COO handles them' : 'Small decisions: you decide every one'}</button>` : ''}
-    <button class="btn" data-a="mute">${isMuted() ? 'Turn sound on' : 'Turn sound off'}</button>
+    ${soundRow()}
     <button class="btn" data-a="howTo">How to play</button>
     <button class="btn danger" data-a="askQuit">Quit to title</button>
   </div>
@@ -127,16 +132,17 @@ on('term', (d) => { ui.modal = { kind: 'term', data: { id: d.id } }; render(); }
 on('toggleDelegate', () => {
   const g = ui.g!;
   g.settings.delegate = !g.settings.delegate;
+  sfx.toggle(g.settings.delegate);
   toast(g.settings.delegate ? 'Your COO will handle small decisions from next quarter.' : 'You will see every decision card.');
   render();
 });
-on('mute', () => { setMuted(!isMuted()); sfx.tick(); render(); });
 on('askQuit', () => {
   ui.modal = { kind: 'confirm', data: { title: 'Quit to the title screen?', text: 'Your game is saved automatically at the end of every quarter.', yes: 'Quit', act: 'quit' } };
   render();
 });
 on('quit', () => {
   ui.modal = null;
+  sfx.page();
   ui.screen = 'title';
   render(false);
 });

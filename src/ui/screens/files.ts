@@ -84,13 +84,14 @@ on('loadMenu', async () => {
 on('loadSlot', async (d) => {
   const g = await loadFrom(d.slot!);
   if (!g) return toast('That save could not be read.', true);
-  sfx.good();
+  sfx.page();
   enter(g);
   toast(`Loaded ${g.company.name}, ${turnLabel(g.turn)}.`);
 });
 on('delSlot', async (d) => {
   await deleteSave(d.slot!);
   await refreshSaves();
+  sfx.toggle(false);
   render();
 });
 on('saveMenu', async () => {
@@ -103,11 +104,12 @@ on('saveSlot', async (d) => {
   await saveTo(d.slot!, ui.g!);
   await refreshSaves();
   ui.modal = null;
-  act({ ok: true, msg: `Saved to slot ${d.slot!.replace('slot', '')}.` }, sfx.tick);
+  act({ ok: true, msg: `Saved to slot ${d.slot!.replace('slot', '')}.` }, sfx.stamp);
 });
 on('export', () => {
   if (ui.g!.rules.ironman) return;
   exportSave(ui.g!);
+  sfx.stamp();
   toast('Save file downloaded.');
 });
 on('import', async (_d, el) => {
@@ -117,6 +119,7 @@ on('import', async (_d, el) => {
     const g = await importSave(file);
     await saveTo('auto:' + g.id, g);
     await refreshSaves();
+    sfx.page();
     enter(g);
     toast(`Imported ${g.company.name}, ${turnLabel(g.turn)}.`);
   } catch (e) {
@@ -132,7 +135,7 @@ on('surprise', () => {
   const ind = IND_LIST[Math.floor(next() * IND_LIST.length)];
   const cities = CITIES.filter((c) => c.ind[ind.id] >= 0.9);
   Object.assign(w, { industry: ind.id, city: cities[Math.floor(next() * cities.length)].id, founder: FOUNDERS[Math.floor(next() * FOUNDERS.length)].id, seed, step: 4 });
-  sfx.tick();
+  sfx.dice();
   render(false);
 });
 // After an app update the page reloads; carry on with the game that was open.

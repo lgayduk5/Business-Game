@@ -93,13 +93,13 @@ on('takeLoan', (d) => void act(takeLoan(ui.g!, d.id!, Number(d.amt)), sfx.cash))
 on('draw', (d) => void act(drawRevolver(ui.g!, Number(d.amt)), sfx.cash));
 on('repay', (d) => {
   const l = ui.g!.company.loans.find((x) => x.id === d.id);
-  if (l) act(repayLoan(ui.g!, l.id, Math.min(l.principal, Math.max(l.principal / 4, 50_000))));
+  if (l) act(repayLoan(ui.g!, l.id, Math.min(l.principal, Math.max(l.principal / 4, 50_000))), sfx.spend);
 });
 on('eqPct', (d) => { ui.sub.eqPct = d.value!; render(); });
 on('raise', (d) => void act(raiseEquity(ui.g!, Number(d.pct)), sfx.cash));
-on('ipo', () => void act(startIPO(ui.g!), sfx.good));
+on('ipo', () => void act(startIPO(ui.g!), sfx.ipo));
 on('followOn', () => void act(followOn(ui.g!, 0.1), sfx.cash));
-on('buyback', () => void act(buyBack(ui.g!, ui.g!.company.books.cash * 0.2)));
+on('buyback', () => void act(buyBack(ui.g!, ui.g!.company.books.cash * 0.2), sfx.spend));
 on('dividend', (d) => void act(setDividend(ui.g!, Number(d.value))));
-on('autoRev', (d) => void act(setAutoRevolver(ui.g!, d.v === '1')));
-on('factor', (d) => void act(setFactoring(ui.g!, d.v === '1')));
+on('autoRev', (d) => void act(setAutoRevolver(ui.g!, d.v === '1'), () => sfx.toggle(d.v === '1')));
+on('factor', (d) => void act(setFactoring(ui.g!, d.v === '1'), () => sfx.toggle(d.v === '1')));

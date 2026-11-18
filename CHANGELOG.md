@@ -1,5 +1,28 @@
 # Changelog
 
+## Sound
+
+Design choices in decisions 89–95.
+
+- **A new set of light sound effects**, all synthesised from code as you play (no audio files, nothing to
+  license), in one palette taken from the desk: paper, pencil, rubber stamp, cash drawer, coins, mallet, desk
+  bell and dot-matrix printer. Pitched sounds share one scale, so overlapping sounds never clash.
+- **Quiet where it is frequent.** Moving around is a page turn or a pencil tap at the edge of hearing;
+  settings click; money, building, decisions and people each have their own short sound; only cards,
+  milestones and the end of a game are louder. No buzzy square or sawtooth waves any more.
+- **New places with sound:** sliders notch as they move, + and − count up and down, switches click on and
+  off, sub-tabs and dialogs tap, repaying debt and buybacks count coins out, policies are stamped, research
+  is pencilled, "Surprise me" rolls dice, rewinding winds back, each checklist step on HQ ticks, and a
+  heartbeat follows the report when the quarter closed in the red. Anything refused (every red message) is a
+  soft muffled knock. After you answer a card, a sparkle or falling notes say how the dice fell.
+- **Sound: Off, Soft or Normal** in the menu and on the title screen, with *Hear every sound*: every sound,
+  what it is and where it plays. Your earlier on/off choice is kept.
+- **Kinder on phones:** on iPhone and iPad the game no longer pauses your music or podcast, and follows the
+  ringer switch; audio sleeps while the game is hidden or quiet.
+- `npm run sounds` writes every sound to `shots/sounds/` as WAV files. Tests check each sound's level,
+  length, clean start and end, and the order of loudness; the browser smoke test checks that interactions
+  play their sounds and that Off is silent.
+
 ## Third review: playtest across every mode and industry
 
 Design choices in decisions 80–88. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the

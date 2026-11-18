@@ -4,6 +4,7 @@ import { $, N, P, delta, esc, lineChart, type Row } from '../kit';
 import { on, render, ui } from '../store';
 import { screens } from '../shell';
 import { capacityTip, headTip, moraleTip, runway, shareTip, stakeTip, valuationTip } from '../tips';
+import { sfx } from '../../audio';
 
 export const hqExtras: ((g: GameState) => string)[] = [];
 
@@ -104,6 +105,8 @@ screens.hq = hq;
 
 on('office', (d) => {
   ui.sel.office = d.id;
+  if (ui.tab !== 'ops') sfx.page();
+  else sfx.tap();
   ui.tab = 'ops';
   ui.sub.ops = 'office';
   render(false);

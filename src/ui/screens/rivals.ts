@@ -120,6 +120,8 @@ cityExtras.push((g: GameState, ct: CityDef) => {
 
 on('rival', (d) => {
   ui.sel.rival = Number(d.id);
+  if (ui.tab !== 'intel') sfx.page();
+  else sfx.tap();
   ui.tab = 'intel';
   ui.sub.intel = 'rivals';
   render(false);
@@ -127,8 +129,7 @@ on('rival', (d) => {
 const DIP: Record<string, typeof improveRelations> = { relations: improveRelations, truce: proposeTruce, alliance: proposeAlliance, poach: poachTalent, sue: sueRival, lobby: lobbyAgainst };
 on('dip', (d) => {
   const r = DIP[d.k!](ui.g!, Number(d.id));
-  act(r, r.ok ? sfx.good : undefined);
-  if (!r.ok) sfx.bad();
+  act(r, d.k === 'sue' || d.k === 'lobby' ? sfx.stamp : sfx.deal);
 });
 on('askBid', (d) => {
   ui.modal = { kind: 'bid', data: { id: Number(d.id), hostile: d.h === '1' } };
@@ -137,9 +138,7 @@ on('askBid', (d) => {
 on('doBid', () => {
   const m = ui.modal!.data;
   ui.modal = null;
-  const r = bidForRival(ui.g!, m.id, m.hostile);
-  act(r, r.ok ? sfx.win : undefined);
-  if (!r.ok) sfx.bad();
+  act(bidForRival(ui.g!, m.id, m.hostile), sfx.acquire);
 });
 modals.bid = (g, m) => {
   const r = rivalById(g!, m.id)!;

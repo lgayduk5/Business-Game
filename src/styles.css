@@ -199,6 +199,10 @@ input[type='range']::-moz-range-thumb { width: 26px; height: 26px; border-radius
 input[type='text'], input[type='number'], select {
   width: 100%; min-height: 46px; border: 1.5px solid var(--ink); border-radius: 5px; background: var(--sheet); padding: 0 12px;
 }
+.soundrow { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin: 4px 0 8px; }
+.soundrow .lab { font-weight: 600; }
+.sfx-list .choice { display: flex; flex-direction: column; justify-content: flex-start; position: relative; padding-right: 46px; }
+.sfx-list .choice .glyph { position: absolute; top: 12px; right: 14px; float: none; margin: 0; }
 .seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 5px; overflow: hidden; flex-wrap: wrap; background: var(--sheet); max-width: 100%; }
 .seg button { border: 0; background: none; min-height: 42px; padding: 0 14px; font-weight: 600; border-right: 1.5px solid var(--ink); }
 .seg button:last-child { border-right: 0; }

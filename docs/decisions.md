@@ -327,3 +327,41 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     the Expert tier stays defined for a future industry. The same change lifted retail, which had sat on the Tough
     ceiling since the second review, a point over it; local independents are a little stronger (fringe 14 → 15),
     which brings it back inside.
+
+## Sound
+
+89. **Every sound is synthesised from code; the project ships no audio files.** `src/sounds.ts` writes
+    oscillators, filtered noise and envelopes straight into sample buffers. Nothing is recorded, sampled
+    or taken from a sound library, so there is nothing to license or attribute, the build stays small,
+    and the sounds work offline like everything else. A test fails if an audio file is ever added. The
+    tunes are short arpeggios on one scale written for this game; the old cash sound (a short-then-long
+    square-wave rise of a fourth) was close to a famous platformer's coin and was replaced.
+90. **One palette, from the desk.** Paper, a pencil, a rubber stamp, a cash drawer, coins, a mallet, a
+    desk bell and a dot-matrix printer: the same "desk and board" the screens are drawn as. Pitched sounds
+    share C major pentatonic, so two that overlap never clash. No square or sawtooth waves: sines,
+    triangles and soft partials only.
+91. **How often a sound can happen sets how loud and long it may be.** Five tiers — touch (navigation),
+    controls (settings), actions (money, plant, people), moments (cards, milestones) and endings — each
+    with a ceiling on peak level and length. Each sound's loudness is written in its definition and the
+    render is scaled to it, so mixing is a decision rather than an accident; a test checks that each tier
+    is louder than the one before. Navigation sits about 25 dB under full scale, the end of a game about 12.
+92. **A sound says what kind of thing happened, not just that something did.** Money in rings the
+    drawer; money out by choice is counted out; building knocks; a filed decision is stamped; a yes is a
+    handshake; giving something up is two low tones; anything refused (every red message) is a muffled
+    knock, so a failed tap is noticed without reading. Answering a card stamps it, then a sparkle or
+    falling notes say whether the dice beat the odds — matching the sentence the card shows. The printer
+    plays once per report (once for a whole fast-forward). A heartbeat follows it when the quarter closed in
+    the red, because one more such quarter is insolvency (never in a sandbox, where it is not).
+93. **Some things are deliberately silent:** closing a dialog, typing, scrolling, the rivals' moves, news,
+    autosaves and the update banner. Sliders notch as they move (one notch per twelfth of their range,
+    rising in pitch) and stay quiet on release. Opening any dialog is a pencil tap unless it brings its own
+    sound. A sound never repeats on itself within its guard time (a double tap plays once), and no more
+    than eight play at once.
+94. **Good manners on phones.** Safari's audio session is set to ambient, so the game mixes with the
+    player's music or podcast instead of stopping it and follows the ringer switch. The audio context
+    wakes on any tap (so a sound after the quarter is worked out still plays on iOS), is suspended when the
+    game is hidden, and after twenty quiet seconds, to save battery. Sounds are rendered on first use and
+    kept: the longest takes about 10 ms.
+95. **Off, Soft or Normal**, in the menu and on the title screen, replacing the on/off switch (which it
+    honours). Soft is about 7 dB under Normal. Menu → Sound → *Hear every sound* plays each one and says
+    where it is used; `npm run sounds` writes them all to WAV files for listening outside the game.

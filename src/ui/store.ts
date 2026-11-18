@@ -1,6 +1,7 @@
 // App state, render loop, event delegation and the bridge to the engine worker.
 import { endTurn, needsAttention, pruneStale, type ActionResult, type Difficulty, type FounderId, type GameState, type IndustryId, type RegionId } from '@engine';
 import { fmtLive, getTip, resetTips } from './kit';
+import { sfx } from '../audio';
 
 export type Tab = 'hq' | 'map' | 'ops' | 'corp' | 'intel';
 export interface Modal { kind: string; data?: any }
@@ -19,9 +20,14 @@ export const ui = {
 };
 
 type Handler = (d: DOMStringMap, el: HTMLElement) => void | Promise<void>;
+/** Called when the player does something for the first time in a game (the tutorial ticks its checklist). */
+export const markHooks: (() => void)[] = [];
 /** Record that the player has done something (drives the tutorial checklist; saved with the game). */
 export function mark(key: string) {
-  if (ui.g && !ui.g.counters['tut:' + key]) ui.g.counters['tut:' + key] = 1;
+  if (ui.g && !ui.g.counters['tut:' + key]) {
+    ui.g.counters['tut:' + key] = 1;
+    for (const h of markHooks) h();
+  }
 }
 const handlers: Record<string, Handler> = {};
 /**
@@ -84,6 +90,8 @@ export function render(keepScroll = true) {
 // ── toast
 let toastTimer = 0;
 export function toast(msg: string, bad = false) {
+  // a red message always means "that did not go through": say so by ear too, softly
+  if (bad) sfx.deny();
   document.querySelector('.toast')?.remove();
   const el = document.createElement('div');
   el.className = 'toast' + (bad ? ' bad' : '');
@@ -134,6 +142,7 @@ export function initEvents() {
     if (tp) {
       e.preventDefault();
       showTip(tp);
+      sfx.tap();
       mark('tip');
       return;
     }
@@ -159,6 +168,7 @@ export function initEvents() {
   });
   document.addEventListener('input', (e) => {
     const t = e.target as HTMLInputElement;
+    if (t.type === 'range') sfx.slide(t);
     if (t.type === 'range' && t.dataset.fmt) {
       const out = t.parentElement?.querySelector('output');
       if (out) out.textContent = fmtLive(t.dataset.fmt, Number(t.value));
