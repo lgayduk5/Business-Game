@@ -1,4 +1,5 @@
 // Modifiers: temporary effects from events, and standing effects from active investments.
+import { POLICY } from './policyData';
 import { CITY, INV } from './content';
 import type { ActiveInvestment, GameState, InvFx, InvestmentDef, Office, RegionId, TempMod } from './types';
 
@@ -33,6 +34,7 @@ export function invSum(g: GameState, key: keyof InvFx, o?: Office, region?: Regi
     if (def.inds && o && !def.inds.includes(o.ind)) continue;
     s += v * curveMult(def, inv);
   }
+  for (const id of g.company.policies ?? []) s += POLICY[id]?.fx[key] ?? 0; // company policies apply everywhere
   return s;
 }
 

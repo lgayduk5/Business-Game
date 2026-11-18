@@ -24,6 +24,8 @@ export * from './competitors';
 export * from './advisor';
 export * from './victory';
 export * from './exit';
+export * from './mechanics';
+export * from './policyData';
 export * from './scenarios';
 export * from './modes';
 export * from './save';

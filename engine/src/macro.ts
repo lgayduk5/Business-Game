@@ -99,7 +99,8 @@ export function cycleMult(g: GameState, ind: IndustryId, region: RegionId): numb
 
 /** Nominal input-cost index for an industry's variable costs. */
 export function inputIndex(g: GameState, ind: IndustryId): number {
-  const m = g.macro;
+  const h = g.company?.hedge;
+  const m = h && h.until > g.turn ? { ...g.macro, commodity: h.commodity, energy: h.energy, cloud: h.cloud } : g.macro; // locked by forward contracts
   switch (INDUSTRIES[ind].inputKey) {
     case 'commodity': return m.commodity;
     case 'energy': return 0.5 * m.energy + 0.5 * m.cpi;

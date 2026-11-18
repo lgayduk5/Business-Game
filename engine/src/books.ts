@@ -20,6 +20,13 @@ export function expense(c: Company, cat: ExpCat, amt: number, pay: 'cash' | 'ap'
   if (pay === 'cash') cash(c, -amt, 'op');
   else c.books.ap += amt;
 }
+/** Stock-based pay: an expense in the accounts, paid in new shares rather than cash (added back in operating cash flow). */
+export function stockComp(c: Company, cat: ExpCat, amt: number) {
+  if (!amt) return;
+  c.pnl[cat] += amt;
+  c.books.paidIn += amt;
+  c.cfTags.noncash += amt;
+}
 /** Recognise revenue. Billings can exceed revenue (customers prepaying) — the excess is deferred revenue. */
 export function bill(c: Company, revenue: number, deferredDelta: number) {
   c.pnl.revenue += revenue;

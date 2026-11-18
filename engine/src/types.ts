@@ -184,6 +184,9 @@ export interface InvFx {
   intel?: number; // intelligence on rivals 0..1
   loyalty?: number; // key-person loyalty per quarter
   tax?: number; // % change in the tax bill
+  rent?: number; // % change in office rent
+  overhead?: number; // % change in head-office costs
+  capexCost?: number; // % change in what plant costs to build
 }
 
 export interface InvStage {
@@ -698,6 +701,18 @@ export interface Company {
   ratingScore: number;
   autoRevolver: boolean;
   factoring?: boolean; // invoices are sold to a factor as they are billed
+  /** Company policies in force (review wave 3), by id. */
+  policies?: string[];
+  /** Turn of the last change of policy (one swap a year). */
+  policyChanged?: number;
+  /** Published guidance for the coming year's revenue (listed companies). */
+  guidance?: { level: 'cautious' | 'base' | 'stretch'; from: number; target: number; due: number };
+  /** Share of payroll paid in stock options (0, 0.1 or 0.2). */
+  optionPay?: number;
+  /** Input prices locked by forward contracts until a turn. */
+  hedge?: { commodity: number; energy: number; cloud: number; until: number; fee: number };
+  /** Franchised units: a partner runs the store; you earn a royalty on its sales. */
+  franchises?: { city: string; ind: IndustryId; share: number; opened: number; sales: number }[];
   negCashTurns: number;
   moonshots: number;
   diligence: Record<string, boolean>;

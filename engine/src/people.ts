@@ -79,7 +79,7 @@ export function attritionRate(g: GameState, o: Office): number {
   const overwork = Math.max(0, util - 0.92) * 3;
   const r =
     INDUSTRIES[o.ind].baseAttr * (1 + ((55 - o.morale) / 55) * 1.2) * o.pay ** -2.5 * g.macro.labor ** 1.5 * (1 + overwork) *
-    (1.25 - (0.5 * c.culture) / 100) * (1 + invSum(g, 'attrition', o) / 100) * tempMod(g, 'attrition', o) * (1 - execBonus(c, 'CHRO') * 0.4);
+    (1.25 - (0.5 * c.culture) / 100) * (1 + invSum(g, 'attrition', o) / 100) * (1 - 0.8 * (c.optionPay ?? 0)) * tempMod(g, 'attrition', o) * (1 - execBonus(c, 'CHRO') * 0.4);
   return clamp(r, 0.004, 0.3);
 }
 

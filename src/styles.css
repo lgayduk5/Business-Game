@@ -303,3 +303,4 @@ input[type='text'], input[type='number'], select {
 .chip.medal-3 { background: #d4a72c; color: #1d2430; }
 ul.tips { margin: 0; padding-left: 1.2em; }
 ul.tips li { margin: 4px 0; }
+.choice[aria-pressed='true'] .btn { background: var(--paper); color: var(--ink); border-color: var(--paper); }

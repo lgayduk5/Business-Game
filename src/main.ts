@@ -12,6 +12,7 @@ import './ui/screens/corp';
 import './ui/screens/capital';
 import './ui/screens/team';
 import './ui/screens/invest';
+import './ui/screens/policies';
 import './ui/screens/intel';
 import './ui/screens/events';
 import './ui/screens/rivals';

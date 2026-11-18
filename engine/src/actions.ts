@@ -3,7 +3,7 @@ import * as B from './books';
 import { CITY, INDUSTRIES, isCapital } from './content';
 import { plantEquity, plantValue } from './finance';
 import { market, marketUnits } from './market';
-import { news } from './mods';
+import { invSum, news } from './mods';
 import { makeOffice, makePerson } from './newgame';
 import { headcount, layoff, marketWage, severanceCost } from './people';
 import type { ActionResult, ExecRole, GameState, IndustryId, Office, RegionId, Role, SupplyMode } from './types';
@@ -50,7 +50,7 @@ export function setBackfill(g: GameState, officeId: string, on: boolean): Action
 
 /** Cost of adding capacity: construction is cheaper where land and labour are cheap. */
 export function expandCost(g: GameState, o: Office, units: number): number {
-  return units * INDUSTRIES[o.ind].capPerUnit * 1000 * g.macro.cpi * (0.6 + 0.4 * CITY[o.city].rent);
+  return units * INDUSTRIES[o.ind].capPerUnit * 1000 * g.macro.cpi * (0.6 + 0.4 * CITY[o.city].rent) * (1 + invSum(g, 'capexCost') / 100);
 }
 /** Share of a plant expansion lenders will finance against the new asset (project or equipment finance). */
 export const assetFinanceLTV = (ind: IndustryId) => (INDUSTRIES[ind].capPerUnit >= 10 ? 0.7 : 0.5);
@@ -178,7 +178,7 @@ export function openOfficeCost(g: GameState, cityId: string, ind: IndustryId): {
   const def = INDUSTRIES[ind];
   const setup = 60_000 * g.macro.cpi * (0.5 + 0.5 * city.rent) * (1 + city.reg);
   const units = def.start.cap;
-  const capex = units * def.capPerUnit * 1000 * g.macro.cpi * (0.6 + 0.4 * city.rent);
+  const capex = units * def.capPerUnit * 1000 * g.macro.cpi * (0.6 + 0.4 * city.rent) * (1 + invSum(g, 'capexCost') / 100);
   return { setup, capex, units, total: setup + capex };
 }
 /** Opening a plant-heavy office can be part-financed against the plant, as an expansion can. */

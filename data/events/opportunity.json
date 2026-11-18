@@ -372,15 +372,15 @@
   {
     "id": "energy_ppa",
     "cat": "opportunity",
-    "title": "A long-term power contract",
-    "text": "A data-centre operator wants to buy power from you for fifteen years at a fixed price — slightly below today’s market.",
+    "title": "This year’s power-contract auction",
+    "text": "Data centres and utilities are auctioning long-term contracts to buy power at a fixed price, slightly below today’s market. You can bid a slice of your output.",
     "cond": { "ind": ["energy"], "minTurn": 3 },
     "bind": ["office"],
     "opts": [
       {
-        "label": "Sign the contract",
-        "hint": "Certain revenue, lower price, cheaper financing.",
-        "out": [{ "text": "Bankers love it.", "fx": [["demand", 10, 40, "all"], ["special", "priceDown", 3], ["flag", "ppa", 60]] }]
+        "label": "Bid a slice of your output",
+        "hint": "Certain revenue on part of your output, at a lower price.",
+        "out": [{ "text": "Bankers love it.", "fx": [["demand", 6, 24, "all"], ["special", "priceDown", 2], ["flag", "ppa", 24]] }]
       },
       {
         "label": "Stay merchant",
@@ -388,7 +388,8 @@
         "out": [{ "text": "Your revenue stays tied to the market.", "fx": [] }]
       }
     ],
-    "lesson": "A long contract turns a risky asset into a bond. You give up upside for certainty — and certainty is what lowers your cost of capital."
+    "lesson": "A long contract turns a risky asset into something like a bond. Each slice you sell gives up some upside for certainty — and certainty is what lowers your cost of capital. Developers sell some output forward and keep some merchant.",
+    "cool": 4
   },
   {
     "id": "cons_transformation",
@@ -563,5 +564,52 @@
     ],
     "lesson": "Selling is a legitimate way to finish. A premium today is certain; the value you might build is not. The right answer depends on what you can do that the buyer cannot.",
     "terms": ["valuation", "enterpriseValue"]
+  },
+  {
+    "id": "consulting_tender",
+    "cat": "opportunity",
+    "title": "A big tender",
+    "text": "A large client in {city} has put a two-year programme out to tender. From the shortlist, your chances look like about one in three.",
+    "cond": { "ind": ["consulting"] },
+    "bind": ["office"],
+    "cool": 4,
+    "w": 1.2,
+    "opts": [
+      {
+        "label": "Bid a fixed fee",
+        "hint": "A keen price wins more often, but you carry the risk if the work grows.",
+        "out": [
+          {
+            "w": 0.42,
+            "boost": ["rep", 60, 1.4],
+            "text": "You win, and the project runs to plan.",
+            "fx": [["cost", 0.01, "sm"], ["demand", 12, 8, "office"]]
+          },
+          {
+            "w": 0.16,
+            "text": "You win, but the scope grows and the overrun is yours to eat.",
+            "tone": "bad",
+            "fx": [["cost", 0.01, "sm"], ["demand", 12, 8, "office"], ["cost", 0.08, "cogs"]]
+          },
+          { "w": 0.42, "text": "Another firm wins.", "fx": [["cost", 0.01, "sm"]] }
+        ]
+      },
+      {
+        "label": "Bid time and materials",
+        "hint": "The client pays for the hours: lower odds, no overrun risk.",
+        "out": [
+          {
+            "w": 0.3,
+            "boost": ["rep", 60, 1.4],
+            "text": "You win. The client pays for every hour.",
+            "fx": [["cost", 0.01, "sm"], ["demand", 10, 8, "office"]]
+          },
+          { "w": 0.7, "text": "Another firm wins on price.", "fx": [["cost", 0.01, "sm"]] }
+        ]
+      },
+      { "label": "Pass", "hint": "Your bench is busy enough.", "out": [{ "text": "You let this one go.", "fx": [] }] }
+    ],
+    "lesson": "A consultancy lives on utilisation: people on the bench cost the same as people on projects. Fixed fees win work and shift risk to you; time and materials keep the risk with the client and win less often.",
+    "terms": ["utilisation", "expectedValue"]
   }
 ]

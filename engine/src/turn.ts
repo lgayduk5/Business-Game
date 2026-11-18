@@ -9,6 +9,7 @@ import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
 import { globalShare, localPrice, marketUnits, priceIndex, resolveMarkets } from './market';
 import { invSum, news, tempMod } from './mods';
+import { grantOptions, stepFranchises, stepGuidance, stepHedge } from './mechanics';
 import { companyHeadcount, execBonus, headcount, payroll, personLeaves, prepOffice, stepKeyPeople, stepPeople, type Prep } from './people';
 import { FACTOR_FEE, FACTOR_SHARE, refreshCandidates } from './actions';
 import { rivalsDecide, rivalsFinancials } from './rivals';
@@ -130,6 +131,7 @@ export function endTurn(g: GameState): void {
   // ── offices: costs, people, inventory
   const growing = prevQ && c.quarters.length >= 2 ? prevQ.pnl.revenue / Math.max(1, c.quarters[c.quarters.length - 2].pnl.revenue) - 1 : 0.05;
   let revenue = 0, apSpend = 0, arTarget = 0, defTarget = 0, dpoW = 0;
+  let options = 0; // value of stock options granted as pay this quarter
   const byInd: Quarter['byInd'] = {};
   const local = new Map<string, LocalProfit>(); // profit earned in each tax jurisdiction
   const slow = 1 + Math.max(0, -g.macro.gap) * 0.05; // customers pay late in downturns
@@ -158,14 +160,17 @@ export function endTurn(g: GameState): void {
       apSpend += res.materials;
     }
     let wages = 0;
+    const opt = c.optionPay ?? 0; // part of pay in stock options: an expense, but not cash
     for (const role of ROLES) {
       const w = payroll(g, o, role);
       res.wages[role] = w;
       wages += w;
-      B.expense(c, ROLE_CAT[role], w, 'cash');
+      B.expense(c, ROLE_CAT[role], w * (1 - opt), 'cash');
+      B.stockComp(c, ROLE_CAT[role], w * opt);
+      options += w * opt;
     }
     const loc = g.macro.cpi * fxOf(g, o.city);
-    res.rent = headcount(o) * def.seatRent * 1000 * city.rent * loc;
+    res.rent = headcount(o) * def.seatRent * 1000 * city.rent * loc * (1 + invSum(g, 'rent', o) / 100);
     res.facility = o.cap * def.fixedPerCap * 1000 * (0.4 + 0.6 * city.rent) * loc;
     B.expense(c, 'ga', res.rent, 'ap');
     B.expense(c, 'cogs', res.facility, 'ap');
@@ -207,8 +212,8 @@ export function endTurn(g: GameState): void {
   // ── corporate costs
   // Head-office cost: a small fixed part that grows with the organisation, plus a share of revenue; listing adds compliance.
   const overhead = 25_000 * g.macro.cpi * clamp(companyHeadcount(c) / 50, 0.2, 1) + 0.012 * revenue + (c.cap.isPublic ? 350_000 * g.macro.cpi + 0.003 * revenue : 0);
-  B.expense(c, 'ga', overhead, 'ap');
-  apSpend += overhead;
+  B.expense(c, 'ga', overhead * (1 + invSum(g, 'overhead') / 100), 'ap');
+  apSpend += overhead * (1 + invSum(g, 'overhead') / 100);
   for (const p of c.people) B.expense(c, 'ga', p.salary * g.macro.wageIdx, 'cash');
   for (const k of c.divisions) {
     const b = c.rdBudget[k] ?? 0;
@@ -252,6 +257,9 @@ export function endTurn(g: GameState): void {
   } else c.negCashTurns = 0;
 
   // ── close the books
+  stepHedge(g);
+  stepFranchises(g);
+  grantOptions(g, options);
   const q = B.closeQuarter(c, g.turn, c.open, { headcount: companyHeadcount(c), byInd });
   c.quarters.push(q);
   if (c.quarters.length > 40) c.quarters.shift();
@@ -264,6 +272,7 @@ export function endTurn(g: GameState): void {
   stepCulture(g, prevHead);
   revalue(g);
   stepIPO(g);
+  stepGuidance(g);
   rivalsFinancials(g);
   rivalLifeEvents(g);
 
