@@ -1,7 +1,7 @@
 // Rivals and goals: who you are up against, what they are doing to you, and how close you are to winning.
 import {
   CITY, INDUSTRIES, PERSONALITY, bidForRival, bidOdds, bidPrice, improveRelations, lobbyAgainst, money, officeDetail, officeVisible, pct, poachTalent,
-  proposeAlliance, proposeTruce, rivalById, rivalKnown, sueRival, truceOdds, turnLabel, victoryStatus,
+  proposeAlliance, proposeTruce, rivalById, rivalKnown, SPRINT_OFF, sueRival, truceOdds, turnLabel, victoryStatus,
   type CityDef, type GameState, type Rival,
   nemesis,
 } from '@engine';
@@ -35,7 +35,7 @@ function rivals(g: GameState): string {
     <tbody>${known.map((r) => rivalRow(g, r)).join('')}</tbody></table></div>
     ${hidden ? `<p class="small muted">${hidden} more compan${hidden > 1 ? 'ies operate' : 'y operates'} in markets you have not explored.</p>` : ''}
     ${gone.length ? `<p class="small muted">Gone: ${gone.map((r) => `${esc(r.name)} (${esc(r.fate ?? '')})`).join(', ')}.</p>` : ''}
-    ${g.company.intel < 1 ? '<p class="small muted">Revenue and technology figures need a competitive intelligence unit (Corporate → Invest) unless the rival is listed.</p>' : ''}</div>
+    ${g.company.intel < 1 ? '<p class="small muted">Revenue and technology figures need a competitive intelligence unit (Corporate → Growth → Invest) unless the rival is listed.</p>' : ''}</div>
     ${sel ? detail(g, sel) : '<div class="sheet"><p class="muted">You have not met any rivals yet. Explore more markets.</p></div>'}</div>`;
 }
 
@@ -96,7 +96,7 @@ function goals(g: GameState): string {
   const vs = victoryStatus(g);
   return `<h1>Paths to victory</h1><p class="muted">The first goal you reach wins the game. After ${g.maxTurns / 4} years, the game ends with a grade from A to F.</p>
     <div class="grid2">${vs.map((v) => `<div class="sheet"><div class="spread"><h3 style="margin:0">${esc(v.name)}</h3>${v.met ? `<span class="chip good">${v.need > 1 ? `held ${v.streak} of ${v.need} quarters` : 'met'}</span>` : `<span class="small muted">${pct(v.progress)}</span>`}</div>
-      <p class="small" style="margin:6px 0">${esc(v.desc)}</p>${meter(v.progress)}<p class="small muted" style="margin:6px 0 0">${esc(v.detail)}${v.enabled ? '' : ' — switched off in this game'}</p></div>`).join('')}</div>`;
+      <p class="small" style="margin:6px 0">${esc(v.desc)}</p>${meter(v.progress)}<p class="small muted" style="margin:6px 0 0">${esc(v.detail)}${v.enabled ? '' : g.rules?.sprint && (SPRINT_OFF as readonly string[]).includes(v.id) ? ' — not offered in a Sprint: ten years is too short' : ' — switched off in this game'}</p></div>`).join('')}</div>`;
 }
 
 intelTabs.unshift(['rivals', 'Rivals'], ['goals', 'Goals']);

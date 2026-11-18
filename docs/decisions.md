@@ -237,3 +237,55 @@ Design decisions made while building, newest milestone last. Each entry: what, a
 68. **The full harness runs 12 seeds per cell.** At 6, several red-flag checks sat on
     their thresholds and flipped with sampling noise.
 
+
+## Second review
+
+69. **No label excuses an unwinnable cell.** The harness fails any industry on any difficulty where
+    the best honest strategy wins less than a floor for that difficulty (Easy 50%, Normal 30%,
+    Hard 20%, Brutal 15%). The tier labels (Gentle, Tough, Expert) still have to stay true, but they
+    describe how an industry plays; they no longer make a never-won cell acceptable.
+70. **Energy ranks by growth, and its rivals start about your size.** In a grid industry every
+    unit a plant makes is sold, so capacity is size, and a rival office could not start smaller
+    than a whole plant: every energy rival opened with two to four times the player's capacity
+    and a fraction of its debt. Grid rivals are now sized to the player (0.7–1.5× its capacity on
+    Easy and Normal, 1.5–3× on Brutal), and the end-of-game rank is by growth, as in a Sprint.
+71. **Growth is measured on the whole business.** Ranking by growth uses enterprise value
+    (equity plus net debt plus the funds' plant stakes), so a project loan does not hide growth
+    and raised cash cannot fake it; and against the starting value plus what was paid for
+    acquisitions, so buying growth is not making it. Newcomers count against you only once they
+    are worth more than you: judged on growth from a seed round, a startup outgrows anyone.
+72. **Bots fund the next plant before programmes in a grid industry.** The probe that ignores
+    investments was winning energy by building faster, which showed the honest strategies were
+    spending energy's scarce capital on sales academies and ERP systems.
+73. **Software customers leave a product that falls behind.** Each quarter an office loses up to
+    5% of its customers (× 0, 0.25, 0.6, 0.75 by difficulty) to a better product in its market,
+    scaled by how far behind it is (all of it at 25 technology points). Rivals churn by the same
+    rule. SaaS had ignored difficulty because it was won by riding market growth, not by beating
+    rivals.
+74. **Size caps the credit rating.** No better than BB below $50M of revenue a year, BBB below
+    $250M (in today's money); leverage is measured net of cash; a company with no debt gets 4 of
+    the 12 interest-cover points, not all of them. Startups now borrow at B to BB spreads, and
+    CCC is left for companies whose earnings do not cover their debt service.
+75. **Every victory must be a realistic plan.** Some honest strategy must end at least 10% of its
+    games with it on some difficulty. Titan's bar was set as if every industry were worth what
+    software is: $1–2B on Normal for retail, logistics, energy and biotech, whose leaders are worth
+    $50M–$1B. Each industry now has its own Titan scale, set to what its leaders are worth, and
+    Titan compares enterprise values, so raising cash and sitting on it does not make you the
+    biggest (the Flipper probe found that at once). Blue chip got its own bar so it did not move
+    with Titan; the Pioneer technology bar came down five points, the moonshot costs 8% of revenue
+    from $10M of revenue, and a failed moonshot can be tried again.
+76. **Founders are compared on identical games.** The old founder table tied each founder to a
+    seed number, crediting the founder with that seed's city and luck (the Financier's 51% was
+    mostly its seeds). The main grid now rotates founders, and a paired run plays every founder
+    on the same 336 games; the gap must stay within 12 points.
+77. **A Sprint is graded for ten years.** The same letters for the same standing, but bands about
+    eight points lower, growth-rank places five points apart, full wealth marks at 3× in real
+    terms, and a winning grade needing the stake up 1.25× (or twice what the typical rival's
+    owners got, where the industry went backwards) and revenue up half. Development projects
+    run at twice the pace. Victories that need decades or a size lead over bigger rivals —
+    Titan, Blue chip, Good company, Pioneer, Last one standing — are not offered; Category king
+    can still end a Sprint early. It is now suggested, and the default, for a first company.
+78. **Difficulty cards show measured win rates.** The harness writes `data/winrates.json` (honest
+    strategies by industry and difficulty, for the full game and for Sprints); the cards read it.
+    `npm run sim:check` fails if it, or either report, is stale or lists a red flag.
+79. **Grades are A, B, C, D and F.** E is gone; D now starts at 25.

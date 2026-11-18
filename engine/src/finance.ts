@@ -2,9 +2,9 @@
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, INV, NAMES } from './content';
 import { invSum, news, tempMod } from './mods';
-import { DIFF } from './difficulty';
+import { DIFF, SPRINT_BARS } from './difficulty';
 import { companyHeadcount, exec, execBonus } from './people';
-import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer, Office } from './types';
+import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer, Office, Rival } from './types';
 import { clamp, money, nextUid, normal, pick, randRange } from './util';
 
 const RATINGS: [number, string, number, number][] = [
@@ -13,33 +13,51 @@ const RATINGS: [number, string, number, number][] = [
 ];
 export const ratingRow = (score: number) => RATINGS.find((r) => score >= r[0])!;
 
-export interface CreditInputs { rev: number; ebitda: number; interest: number; debt: number; cash: number; breaches: number; cfo: number }
-export interface Credit { score: number; rating: string; spread: number; maxLev: number; parts: Record<string, number> }
+export interface CreditInputs { rev: number; ebitda: number; interest: number; debt: number; cash: number; breaches: number; cfo: number; /** price level, so size is judged in real terms */ cpi?: number }
+export interface Credit { score: number; rating: string; spread: number; maxLev: number; parts: Record<string, number>; /** the best rating this company's size allows, if size is holding it back */ cap?: string }
+
+/**
+ * Size caps the rating, as it does in life: however clean the accounts, lenders will not rate a small company
+ * like a large one, because one lost customer or one bad year can sink it. Revenue a year, in today's money.
+ */
+export const SIZE_CAPS: [revBelow: number, maxScore: number, best: string][] = [[50e6, 57, 'BB'], [250e6, 67, 'BBB']];
 
 /** How lenders score any company — the player or a rival — from its last twelve months. */
 export function scoreCredit(x: CreditInputs): Credit {
-  const lev = x.debt <= 0 ? 0 : x.ebitda > 0 ? x.debt / x.ebitda : 9;
-  const cov = x.interest > 0 ? x.ebitda / x.interest : 20;
+  const real = x.rev / (x.cpi ?? 1);
+  // net of cash: a company holding more cash than it owes is not leveraged, whatever it borrowed
+  const net = Math.max(0, x.debt - Math.max(0, x.cash));
+  const lev = net <= 0 ? 0 : x.ebitda > 0 ? net / x.ebitda : 9;
+  const cov = x.interest > 0 ? x.ebitda / x.interest : NaN;
   const parts: Record<string, number> = {
     Base: 50,
-    Size: clamp(Math.log10(Math.max(x.rev, 1e5) / 1e6) * 10, -10, 30),
+    // $20M of revenue scores nothing; a $1M company loses 16 points, a $1B one gains 20
+    Size: clamp(Math.log10(Math.max(real, 1e5) / 20e6) * 12, -20, 22),
     Profitability: x.rev > 0 ? clamp((x.ebitda / x.rev) * 60, -20, 20) : -15,
-    Leverage: -Math.min(40, lev * 7),
-    'Interest cover': clamp((cov - 2) * 2, -10, 12),
+    Leverage: -Math.min(40, lev * 5),
+    // with no debt there is no record of paying interest: a little credit for the clean sheet, not full marks
+    'Interest cover': Number.isNaN(cov) ? 4 : clamp((cov - 2) * 2, -10, 12),
     Liquidity: clamp((x.cash / Math.max(1, x.rev / 4)) * 4, -6, 8),
     'Track record': -6 * x.breaches,
     CFO: x.cfo * 10,
   };
-  const score = Object.values(parts).reduce((a, b) => a + b, 0);
+  let score = Object.values(parts).reduce((a, b) => a + b, 0);
+  const capRow = SIZE_CAPS.find(([below]) => real < below);
+  let cap: string | undefined;
+  if (capRow && score > capRow[1]) {
+    parts['Size cap'] = capRow[1] - score;
+    score = capRow[1];
+    cap = capRow[2];
+  }
   const row = ratingRow(score);
-  return { score, rating: row[1], spread: row[2], maxLev: row[3], parts };
+  return { score, rating: row[1], spread: row[2], maxLev: row[3], parts, cap };
 }
 
 export function creditRating(g: GameState): Credit {
   const c = g.company;
   return scoreCredit({
     rev: B.ttm(c, (q) => q.pnl.revenue), ebitda: B.ttm(c, (q) => q.ebitda), interest: B.ttm(c, (q) => q.pnl.interest), debt: c.books.debt, cash: c.books.cash,
-    breaches: c.loans.reduce((s, l) => s + l.breaches, 0), cfo: execBonus(c, 'CFO'),
+    breaches: c.loans.reduce((s, l) => s + l.breaches, 0), cfo: execBonus(c, 'CFO'), cpi: g.macro.cpi,
   });
 }
 
@@ -300,6 +318,30 @@ export const plantDebtService = (g: GameState, o: Office) => plantLoans(g, o).re
 export const PRIVATE_DISCOUNT = 0.8;
 export const privateValue = (equity: number, cash: number, debt: number) => Math.max(0, PRIVATE_DISCOUNT * (equity - (cash - debt)) + (cash - debt));
 
+/**
+ * The whole business, however it is financed: what the shares are worth, plus debt less cash, plus the funds'
+ * stakes in its plants. Ranking by growth uses this, so project finance does not hide a company's growth and
+ * raising cash cannot fake it.
+ */
+export function enterpriseValue(c: Company): number {
+  const funds = (c.valParts?.minority ?? 0) * (c.cap.isPublic ? 1 : PRIVATE_DISCOUNT);
+  return Math.max(0, c.valuation - c.books.cash - c.books.securities + c.books.debt + funds);
+}
+/** A rival's enterprise value, on the same basis. */
+export const rivalEV = (r: Rival) => Math.max(0, r.valuation - r.cash + r.debt);
+/**
+ * Record what a company paid for an acquisition (including debt it took on), in today's money. Growth is judged
+ * against everything put into the business, so buying a rival with borrowed money is not growth in itself.
+ */
+/** A rival bought out (by you or another rival): remember what it was worth, so its owners' growth is judged at the sale. */
+export function noteRivalExit(g: GameState, r: Rival, value = r.valuation) {
+  g.counters[`rivalExit${r.id}`] = Math.max(0, value) / g.macro.cpi;
+}
+export function noteAcquisition(g: GameState, paid: number, rivalId?: number) {
+  const k = rivalId === undefined ? 'acquiredEV' : `rivalAcqEV${rivalId}`;
+  g.counters[k] = (g.counters[k] ?? 0) + Math.max(0, paid) / g.macro.cpi;
+}
+
 /** The player's company, valued. Returns equity value and every factor that went into it. */
 export function valuation(g: GameState): { equity: number; parts: Record<string, number> } {
   const c = g.company;
@@ -412,7 +454,7 @@ export function ipoChecklist(g: GameState): { ok: boolean; items: { label: strin
   const c = g.company;
   const rev = B.ttm(c, (q) => q.pnl.revenue);
   // listing needs scale; what counts as scale depends on how the market values the industry
-  const min = DIFF[g.difficulty].ipoMinRev * g.macro.cpi * Math.min(1, INDUSTRIES[c.primary].capTarget);
+  const min = DIFF[g.difficulty].ipoMinRev * g.macro.cpi * Math.min(1, INDUSTRIES[c.primary].capTarget) * (g.rules?.sprint ? SPRINT_BARS.ipoRev : 1);
   const items = [
     { label: `Revenue of at least ${money(min)} a year`, ok: rev >= min, tip: 'Public investors want scale. Smaller listings get no analyst coverage and trade poorly.' },
     { label: 'Two years of quarterly accounts', ok: g.turn >= 8, tip: 'Regulators require audited history.' },

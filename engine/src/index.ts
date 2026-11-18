@@ -29,3 +29,4 @@ export * from './policyData';
 export * from './scenarios';
 export * from './modes';
 export * from './save';
+export * from './winrates';

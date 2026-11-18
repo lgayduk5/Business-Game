@@ -15,6 +15,9 @@ function revBasis(g: GameState, def: InvestmentDef, scope?: string): number {
   const offs = def.scope === 'office' ? c.offices.filter((o) => o.id === scope) : def.scope === 'region' ? c.offices.filter((o) => CITY[o.city].region === scope) : c.offices;
   return offs.reduce((s, o) => s + (o.last?.revenue ?? 0), 0) * 4;
 }
+/** How many quarters a stage of a staged project takes. A Sprint compresses development to half (at the same total cost). */
+export const stageQ = (g: GameState, st: { q: number }) => (g.rules?.sprint ? Math.max(1, Math.ceil(st.q / 2)) : st.q);
+
 export function invCost(g: GameState, def: InvestmentDef, scope?: string): number {
   return Math.max(def.base * 1000 * g.macro.cpi, def.perRev * revBasis(g, def, scope));
 }
@@ -54,7 +57,7 @@ export function startInvestment(g: GameState, defId: string, scope?: string): Ac
   const first = def.stages ? 0 : upfront;
   if (first > c.books.cash) return { ok: false, msg: `That needs ${money(first)}; you have ${money(c.books.cash)}.` };
   const inv: ActiveInvestment = {
-    uid: nextUid(g), def: def.id, scope, start: g.turn, upfront, stage: 0, stageLeft: def.stages ? def.stages[0].q : def.ramp,
+    uid: nextUid(g), def: def.id, scope, start: g.turn, upfront, stage: 0, stageLeft: def.stages ? stageQ(g, def.stages[0]) : def.ramp,
     state: def.ramp > 0 || def.stages ? 'ramp' : 'active', age: 0, granted: 0, diligenced: !!c.diligence[def.id], bookValue: 0,
   };
   if (!def.stages) {
@@ -71,7 +74,7 @@ export function startInvestment(g: GameState, defId: string, scope?: string): Ac
   c.investments.push(inv);
   if (def.start) applyFx(g, def.start, { office: def.scope === 'office' ? scope : undefined, region: def.scope === 'region' ? (scope as RegionId) : undefined });
   g.counters.invested = (g.counters.invested ?? 0) + first;
-  return { ok: true, msg: def.stages ? `${def.name} started. First stage: ${def.stages[0].name}, ${def.stages[0].q} quarters.` : `${def.name} funded for ${money(upfront)}.${def.ramp ? ` Pays off from ${def.ramp} quarters out.` : ''}` };
+  return { ok: true, msg: def.stages ? `${def.name} started. First stage: ${def.stages[0].name}, ${stageQ(g, def.stages[0])} quarters.` : `${def.name} funded for ${money(upfront)}.${def.ramp ? ` Pays off from ${def.ramp} quarters out.` : ''}` };
 }
 
 /** Financial investments sit on the balance sheet as securities rather than plant. */
@@ -153,17 +156,17 @@ export function stepInvestments(g: GameState): number {
     if (inv.state === 'ramp') {
       if (def.stages) {
         const st = def.stages[inv.stage];
-        const cost = (st.cost * inv.upfront) / st.q;
+        const cost = (st.cost * inv.upfront) / stageQ(g, st);
         B.expense(c, 'rd', cost, 'ap');
         ap += cost;
         g.counters.invested = (g.counters.invested ?? 0) + cost;
         if (--inv.stageLeft <= 0) {
           const p = clamp(st.p * (1 + execBonus(c, 'CTO') * 0.15), 0, 0.97);
           if (chance(g, p)) {
-            g.attribution.luck += (1 - p) * cost * st.q;
+            g.attribution.luck += (1 - p) * cost * stageQ(g, st);
             if (inv.stage + 1 < def.stages.length) {
               inv.stage++;
-              inv.stageLeft = def.stages[inv.stage].q;
+              inv.stageLeft = stageQ(g, def.stages[inv.stage]);
               news(g, `${def.name}: ${st.name} succeeded. Next: ${def.stages[inv.stage].name}.`, 'good');
             } else {
               inv.state = 'active';
@@ -172,7 +175,7 @@ export function stepInvestments(g: GameState): number {
               news(g, `${def.name} is complete. The payoff starts now.`, 'good');
             }
           } else {
-            g.attribution.luck -= p * cost * st.q;
+            g.attribution.luck -= p * cost * stageQ(g, st);
             inv.state = 'failed';
             news(g, `${def.name} failed at ${st.name}. Everything spent on it is gone.`, 'bad');
           }

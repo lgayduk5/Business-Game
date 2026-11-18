@@ -2,6 +2,7 @@
 import * as B from './books';
 import { CITIES, CITY, INDUSTRIES, NAMES, isCapital } from './content';
 import { scheduleEvent } from './events';
+import { noteAcquisition } from './finance';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, news } from './mods';
 import { makeOffice } from './newgame';
@@ -90,6 +91,7 @@ export function acquireTarget(g: GameState, id: string): ActionResult {
     c.offices.push(o);
   }
   B.acquire(c, t.price, fair, o);
+  noteAcquisition(g, t.price);
   o.integration = 4;
   const ratio = t.staff / Math.max(1, before + t.staff);
   c.culture = clamp(c.culture - (1 + ratio * Math.abs(c.culture - t.culture) * 0.5), 0, 100);

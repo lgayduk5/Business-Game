@@ -162,9 +162,9 @@
     "brief": "Your New York consultancy has won its biggest client yet. The work is there and the margins are good, but every consultant you hire is paid at the end of the month and the client pays sixty days after each invoice. Grow annual revenue by 70% within two years, without selling shares and without running out of cash.",
     "lesson": "Profit is earned when the work is delivered; cash arrives when the customer pays. A growing firm can be profitable every quarter and still run out of money, because each new sale ties up cash in receivables first. Credit lines and factoring exist to bridge that gap.",
     "tips": [
-      "Corporate → Statements: receivables grow on the balance sheet as revenue grows. That is money earned but not yet collected.",
+      "Corporate → Money → Statements: receivables grow on the balance sheet as revenue grows. That is money earned but not yet collected.",
       "Hire to meet the work, but no faster than your cash allows: each consultant is paid now and billed later.",
-      "Corporate → Capital: a revolving credit line borrows against your receivables; invoice factoring sells them for cash at once, for a fee.",
+      "Corporate → Money → Capital: a revolving credit line borrows against your receivables; invoice factoring sells them for cash at once, for a fee.",
       "Cash at the top of the screen is the number that ends games. Tap it to see where it went."
     ],
     "industry": "consulting",
@@ -214,8 +214,8 @@
     "brief": "Your software company is growing fast and investors are asking when it will list. A listing needs scale, two years of accounts, a finance chief and an open market window — and once public, every quarter is judged against what the market expected. Take the company public within three years.",
     "lesson": "A listing turns private shares into cash and currency, at the price of scrutiny. The window opens and closes with market sentiment; the price depends on growth, margins and how sure investors are of both. After listing, missing expectations moves the share price more than the results themselves.",
     "tips": [
-      "Corporate → Capital: the listing checklist shows what is missing.",
-      "Corporate → People: hire a Chief Financial Officer. Nobody will underwrite a listing without one.",
+      "Corporate → Money → Capital: the listing checklist shows what is missing.",
+      "Corporate → Organisation → People: hire a Chief Financial Officer. Nobody will underwrite a listing without one.",
       "Intel → Economy: investor sentiment must be 0.85 or better for the window to be open.",
       "A listing takes two quarters from filing: the roadshow, then pricing. A shut window delays it."
     ],

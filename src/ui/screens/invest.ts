@@ -1,6 +1,6 @@
 // Investments and deals: the catalogue, what is running, and businesses for sale.
 import {
-  CITY, INDUSTRIES, INV, REGIONS, acquireTarget, cancelInvestment, catalog, curveMult, diligence, diligenceCost, diligenceTarget, fxSummary, invAvailable, invCost,
+  stageQ, CITY, INDUSTRIES, INV, REGIONS, acquireTarget, cancelInvestment, catalog, curveMult, diligence, diligenceCost, diligenceTarget, fxSummary, invAvailable, invCost,
   licenseOut, licenseValue, money, pct, stagedTotal, startInvestment, targetDiligenceCost,
   type ActiveInvestment, type GameState, type InvestmentDef, type Office, type RegionId,
 } from '@engine';
@@ -27,13 +27,13 @@ function card(g: GameState, def: InvestmentDef, scope?: string): string {
   const cv: [string, number[], string] = def.stages ? ['Staged', [0, 0, 0.1, 0.1, 0.1, 1, 1], 'Paid for in stages, each with a gate that can fail. Nothing comes back until the last gate is passed — but you can stop at any gate and keep what you have not yet spent.'] : CURVE[def.curve];
   const fx = fxSummary(def);
   const costRows: Row[] = def.stages
-    ? [...def.stages.map((s): Row => [`${s.name}: ${s.q} quarters, ${pct(s.p)} to pass`, money(s.cost * cost)]), ['If every stage is funded', money(stagedTotal(def) * cost), true], ['Chance of reaching the end', pct(def.stages.reduce((p, s) => p * s.p, 1))]]
+    ? [...def.stages.map((s): Row => [`${s.name}: ${stageQ(g, s)} quarters, ${pct(s.p)} to pass`, money(s.cost * cost)]), ['If every stage is funded', money(stagedTotal(def) * cost), true], ['Chance of reaching the end', pct(def.stages.reduce((p, s) => p * s.p, 1))]]
     : [['Up front', money(cost)], ['Of which capitalised', pct(def.capex)], ['Then per quarter', money(def.ongoing * cost)], ['Starts paying after', `${def.ramp} quarters`]];
   const risk = def.risk ? (known ? def.risk.p : def.risk.shownP) : 0;
   return `<div class="sheet"><div class="spread"><h3 style="margin:0">${esc(def.name)}</h3>${tip(`${cv[0]} ${spark(cv[1])}`, explain(`${cv[0]} payoff`, cv[2]), 'plain')}</div>
     <p class="small" style="margin:6px 0">${esc(def.desc)} <span class="muted">${esc(def.pitch)}</span></p>
     ${fx.length ? `<p class="small" style="margin:6px 0"><b>${fx.map(esc).join(', ')}.</b></p>` : ''}
-    <p class="small muted" style="margin:6px 0">${def.stages ? `Staged: ${$(stagedTotal(def) * cost, def.name, 'Paid stage by stage. Each gate can fail; you can stop at any time and lose only what is spent.', costRows, ['sunkCost', 'realOption'])} over ${def.stages.reduce((s, x) => s + x.q, 0)} quarters`
+    <p class="small muted" style="margin:6px 0">${def.stages ? `Staged: ${$(stagedTotal(def) * cost, def.name, 'Paid stage by stage. Each gate can fail; you can stop at any time and lose only what is spent.', costRows, ['sunkCost', 'realOption'])} over ${def.stages.reduce((s, x) => s + stageQ(g, x), 0)} quarters${g.rules?.sprint ? ' (half the usual time: this is a Sprint)' : ''}`
       : `${$(cost, def.name, 'The larger of a minimum cost and a share of the revenue it applies to.', costRows, ['capex', 'opex'])}${def.ongoing ? ` then ${money(def.ongoing * cost)} a quarter` : ''}`}${def.risk ? `, ${N(pct(risk, 1) + ' failure risk a quarter', 'Risk', known ? 'What due diligence found.' : 'This is what you have been told. Due diligence would tell you whether it is true.', undefined, ['dueDiligence'])}` : ''}.</p>
     ${known && def.truth ? `<div class="note bad"><b>Due diligence found</b><p>${esc(def.truth)}</p></div>` : ''}
     ${known && !def.truth && (def.risk || def.trap) ? `<p class="small pos">Due diligence: the pitch is honest.</p>` : ''}
@@ -51,7 +51,7 @@ function running(g: GameState, list: ActiveInvestment[]): string {
     if (inv.state === 'ramp' && def.stages) {
       const st = def.stages[inv.stage];
       status = `${st.name}, ${inv.stageLeft} quarters left, ${pct(st.p)} to pass`;
-      per = (st.cost * inv.upfront) / st.q;
+      per = (st.cost * inv.upfront) / stageQ(g, st);
     } else if (inv.state === 'ramp') status = `Starting up, ${inv.stageLeft} quarters to go`;
     else status = `Delivering ${pct(curveMult(def, inv))} of full effect`;
     const lic = licenseValue(g, inv);

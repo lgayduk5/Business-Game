@@ -91,7 +91,7 @@ describe('graded ending', () => {
     const g = newGame(opts({ seed: 'grade' }));
     g.maxTurns = 1;
     checkEnd(g);
-    expect(g.outcome?.grade).toMatch(/^[A-F]$/);
+    expect(g.outcome?.grade).toMatch(/^[ABCDF]$/);
     expect(g.status).toBe('lost'); // nothing grew in the first quarter
     const fg = finalGrade(g);
     expect(fg.score).toBeGreaterThanOrEqual(0);

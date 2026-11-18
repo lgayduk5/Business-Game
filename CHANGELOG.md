@@ -1,5 +1,34 @@
 # Changelog
 
+## Second review
+
+Status per item in `docs/review-response.md` (second review section); design choices in decisions 69–79.
+
+- **Energy is winnable.** Grid rivals start about your size (they opened with two to four times your plant),
+  the end-of-game grade ranks energy by growth, and the bots fund the next plant before programmes.
+  Honest strategies now win 100 / 77 / 48 / 23% of energy games (Easy to Brutal), up from 46 / 4 / 0 / 0%.
+- **The harness fails unwinnable cells.** Every industry on every difficulty: the best honest strategy must
+  win at least 50% / 30% / 20% / 15% (Easy to Brutal), whatever the label. Every victory must be a realistic
+  plan (some honest strategy ends 10% of its games with it on some difficulty). Founders are compared on
+  identical games and must stay within 12 points. `npm run sim:check` fails on a stale report or any red flag.
+- **SaaS respects difficulty.** Customers leave a product that falls behind the best in its market, more on
+  harder levels; rivals churn by the same rule. SaaS: 100 / 98 / 85 / 33%, down from 100 / 100 / 98 / 92%.
+- **Difficulty cards** show the measured win rate for the industry (and length) you picked, from
+  `data/winrates.json`; the victory bars fold behind "Show victory bars"; the stray ";" is gone.
+- **Credit ratings:** size caps the rating (BB below $50M of revenue, BBB below $250M), leverage is net of cash,
+  and no debt earns only part of the interest-cover points. Startups borrow at B–BB; CCC is for companies that
+  cannot cover their debt service.
+- **Founders:** the Scientist, Heir, Financier and Engineer are stronger and the Operator a little weaker;
+  on identical games every founder now wins 67–72% (was 58–75%).
+- **Titan and Pioneer** are realistic plans: Titan's bar follows what each industry's leaders are worth and
+  compares enterprise values (Blue chip has its own bar), the Pioneer technology bar is lower, and the moonshot
+  is cheaper, open from $10M of revenue, and can be retried.
+- **Sprint is in line with the full game** (best honest strategy 87 / 76 / 54 / 36%, against 95 / 86 / 70 / 35% in the full
+  game) and suggested, and the default, for a first company: ranked by growth against the companies you
+  started with, graded for ten years, development at twice the pace, and Category king the one early victory.
+- **Polish:** Corporate's seven sub-tabs are grouped into Money, Growth and Organisation; grades are A, B, C,
+  D and F; "Found a new company" is the first button on the title screen, with a pointer to the five chapters.
+
 ## Review response — three waves
 
 Everything the panel review recommended, with status per item in `docs/review-response.md`.

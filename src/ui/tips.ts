@@ -78,9 +78,10 @@ export function shareTip(o: Office): string {
     ['Your pull', x2(a.A, 3), true],
     ['Everyone’s pull incl. locals', x2(a.total, 2)],
     ['Share you are heading for', pct(r.target, 2), true],
+    ...(r.churn ? [['− customers who left for a better product', pct(r.churn, 2)] as Row] : []),
     ['Share today', pct(o.share, 2)],
   ];
-  return P(o.share, 'Market share', `Customers choose on reach, quality, brand and price. Your pull divided by everyone’s is the share you are heading for; ${INDUSTRIES[o.ind].short} customers move about ${pct(INDUSTRIES[o.ind].stick)} of the way each quarter.`, rows, 2, ['marketShare', 'elasticity']);
+  return P(o.share, 'Market share', `Customers choose on reach, quality, brand and price. Your pull divided by everyone’s is the share you are heading for; ${INDUSTRIES[o.ind].short} customers move about ${pct(INDUSTRIES[o.ind].stick)} of the way each quarter.${INDUSTRIES[o.ind].productChurn ? ' If a rival here has better technology, some of your customers leave for it every quarter — more the further behind you are, and more on harder levels.' : ''}`, rows, 2, ['marketShare', 'elasticity']);
 }
 
 export function capacityTip(g: GameState, o: Office): string {
@@ -124,7 +125,7 @@ export function ratingTip(g: GameState): string {
   const r = creditRating(g);
   const cov = covenantStatus(g);
   return tip(esc(r.rating), explain('Credit rating', 'How lenders see you. It sets the spread you pay over the central-bank rate and how much anyone will lend.',
-    [...Object.entries(r.parts).map(([k, v]): Row => [k, (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(0)]), ['Score', r.score.toFixed(0), true], ['Spread over policy rate', `${r.spread.toFixed(1)} pts`],
+    [...Object.entries(r.parts).map(([k, v]): Row => [k, (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(0)]), ['Score', r.score.toFixed(0), true], ...(r.cap ? [['Best rating at your size', `${r.cap} (BB below $50M of revenue, BBB below $250M)`] as Row] : []), ['Spread over policy rate', `${r.spread.toFixed(1)} pts`],
       ['Debt / EBITDA', cov.lev > 50 ? 'n/a' : x2(cov.lev, 1) + '×'], ['EBITDA / interest', cov.cov > 50 ? 'n/a' : x2(cov.cov, 1) + '×']], ['creditRating', 'leverage', 'covenant']));
 }
 

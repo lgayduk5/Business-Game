@@ -60,7 +60,8 @@
       "regSens": { "type": "number", "description": "Sensitivity to regulation" },
       "scale": { "type": "number", "description": "Maximum unit-cost saving from scale" },
       "startTech": { "type": "number", "description": "Tech level a new entrant starts with" },
-      "capTarget": { "type": "number", "description": "Multiplier on the market-cap victory threshold" },
+      "capTarget": { "type": "number", "description": "Scale of the industry's valuations: multiplier on the Blue chip bar and the listing revenue" },
+      "titanScale": { "type": "number", "description": "Multiplier on the Titan bar, set to what the industry's leaders are worth (falls back to capTarget)" },
       "local": { "type": "number", "description": "How strongly prices follow local wages, 0..1" },
       "techW": { "type": "number", "description": "Weight of technology in perceived quality, 0..1" },
       "start": {
@@ -88,7 +89,9 @@
         "required": ["ops", "sales", "rnd", "admin"],
         "additionalProperties": false
       },
-      "grid": { "type": "boolean", "description": "Output is sold into a wholesale market: a working plant sells most of what it makes at the going price" }
+      "grid": { "type": "boolean", "description": "Output is sold into a wholesale market: a working plant sells most of what it makes at the going price" },
+      "rankByGrowth": { "type": "boolean", "description": "The end-of-game grade ranks companies by how much they grew, not by size" },
+      "productChurn": { "type": "number", "minimum": 0, "maximum": 0.3, "description": "Share of customers lost each quarter, at most, by an office whose product trails the best in its market" }
     },
     "required": ["id", "name", "marketBase", "wages", "opsOut", "start", "roles"],
     "additionalProperties": false

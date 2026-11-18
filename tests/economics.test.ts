@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CITY, IND_LIST, INDUSTRIES, countryTax, endTurn, equityOf, fxOf, migrate, newGame, privateValue, quarterOf, rivalValuation, startScenario, stepIPO, totalAssets, totalLiabilities,
-  turnLabel, valuation, type GameState, type LocalProfit,
+  CITIES, CITY, IND_LIST, INDUSTRIES, countryTax, creditRating, endTurn, loanRate, equityOf, fxOf, migrate, newGame, privateValue, quarterOf, rivalValuation, startScenario, stepIPO, totalAssets, totalLiabilities,
+  scoreCredit, ttm, turnLabel, valuation, type GameState, type LocalProfit,
 } from '../engine/src/index';
 import { opts, play } from './helpers';
 
@@ -81,7 +81,8 @@ describe('rivals run on the same economics as the player', () => {
     const cashToRev: number[] = [];
     for (let s = 0; s < 3; s++) {
       const g = play(newGame(opts({ industry: 'saas', seed: 'rival-margin-' + s })), 40);
-      for (const r of g.rivals.filter((x) => x.alive)) {
+      // the Big Tech entrant arrives with a war chest by design, so it is not counted
+      for (const r of g.rivals.filter((x) => x.alive && x.personality !== 'bigtech')) {
         const rev = r.revTTM.slice(-4).reduce((a, b) => a + b, 0);
         if (rev <= 0) continue;
         margins.push(r.ebitdaTTM.slice(-4).reduce((a, b) => a + b, 0) / rev);
@@ -175,5 +176,40 @@ describe('save migration to v3', () => {
     for (const r of m.rivals) expect(Array.isArray(r.ebitdaTTM)).toBe(true);
     endTurn(m); // and the game carries on
     expect(m.turn).toBe(g.turn + 1);
+  });
+});
+
+describe('credit ratings (second review)', () => {
+  const base = { interest: 0, debt: 0, breaches: 0, cfo: 0 };
+  it('size caps the rating: no better than BB below $50M of revenue, BBB below $250M', () => {
+    // a small, very profitable, debt-free firm: the accounts alone would rate it AAA
+    expect(scoreCredit({ ...base, rev: 3.4e6, ebitda: 1.2e6, cash: 2e6 }).rating).toBe('BB');
+    expect(scoreCredit({ ...base, rev: 3.4e6, ebitda: 1.2e6, cash: 2e6 }).cap).toBe('BB');
+    expect(scoreCredit({ ...base, rev: 120e6, ebitda: 40e6, cash: 30e6 }).rating).toBe('BBB');
+    expect(['A', 'AA', 'AAA']).toContain(scoreCredit({ ...base, rev: 2e9, ebitda: 500e6, cash: 300e6 }).rating);
+    // in real terms: after prices have doubled, $60M of revenue is $30M in today's money
+    expect(scoreCredit({ ...base, rev: 60e6, ebitda: 20e6, cash: 10e6, cpi: 2 }).rating).toBe('BB');
+    // the cap shows in the breakdown, so the parts still add up to the score
+    const r = scoreCredit({ ...base, rev: 3.4e6, ebitda: 1.2e6, cash: 2e6 });
+    expect(Object.values(r.parts).reduce((a, b) => a + b, 0)).toBeCloseTo(r.score, 6);
+  });
+  it('a company with no debt does not get full marks for interest cover', () => {
+    const none = scoreCredit({ ...base, rev: 100e6, ebitda: 20e6, cash: 5e6 });
+    const serviced = scoreCredit({ ...base, rev: 100e6, ebitda: 20e6, cash: 5e6, debt: 20e6, interest: 1e6 });
+    expect(none.parts['Interest cover']).toBeLessThan(serviced.parts['Interest cover']);
+  });
+  it('a start that can service its loan is not CCC because of it, and no startup is rated above BB', () => {
+    for (const ind of IND_LIST) {
+      // every good market for the industry: where the opening EBITDA covers interest and repayments, the loan alone
+      // must not make the company distressed (where it does not, as for a thin-margin plant in Lagos, CCC is fair)
+      for (const city of CITIES.filter((x) => x.ind[ind.id] >= 1)) {
+        const g = newGame(opts({ industry: ind.id, city: city.id, seed: 'rating-' + ind.id }));
+        const cr = creditRating(g);
+        const where = `${ind.id} in ${city.id}`;
+        const service = g.company.loans.reduce((s, l) => s + l.principal * loanRate(g, l) / 100 + l.amort * 4, 0);
+        if (ind.start.debt > 0 && ttm(g.company, (q) => q.ebitda) > service * 1.05) expect(cr.rating, where).not.toBe('CCC');
+        expect(['BB', 'B', 'CCC'], where).toContain(cr.rating);
+      }
+    }
   });
 });

@@ -1,6 +1,7 @@
 # Response to the Going Concern panel review
 
-Status of every recommendation in the panel review, as of the end of the third wave of work.
+Status of every recommendation in the panel review, as of the end of the third wave of work, and of the
+second review's notes (last section).
 **Done** means implemented and tested; **partial** says what is missing; **not yet** says why.
 Balance figures are from `docs/balance.md` (full game) and `docs/balance-sprint.md` (Sprint),
 which `npm run sim` regenerates.
@@ -76,3 +77,28 @@ which `npm run sim` regenerates.
 | Industry tech trees | **Not yet** | Needs per-industry research nodes and UI; a larger piece of work. |
 | Named key customers | **Not yet** | Needs a customer model inside office demand. |
 | Five new industries | **Not yet** | Insurance, fintech, airlines, media and real estate each need their own signature mechanic (float, fraud and capital rules, load factor, a slate of hits, cap rates). The review asks for one at a time with a harness pass each; none has been started. |
+
+## Second review
+
+Figures are honest strategies (Steady, Blitz, Premium, Leveraged) from the regenerated reports: 12 seeds of every
+industry, difficulty and strategy, plus 2,688 paired founder games. "Best" is the best honest strategy.
+
+| Note | Status | What changed, and the result |
+| --- | --- | --- |
+| 2. Energy close to unwinnable (46 / 4 / 0 / 0%) | Done | Both suggestions: grid rivals start about your size (a rival plant could never start smaller than your whole company, so every energy rival opened with two to four times your capacity), and energy ranks by growth at the end, on enterprise value so a project loan does not hide growth. The bots now fund the next plant before programmes (a probe that skipped programmes was out-building them). Energy wins **100 / 77 / 48 / 23%** (62% overall, was 13%); of the energy games that run to the end, 34% finish A or B (was none) and 51% D or F (was 94% D, E or F). |
+| 2. Harness should fail unwinnable cells; the Expert label excuses it | Done | Every industry on every difficulty: the best honest strategy must win at least 50 / 30 / 20 / 15% (Easy to Brutal) whatever the label, or the report lists a red flag. `npm run sim:check` (run in CI) now fails if either report lists any red flag, and the Expert band tightened from 5–50% to 25–65%. Both reports: no red flags. |
+| 3. SaaS ignores difficulty (92% on Brutal) | Done | Customers leave a product that trails the best in their market: up to 5% a quarter at 25 technology points behind, × 0 / 0.25 / 0.6 / 0.75 by difficulty; rivals churn by the same rule. SaaS wins **100 / 98 / 85 / 33%** (was 100 / 100 / 98 / 92%). |
+| 4. "Expect" line wrong for most industries | Done | The harness writes `data/winrates.json`; each card shows the measured rate for the industry and length picked ("In Clean Energy, good plans won about 8 games in 10 in testing (77%)"), with the bankruptcy rate where it is 10% or more. The general text is now a fallback and matches the averages. |
+| 5. Stray ";" on the difficulty cards | Done | The join is gone; the bars sit in one cell of the grid. The browser test checks every card row has exactly two cells. |
+| 6. Cards too long on a phone | Done | Victory bars fold behind "Show victory bars"; the browser test checks they are closed until asked for. |
+| 7. Small companies get top credit ratings | Done | No better than BB below $50M of revenue a year, BBB below $250M (today's money), shown in the rating breakdown; no debt earns 4 of the 12 interest-cover points; leverage is net of cash. Startups now open at BB (the cap, for the asset-light ones) or B, depending on their debt and city; CCC is left for starts whose earnings do not cover their debt service and for loss-making biotech (tests). |
+| 8. Founders 51–71% | Done | The old table tied each founder to a seed number, so it measured cities and luck too (the Financier's 51% was mostly its seeds). Founders now rotate across seeds, and a paired run plays all eight on the same 336 games, with a red flag above a 12-point gap. Scientist, Heir, Financier and Engineer strengthened, Operator trimmed: **67–72%** on identical games (was 58–75%). |
+| 9. Titan and Pioneer barely happen | Done | New check: some honest strategy must end at least 10% of its games with each victory on some difficulty. Titan's bar had been set as if every industry were worth what software is; each industry now has its own Titan scale, Titan compares enterprise values (raising cash and sitting on it no longer counts), and Blue chip keeps its own bar. Pioneer's technology bar came down, the moonshot is cheaper and can be retried. Titan **6%** of honest games (19% for Leveraged on Normal), Pioneer **5%** (23% for Premium on Normal); were 3% each. |
+| 10. Games long; Sprint harder than the full game | Done | Sprint is graded for ten years (bands about eight points lower, growth-rank places five points apart, full wealth marks at 3×), newcomers count in the growth rank only once bigger than you, development runs at twice the pace, and the victories that need decades are left out (Category king can still end a Sprint early). Best honest strategy **87 / 76 / 54 / 36%** in a Sprint against **95 / 86 / 70 / 35%** in the full game (Sprint was 70 / 38 / 37 / 31%). Sprint is suggested, and the default, for a first company, and the title screen says so. |
+| 11. Corporate has seven sub-tabs | Done | Grouped into Money (statements, capital), Growth (invest, deals, R&D) and Organisation (people, policies). |
+| 11. Grades use "E" | Done | A, B, C, D and F; D starts at 25. |
+| 11. "Found a new company" is 4th of 5 | Done | First, with a pointer to the five chapters for a player with no saves. |
+
+The full game still runs long (median Y24, 44% of games go the distance); Sprint is the answer the note suggests,
+and new players now start there. Manufacturing remains the hardest industry (53% overall, more than 20 points
+behind SaaS), as the report notes.

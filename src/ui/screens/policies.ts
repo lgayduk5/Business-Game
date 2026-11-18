@@ -1,4 +1,4 @@
-// Corporate → Policies (review wave 3): standing company policies, pay in stock options, locking input
+// Corporate → Organisation → Policies (review wave 3): standing company policies, pay in stock options, locking input
 // prices, and earnings guidance once listed. Franchising sits on the map, city by city.
 import {
   CITY, GUIDANCE, OPTION_LEVELS, POLICIES, POLICY, ROYALTY, FRANCHISE_FEE, adoptPolicy, canFranchise, dropPolicy, guidanceTarget, lockInputs, money, openFranchise, pct, policySlots,

@@ -14,7 +14,7 @@ export const STEPS: Step[] = [
   { title: 'Hire', text: 'Use + on a role to open positions. They fill over the quarter from the local talent pool.', done: (g) => c(g, 'act:reqs') },
   { title: 'Set your price or marketing', text: 'A small premium is often worth it when you are short of capacity; a small discount fills idle capacity.', done: (g) => c(g, 'act:price') || c(g, 'act:marketing') },
   { title: 'End the quarter', text: 'The books close, customers decide, and a report prints out.', done: (g) => g.turn >= 1 },
-  { title: 'Read the statements', text: 'Corporate → Statements: profit, the balance sheet, and where the cash actually went.', done: (g) => c(g, 'tab:corp'), go: ['tab', 'Open Corporate', 'data-v="corp"'] },
+  { title: 'Read the statements', text: 'Corporate → Money → Statements: profit, the balance sheet, and where the cash actually went.', done: (g) => c(g, 'tab:corp'), go: ['tab', 'Open Corporate', 'data-v="corp"'] },
   { title: 'Ask the advisors', text: 'Intel → Advisor explains what moved this quarter and what to watch.', done: (g) => c(g, 'sub:intel:advisor'), go: ['sub', 'Open the advisor', 'data-k="intel" data-v="advisor"'] },
   { title: 'Look beyond your city', text: 'On the map, study an unexplored city or open a second office when you can afford one.', done: (g) => c(g, 'act:scout') || c(g, 'act:openOffice') || g.company.offices.length > 1, go: ['tab', 'Open the map', 'data-v="map"'] },
 ];

@@ -44,7 +44,7 @@ startHooks.push(() => {
 
 titleExtras.push(() => {
   const last = ui.saves[0];
-  return `${last ? `<button class="btn go" data-a="loadSlot" data-slot="${esc(last.slot)}">Continue ${esc(last.name)}, ${esc(last.label)}</button>` : ''}
+  return `${last ? `<button class="btn" data-a="loadSlot" data-slot="${esc(last.slot)}">Continue ${esc(last.name)}, ${esc(last.label)}</button>` : ''}
     ${ui.saves.length ? `<button class="btn" data-a="loadMenu">Load a game</button>` : ''}`;
 });
 // Ironman games keep one autosave and nothing else: no slots and no save files to restore from.

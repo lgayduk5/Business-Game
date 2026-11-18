@@ -72,7 +72,7 @@ describe('new cards from the review', () => {
     resolveEvent(g, g.queue[0].uid, 0);
     expect(g.status).not.toBe('playing');
     expect(g.outcome?.how).toBe('exit');
-    expect(g.outcome?.grade).toMatch(/^[A-F]$/);
+    expect(g.outcome?.grade).toMatch(/^[ABCDF]$/);
     expect(g.company.valuation).toBeCloseTo(before * 1.3, 0);
   });
   it('the biggest-customer card needs a large receivables book; the old-colleague card needs a recent departure', () => {

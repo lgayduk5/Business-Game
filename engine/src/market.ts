@@ -34,6 +34,9 @@ export function localPrice(g: GameState, city: string, ind: IndustryId): number 
   return 1000 * g.macro.cpi * fxOf(g, city) * CITY[city].wage ** INDUSTRIES[ind].local;
 }
 
+/** How far a product can trail the best in its market, in technology points, before churn reaches its full rate. */
+export const PRODUCT_GAP = 25;
+
 /** The quality bar rises over time as the whole industry improves. */
 export const refQuality = (g: GameState) => 50 + 0.12 * g.turn;
 
@@ -167,11 +170,17 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
     const offered = def.grid ? (o ? rawGrid((preps.get(o.id)?.capacity ?? 0) / D, priceIndex(g, o)) : 0) + mk.rivals.reduce((s2, [, ro]) => s2 + rawGrid(ro.cap / D, ro.price), 0) : 0;
     const room = offered > 0.85 ? 0.85 / offered : 1;
     const grid = (capShare: number, px: number) => rawGrid(capShare, px) * room;
-    mk.rivals.forEach(([, ro], i) => {
+    // Product churn (software): customers of a product that trails the best one in the market leave each quarter,
+    // more of them the further behind it is and the harder the level. It applies to rivals exactly as to you.
+    const churnRate = (def.productChurn ?? 0) * DIFF[g.difficulty].churn;
+    const bestTech = churnRate > 0 ? Math.max(o ? g.company.tech[mk.ind] ?? 0 : 0, ...mk.rivals.map(([r]) => r.tech[mk.ind] ?? 0)) : 0;
+    const churnOf = (tech: number) => (churnRate > 0 ? churnRate * clamp((bestTech - tech) / PRODUCT_GAP, 0, 1) : 0);
+    mk.rivals.forEach(([r, ro], i) => {
       const capShare = ro.cap / D;
       const floor = grid(capShare, ro.price);
       const t = Math.min(Math.max(ra[i] / total, floor), capShare * 1.08);
       ro.share = clamp(Math.min(Math.max(ro.share + def.stick * (t - ro.share), floor), capShare * 1.15), 0, 0.95);
+      ro.share *= 1 - churnOf(r.tech[mk.ind] ?? 0);
     });
 
     if (o && pa) {
@@ -184,6 +193,8 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
       const target = Math.max(pa.A / total, floor);
       const t = Math.min(target, capShare * 1.08);
       o.share = clamp(Math.min(Math.max(o.share + def.stick * (t - o.share), floor), capShare * 1.15), 0, 0.95);
+      const churn = o.share * churnOf(g.company.tech[mk.ind] ?? 0);
+      o.share -= churn;
       const demand = o.share * D;
       let produced: number, sold: number;
       if (inv) {
@@ -200,7 +211,7 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
       const bind: OfficeResult['bind'] = !full ? 'demand' : prep.facility < prep.laborCap ? 'facility' : 'staff';
       o.lastDemand = demand;
       o.last = {
-        market: D, demand, target, capShare, sold, produced, capacity: prep.capacity, laborCap: prep.laborCap,
+        market: D, demand, target, churn, capShare, sold, produced, capacity: prep.capacity, laborCap: prep.laborCap,
         util: prep.capacity > 0 ? Math.min(1.2, (inv ? produced : sold) / prep.capacity) : 0,
         price, revenue: sold * price, materials: 0, wages: emptyWages(), rent: 0, facility: 0, marketing: pa.marketing, hiring: 0, training: 0,
         contribution: 0, lost: Math.max(0, Math.min(potential, D) - sold) * price * (bind === 'demand' ? 0 : 1), bind, attract: pa,

@@ -239,12 +239,18 @@ function people(g: GameState) {
 const GOOD_INV = ['sales_academy', 'training_academy', 'cyber', 'culture_program', 'quality_system', 'succession', 'pricing_engine', 'loyalty_program', 'reliability', 'process_innovation', 'telematics', 'knowledge_platform', 'rd_lab', 'erp', 'platform', 'drug', 'storage', 'automation', 'delivery_app', 'hedging', 'sustainability', 'foundation'];
 function invest(g: GameState, p: BotParams) {
   const c = g.company;
-  if (!p.invest || spare(g, p) < quarterlyCosts(g) || B.ttm(c, (q) => q.ebitda) <= 0) return;
-  // one moonshot, sized so that losing it would not hurt: the whole bet is less than a third of the spare cash
-  if (p.moonshot && INV.moonshot && c.moonshots === 0 && !c.investments.some((x) => x.def === 'moonshot') && invAvailable(g, INV.moonshot).ok
+  if (!p.invest || spare(g, p) < quarterlyCosts(g)) return;
+  // a moonshot, sized so that losing it would not hurt: the whole bet is less than a third of the spare cash (whether
+  // or not the business is in profit yet: a growing software company burns cash and can still afford the bet). One at
+  // a time, and if it fails, another later (as a player chasing Pioneer would) until one lands.
+  if (p.moonshot && INV.moonshot && c.moonshots === 0 && !c.investments.some((x) => x.def === 'moonshot' && (x.state === 'ramp' || x.state === 'active')) && invAvailable(g, INV.moonshot).ok
     && invCostOf(g, 'moonshot') * 3 < spare(g, p)) {
     if (startInvestment(g, 'moonshot').ok) return;
   }
+  if (B.ttm(c, (q) => q.ebitda) <= 0) return;
+  // in a grid industry every spare dollar earns more in the next plant than in a programme: fund that first
+  const home = c.offices.find((o) => INDUSTRIES[o.ind].grid);
+  if (home && spare(g, p) < 2 * A.expandCost(g, home, Math.max(10, Math.round(home.cap * 0.3))) * (1 - A.assetFinanceLTV(home.ind))) return;
   for (const id of GOOD_INV) {
     const def = INV[id];
     if (!def) continue;

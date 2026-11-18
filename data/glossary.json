@@ -195,7 +195,7 @@
     "id": "creditRating",
     "term": "Credit rating",
     "def": "A grade for how likely you are to repay debt. It sets your borrowing spread and how much anyone will lend.",
-    "why": "Size, profitability, leverage and track record drive it. Every breach is remembered."
+    "why": "Size, profitability, leverage (net of cash) and track record drive it, and size caps it: no better than BB below $50M of revenue a year, or BBB below $250M. Every breach is remembered."
   },
   {
     "id": "interestRate",

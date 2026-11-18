@@ -85,11 +85,36 @@ function statements(g: GameState): string {
 }
 corpViews.statements = statements;
 
+/**
+ * Corporate's sub-tabs in three groups, so a phone shows a row of three and a row of two or three rather than
+ * seven pills over two lines. A tab registered without a group joins the last one.
+ */
+export const CORP_GROUPS: [id: string, label: string, tabs: string[]][] = [
+  ['money', 'Money', ['statements', 'capital']],
+  ['growth', 'Growth', ['invest', 'deals', 'rd']],
+  ['org', 'Organisation', ['people', 'policies']],
+];
+const groupOf = (tab: string) => (CORP_GROUPS.find(([, , t]) => t.includes(tab)) ?? CORP_GROUPS[CORP_GROUPS.length - 1])[0];
+const tabsIn = (group: string) => corpTabs.filter(([k]) => groupOf(k) === group);
+
 screens.corp = (g) => {
   const cur = ui.sub.corp && corpViews[ui.sub.corp] ? ui.sub.corp : corpTabs[0][0];
-  const tabs = corpTabs.length > 1 ? `<div class="subtabs">${corpTabs.map(([k, l]) => `<button data-a="sub" data-k="corp" data-v="${k}" aria-pressed="${cur === k}">${l}</button>`).join('')}</div>` : '';
+  const group = groupOf(cur);
+  ui.sub['corp:' + group] = cur; // each group remembers where you were in it
+  const groups = CORP_GROUPS.filter(([id]) => tabsIn(id).length);
+  const inGroup = tabsIn(group);
+  const tabs = corpTabs.length > 1
+    ? `<div class="corpnav">${seg('corpGroup', groups.map(([id, label]) => [id, label]), group, 'class="grow"')}
+      ${inGroup.length > 1 ? `<div class="subtabs">${inGroup.map(([k, l]) => `<button data-a="sub" data-k="corp" data-v="${k}" aria-pressed="${cur === k}">${l}</button>`).join('')}</div>` : ''}</div>`
+    : '';
   return tabs + corpViews[cur](g);
 };
+on('corpGroup', (d) => {
+  const group = d.v!;
+  const first = tabsIn(group)[0]?.[0];
+  ui.sub.corp = ui.sub['corp:' + group] ?? first ?? ui.sub.corp;
+  render(false);
+});
 on('stmt', (d) => {
   ui.sel.stmt = d.v;
   render();

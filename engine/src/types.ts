@@ -55,6 +55,10 @@ export interface IndustryDef {
   tier: 'gentle' | 'tough' | 'expert'; // how hard it is to win, from the balance harness
   firstGame?: boolean; // recommended for a first game
   grid?: boolean; // output is sold into a wholesale market: a working plant sells most of what it makes at the going price
+  /** the end-of-game grade ranks companies by how much they grew rather than by size (rivals start as established utilities) */
+  rankByGrowth?: boolean;
+  /** share of customers lost each quarter, at most, by an office whose product trails the best in its market (software) */
+  productChurn?: number;
   marketBase: number; // units ($K of sales at reference price) per quarter in a reference city
   trend: number; // annual real growth of the market
   cyc: number; // sensitivity to the business cycle
@@ -90,7 +94,8 @@ export interface IndustryDef {
   regSens: number; // sensitivity to regulation
   scale: number; // max unit-cost saving from economies of scale
   startTech: number;
-  capTarget: number; // market-cap victory multiplier
+  capTarget: number; // scale of the industry's valuations: Blue chip bar and listing revenue
+  titanScale?: number; // Titan bar multiplier, set to what the industry's leaders are worth (falls back to capTarget)
   local: number; // how strongly prices follow local wages (haircuts vs software)
   techW: number; // weight of technology (vs people and process) in perceived quality
   start: { cash: number; ops: number; sales: number; rnd: number; admin: number; cap: number; debt: number };
@@ -448,6 +453,7 @@ export interface OfficeResult {
   market: number; // total market units
   demand: number;
   target: number; // target share
+  churn?: number; // share lost this quarter to a better product in the market
   capShare: number;
   sold: number;
   produced: number;
@@ -875,7 +881,7 @@ export interface Outcome2 {
   title: string;
   text: string;
   turn: number;
-  grade?: string; // A–F, for games that run to the end
+  grade?: string; // A, B, C, D or F, for games that run to the end
 }
 
 export interface Settings {

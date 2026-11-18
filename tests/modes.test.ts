@@ -16,7 +16,7 @@ describe('Sprint', () => {
     g.turn = SPRINT_QUARTERS - 1;
     checkEnd(g);
     expect(g.status).not.toBe('playing');
-    expect(g.outcome?.grade).toMatch(/^[A-F]$/);
+    expect(g.outcome?.grade).toMatch(/^[ABCDF]$/);
   });
 });
 

@@ -42,11 +42,24 @@ try {
     await page.goto(`http://localhost:${PORT}/`);
     await page.waitForSelector('.title');
     await shot('01-title');
+    // a new player's first choice is the first button
+    if ((await page.locator('.title .stack .btn').first().getAttribute('data-a')) !== 'newGame') errors.push(`${name}: "Found a new company" is not the first button on the title screen`);
     await tap('[data-a=newGame]');
     if (await page.locator('[data-k=industry]').count()) { await tap('[data-k=industry]'); await shot('02-industry'); await tap('[data-a=wzNext]'); }
     await tap('[data-k=city]'); await shot('03-city'); await tap('[data-a=wzNext]');
     await tap('[data-k=founder]'); await tap('[data-a=wzNext]');
-    await shot('04-setup'); await tap('[data-a=wzNext]');
+    await shot('04-setup');
+    // difficulty cards: victory bars stay folded until asked for, and nothing stray sits in the label column
+    // (the first review's cards had a ";" between every bar, laid out as grid cells of their own)
+    if (await page.locator('.choice.diff .bars').count()) errors.push(`${name}: victory bars are open before the toggle`);
+    await tap('[data-a=wzBars]');
+    if (!(await page.locator('.choice.diff .bars').count())) errors.push(`${name}: the victory-bars toggle shows nothing`);
+    // each row is a two-column grid: the label, then one cell for the value (text or a block of bars)
+    const stray = await page.evaluate(() => [...document.querySelectorAll('.choice.diff .dl')]
+      .map((dl) => [...dl.childNodes].filter((n) => n.nodeType === 1 || n.textContent.trim()))
+      .filter((cells) => cells.length !== 2).map((cells) => cells.map((n) => n.textContent.trim().slice(0, 30))));
+    if (stray.length) errors.push(`${name}: a difficulty-card row has stray grid cells: ${JSON.stringify(stray.slice(0, 2))}`);
+    await shot('04a-setup-bars'); await tap('[data-a=wzNext]');
     await shot('04b-recap'); await tap('[data-a=wzNext]');
     await page.waitForSelector('.shell');
     await shot('05-hq-start');
@@ -85,8 +98,13 @@ try {
     for (const t of ['map', 'ops', 'corp', 'intel']) {
       if (!(await page.locator(`.tabs [data-v=${t}]`).count())) continue;
       await tap(`.tabs [data-v=${t}]`); await shot(`09-${t}`);
-      const subs = await page.locator('.subtabs button').count();
-      for (let s = 1; s < subs; s++) { await page.locator('.subtabs button').nth(s).click(); await page.waitForTimeout(120); await shot(`09-${t}-${s}`); }
+      // Corporate groups its sub-tabs (Money, Growth, Organisation): visit every group, then every tab in it
+      const groups = Math.max(1, await page.locator('[data-a=corpGroup]').count());
+      for (let gi = 0; gi < groups; gi++) {
+        if (gi > 0) { await page.locator('[data-a=corpGroup]').nth(gi).click(); await page.waitForTimeout(120); await shot(`09-${t}-g${gi}`); }
+        const subs = await page.locator('.subtabs button').count();
+        for (let s = 1; s < subs; s++) { await page.locator('.subtabs button').nth(s).click(); await page.waitForTimeout(120); await shot(`09-${t}-${gi}-${s}`); }
+      }
     }
     await page.evaluate(() => window.scrollTo(0, 600)); await shot('10-scrolled');
     // saves: reload the page and continue from the autosave

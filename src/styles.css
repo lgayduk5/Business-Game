@@ -206,6 +206,11 @@ input[type='text'], input[type='number'], select {
 .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
 .subtabs button { flex: 0 0 auto; border: 1.5px solid var(--ink); background: var(--sheet); border-radius: 999px; min-height: 40px; padding: 0 14px; font-weight: 600; }
 .subtabs button[aria-pressed='true'] { background: var(--ink); color: var(--paper); }
+.title .firsttime { margin: -2px 0 4px; }
+.corpnav { margin: 0 0 14px; }
+.corpnav .seg { display: flex; width: 100%; margin-bottom: 8px; }
+.corpnav .seg button.grow { flex: 1 1 0; padding: 0 8px; }
+.corpnav .subtabs { margin: 0; }
 
 /* choice cards (new game, events) */
 .choices { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); }
@@ -282,6 +287,7 @@ input[type='text'], input[type='number'], select {
 .choice.diff .dl i { font-style: normal; font-weight: 600; color: var(--ink2); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
 .choice[aria-pressed='true'].diff .dl i { color: #c5cfdb; }
 .choice b.inl { display: inline; font-size: inherit; font-family: inherit; }
+.choice.diff .dl .bars { display: grid; gap: 4px; }
 .kv.recap > div:nth-child(even) { text-align: left; }
 .kv.recap { grid-template-columns: minmax(96px, auto) 1fr; }
 .chip.money { background: var(--bar); }

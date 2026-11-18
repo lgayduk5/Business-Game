@@ -1,5 +1,5 @@
 // Title screen and the new-company wizard.
-import { CITIES, CITY, DIFF, DIFFICULTIES, FOUNDERS, IND_LIST, INDUSTRIES, REGIONS, diffChanges, money, newGame, victoryBars, type Difficulty, type FounderId, type IndustryId } from '@engine';
+import { CITIES, CITY, DIFF, DIFFICULTIES, FOUNDERS, IND_LIST, INDUSTRIES, REGIONS, diffChanges, expectLine, money, newGame, victoryBars, type Difficulty, type FounderId, type IndustryId } from '@engine';
 import { esc } from '../kit';
 import { on, render, toast, ui, type Wizard } from '../store';
 import { modalHost } from '../shell';
@@ -12,8 +12,9 @@ export function title(): string {
     <div><span class="mark big">Going Concern</span></div>
     <p class="lede">Found a company. Grow it across the world, one quarter at a time. Try not to run out of cash.</p>
     <div class="stack">
-      ${titleExtras.map((f) => f()).join('')}
       <button class="btn go" data-a="newGame">Found a new company</button>
+      ${ui.saves.length ? '' : `<p class="small muted firsttime">First time? <button class="linkish" data-a="campaign">Learn the ropes</button> in five short chapters, one layer of the game at a time, or found a company: your first one starts as a ten-year Sprint.</p>`}
+      ${titleExtras.map((f) => f()).join('')}
       <button class="btn" data-a="howTo">How to play</button>
     </div>
     <p class="small muted" style="margin-top:26px">A strategy game about finance, economics and management. Works offline; your saves stay on this device.</p>
@@ -26,7 +27,9 @@ const TIER: Record<string, [string, string]> = {
   tough: ['Tough', 'Thin margins or cash tied up in working capital. Growth has to be financed with care.'],
   expert: ['Expert', 'Slow, lumpy or high-stakes. Rewarding once you know the game.'],
 };
-/** Extra choices on the setup step (game length, ironman…), registered by other screens. */
+/** Choices shown before the difficulty cards (game length: the cards' win rates depend on it). */
+export const lengthExtras: (() => string)[] = [];
+/** Extra choices on the setup step (ironman…), registered by other screens. */
 export const setupExtras: (() => string)[] = [];
 /** Extra lines on the recap step. */
 export const recapExtras: (() => [string, string][])[] = [];
@@ -40,12 +43,14 @@ function industryDetail(id: IndustryId, cls: string): string {
 
 function difficultyCard(d: Difficulty, w: Wizard): string {
   const D = DIFF[d];
-  const bars = w.industry ? victoryBars(w.industry as IndustryId, d, !!w.sprint).slice(0, 5) : [];
+  const ind = w.industry ? (w.industry as IndustryId) : undefined;
+  const bars = ind && w.bars ? victoryBars(ind, d, !!w.sprint).slice(0, 5) : [];
+  // one grid cell holds every bar, so they stack in the right-hand column under "To win"
   return `<button class="choice diff" data-a="wz" data-k="difficulty" data-v="${d}" aria-pressed="${w.difficulty === d}"><b>${D.label}</b>
     <span class="dl"><i>For</i>${esc(D.who)}</span>
     <span class="dl"><i>Changes</i>${diffChanges(d).map(esc).join('. ')}.</span>
-    <span class="dl"><i>Expect</i>${esc(D.expect)}</span>
-    ${bars.length ? `<span class="dl small"><i>To win</i>${bars.map(([n, b]) => `<span class="nowrap-ish"><b class="inl">${esc(n)}</b> ${esc(b)}</span>`).join('; ')}.</span>` : ''}</button>`;
+    <span class="dl"><i>Expect</i>${esc(ind ? expectLine(ind, d, !!w.sprint) : D.expect)}</span>
+    ${bars.length ? `<span class="dl small"><i>To win</i><span class="bars">${bars.map(([n, b]) => `<span><b class="inl">${esc(n)}</b> ${esc(b)}</span>`).join('')}</span></span>` : ''}</button>`;
 }
 
 export function wizard(): string {
@@ -71,7 +76,9 @@ export function wizard(): string {
   } else if (w.step === 3) {
     body = `<h1>Last details</h1>
       <div class="field"><label for="coname">Company name</label><input id="coname" type="text" maxlength="28" value="${esc(w.name)}" data-c="wzName" autocomplete="off"></div>
-      <h3>Difficulty</h3><p class="small muted">Victory bars are shown for ${w.industry ? esc(INDUSTRIES[w.industry as IndustryId].name) : 'your industry'}, in today's money.</p>
+      ${lengthExtras.map((f) => f()).join('')}
+      <div class="spread"><h3>Difficulty</h3><button class="btn sm" data-a="wzBars" aria-expanded="${!!w.bars}">${w.bars ? 'Hide victory bars' : 'Show victory bars'}</button></div>
+      <p class="small muted">${w.industry ? `Win rates are from test games of ${esc(INDUSTRIES[w.industry as IndustryId].name)}${w.sprint ? ' as a Sprint' : ''}.` : ''}${w.bars ? ` Victory bars are in today's money.` : ''}</p>
       <div class="choices">${DIFFICULTIES.map((d) => difficultyCard(d, w)).join('')}</div>
       <h3>Mode</h3><div class="choices">
         <button class="choice" data-a="wz" data-k="mode" data-v="standard" aria-pressed="${w.mode === 'standard'}"><b>Standard</b><span class="muted">Play to win. Bankruptcy ends the game, though you can replay the last year from the final review.</span></button>
@@ -88,7 +95,7 @@ export function wizard(): string {
       ['Industry', `${ind.icon} ${esc(ind.name)} <span class="chip tier-${ind.tier}">${TIER[ind.tier][0]}</span>`, 0],
       ['Starting city', esc(CITY[w.city].name), 1],
       ['Founder', `${esc(f.name)} <span class="small muted">${f.perks.map(esc).join('. ')}.</span>`, 2],
-      ['Difficulty', `${D.label} <span class="small muted">${esc(D.expect)}</span>`, 3],
+      ['Difficulty', `${D.label} <span class="small muted">${esc(expectLine(w.industry as IndustryId, w.difficulty, !!w.sprint))}</span>`, 3],
       ['Mode', w.mode === 'sandbox' ? 'Sandbox — no bankruptcy, map revealed' : 'Standard', 3],
       ...recapExtras.flatMap((x) => x()).map(([k, v]): [string, string, number] => [k, v, 3]),
       ['World seed', esc(w.seed), 3],
@@ -106,13 +113,18 @@ export function wizard(): string {
 
 const COMPANY_NAMES = ['Halden & Co', 'Brightwater', 'Northgate', 'Larch Street', 'Fourth Meridian', 'Copperline', 'Greyfriars', 'Wexford'];
 on('newGame', () => {
-  ui.wizard = { step: 0, industry: IND_LIST.length === 1 ? IND_LIST[0].id : '', city: '', founder: 'engineer', difficulty: 'normal', name: COMPANY_NAMES[Math.floor(Math.random() * COMPANY_NAMES.length)], seed: Math.random().toString(36).slice(2, 8), mode: 'standard' };
+  // a first company (no saves on this device) starts as a ten-year Sprint: a whole game in an evening or two
+  ui.wizard = { step: 0, industry: IND_LIST.length === 1 ? IND_LIST[0].id : '', city: '', founder: 'engineer', difficulty: 'normal', name: COMPANY_NAMES[Math.floor(Math.random() * COMPANY_NAMES.length)], seed: Math.random().toString(36).slice(2, 8), mode: 'standard', sprint: !ui.saves.length };
   ui.screen = 'new';
   render(false);
 });
 on('wz', (d) => {
   (ui.wizard as any)[d.k!] = d.v;
   sfx.tick();
+  render();
+});
+on('wzBars', () => {
+  ui.wizard!.bars = !ui.wizard!.bars;
   render();
 });
 on('wzName', (d) => { ui.wizard!.name = d.value ?? ''; render(); });

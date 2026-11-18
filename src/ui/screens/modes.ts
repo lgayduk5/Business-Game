@@ -8,7 +8,7 @@ import { esc } from '../kit';
 import { on, render, toast, ui, type Tab } from '../store';
 import { modals, tabGate } from '../shell';
 import { afterTurn, overExtras } from './modals';
-import { recapExtras, setupExtras, startHooks, titleExtras } from './title';
+import { lengthExtras, recapExtras, setupExtras, startHooks, titleExtras } from './title';
 import { hqExtras } from './hq';
 import { enter } from './files';
 import { loadFrom, snapshot, snapshots } from '../../storage/saves';
@@ -16,14 +16,17 @@ import { sfx } from '../../audio';
 
 // ── new-game options: length and Ironman
 
-setupExtras.push(() => {
+lengthExtras.push(() => {
   const w = ui.wizard!;
   return `<h3>Length</h3><div class="choices">
-      <button class="choice" data-a="wzFlag" data-k="sprint" data-v="0" aria-pressed="${!w.sprint}"><b>Full game</b><span class="muted">Twenty-five years. Win by one of six victories, or by your grade at the end.</span></button>
-      <button class="choice" data-a="wzFlag" data-k="sprint" data-v="1" aria-pressed="${!!w.sprint}"><b>Sprint</b><span class="muted">Ten years, then a grade from A to F. The victory bars are lower, but ten years is short: in testing a good plan earns a winning grade in a little under half of Sprints on Normal.</span></button></div>
-    ${w.mode === 'standard' ? `<h3>Ironman</h3><div class="choices">
+      <button class="choice" data-a="wzFlag" data-k="sprint" data-v="1" aria-pressed="${!!w.sprint}"><b>Sprint</b><span class="chips"><span class="chip warn">Suggested for a first game</span></span><span class="muted">Ten years, then a letter grade. You are ranked by how fast you grew against the companies you started with, and the grade is set for ten years, so a good plan wins about as often as in the full game. Category king can end it early; the long-haul victories are left out.</span></button>
+      <button class="choice" data-a="wzFlag" data-k="sprint" data-v="0" aria-pressed="${!w.sprint}"><b>Full game</b><span class="muted">Twenty-five years. Win by one of six victories, or by your grade at the end.</span></button></div>`;
+});
+setupExtras.push(() => {
+  const w = ui.wizard!;
+  return w.mode === 'standard' ? `<h3>Ironman</h3><div class="choices">
       <button class="choice" data-a="wzFlag" data-k="ironman" data-v="0" aria-pressed="${!w.ironman}"><b>Off</b><span class="muted">Save slots, save files, and replaying the last year from the final review.</span></button>
-      <button class="choice" data-a="wzFlag" data-k="ironman" data-v="1" aria-pressed="${!!w.ironman}"><b>Ironman</b><span class="muted">One life. The game saves itself and nothing else: no slots, no save files, no rewinds. Your result carries the badge.</span></button></div>` : ''}`;
+      <button class="choice" data-a="wzFlag" data-k="ironman" data-v="1" aria-pressed="${!!w.ironman}"><b>Ironman</b><span class="muted">One life. The game saves itself and nothing else: no slots, no save files, no rewinds. Your result carries the badge.</span></button></div>` : '';
 });
 recapExtras.push(() => {
   const w = ui.wizard!;
@@ -45,7 +48,7 @@ function begin(g: GameState) {
 
 const DAILY_NAMES = ['Daybreak & Co', 'First Light', 'Morning Star', 'Sunrise Holdings', 'Dawn Patrol', 'Early Bird', 'New Day Group'];
 let codeIn = '';
-titleExtras.push(() => `<button class="btn" data-a="daily">Daily challenge</button><button class="btn" data-a="campaign">Learn the ropes: five chapters</button><button class="btn" data-a="scenarios">Scenario challenges</button>`);
+titleExtras.push(() => `<button class="btn" data-a="campaign">Learn the ropes: five chapters</button><button class="btn" data-a="daily">Daily challenge</button><button class="btn" data-a="scenarios">Scenario challenges</button>`);
 modals.daily = () => {
   const date = localDate();
   const d = dailySetup(date);

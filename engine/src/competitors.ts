@@ -3,9 +3,10 @@
 import { CITIES, CITY, INDUSTRIES, PERSONALITY, PERSONALITIES, RIVAL_CEOS, RIVAL_COLORS, RIVAL_NAMES } from './content';
 import { DIFF } from './difficulty';
 import { feud } from './feud';
+import { rivalEV } from './finance';
 import { localPrice, marketUnits } from './market';
 import { news } from './mods';
-import { openRivalOffice, rivalKnown, rivalValuation, seedRivalAccounts, startUnits } from './rivals';
+import { openRivalOffice, rivalKnown, rivalValuation, seedRivalAccounts, sizeGridRival, startUnits } from './rivals';
 import type { GameState, IndustryId, Personality, Rival, RivalOffice } from './types';
 import { chance, clamp, money, pick, rand, randInt, randRange, weighted } from './util';
 
@@ -46,6 +47,7 @@ function finish(g: GameState, r: Rival) {
   r.valuation = rivalValuation(g, r).equity;
   r.known = rivalKnown(g, r);
   g.counters[`rivalStart${r.id}`] = r.valuation / g.macro.cpi; // its growth is judged from the day it arrived
+  g.counters[`rivalStartEV${r.id}`] = rivalEV(r) / g.macro.cpi;
 }
 
 /**
@@ -74,6 +76,7 @@ export function spawnRival(g: GameState, ind: IndustryId, p: Personality, establ
     const ro = openRivalOffice(g, r, city, ind, Math.min(room, 0.08, units / marketUnits(g, city, ind)));
     if (!established) ro.opened = g.turn; // a newcomer ramps up like any new office
   }
+  sizeGridRival(g, r, ind, established ? 1 : 0.6);
   const annual = r.offices.reduce((s, ro) => s + ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind), 0) * 4;
   const cpi = g.macro.cpi;
   r.cash = p === 'bigtech' ? 60e6 * cpi * d.rivalSize : established ? annual * randRange(g, 0.3, 0.6) : annual * 1.5 + 4e6 * cpi * d.rivalSize; // a newcomer arrives with its funding round

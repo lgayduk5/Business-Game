@@ -1,14 +1,14 @@
 // World and company generation.
 import { emptyBooks, emptyPnL, emptyTags, ttm } from './books';
 import { CITIES, CITY, FOUNDER, INDUSTRIES, NAMES, REGION_LIST } from './content';
-import { refreshEquityOffer, refreshLoanOffers, revalue } from './finance';
+import { enterpriseValue, refreshEquityOffer, refreshLoanOffers, revalue, rivalEV } from './finance';
 import { newMacro } from './macro';
 import { market, marketUnits } from './market';
 import { prepOffice } from './people';
 import { refreshCandidates } from './actions';
 import { generateRivals } from './rivals';
 import { seedHistory } from './history';
-import { DIFF } from './difficulty';
+import { DIFF, SPRINT_OFF } from './difficulty';
 import { SAVE_VERSION } from './save';
 import type { ExecRole, GameState, IndustryId, NewGameOpts, Office, Person, RegionId, RegionPolicy, VictoryId } from './types';
 import { clamp, hashSeed, nextUid, normal, pick, randInt } from './util';
@@ -40,6 +40,12 @@ export function makeOffice(g: GameState, cityId: string, ind: IndustryId, staff:
   return o;
 }
 
+/** Enterprise values at the start, for ranking by growth at the end (Sprint, and industries that rank that way). */
+export function recordStartEV(g: GameState) {
+  g.counters.startEV = enterpriseValue(g.company) / g.macro.cpi;
+  for (const r of g.rivals) g.counters[`rivalStartEV${r.id}`] = rivalEV(r) / g.macro.cpi;
+}
+
 /** A Sprint game lasts ten years. */
 export const SPRINT_QUARTERS = 40;
 
@@ -53,6 +59,7 @@ export function newGame(opts: NewGameOpts): GameState {
   const d = DIFF[opts.difficulty];
   if (!def || !city || !f) throw new Error('Unknown industry, city or founder');
   const victories = Object.fromEntries((['marketCap', 'dominance', 'ipo', 'innovation', 'reputation', 'lastStanding'] as VictoryId[]).map((v) => [v, true])) as Record<VictoryId, boolean>;
+  if (opts.sprint) for (const v of SPRINT_OFF) victories[v] = false;
   const sandbox = opts.mode === 'sandbox';
   const g: GameState = {
     v: SAVE_VERSION, id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), seed: opts.seed, rng: hashSeed(opts.seed), uid: 0, turn: 0,
@@ -114,6 +121,7 @@ export function newGame(opts: NewGameOpts): GameState {
   g.counters.startRevenue = ttm(c, (q) => q.pnl.revenue);
   g.counters.startFounderValue = c.valuation * (c.cap.founder / c.cap.shares);
   for (const r of g.rivals) g.counters[`rivalStart${r.id}`] = r.valuation;
+  recordStartEV(g);
   g.counters.lastSentiment = g.macro.sentiment;
   refreshCandidates(g);
   refreshLoanOffers(g);

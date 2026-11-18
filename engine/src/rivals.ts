@@ -3,7 +3,7 @@
 import * as B from './books';
 import { CITIES, CITY, EVENT, INDUSTRIES, PERSONALITY, PERSONALITIES, RIVAL_CEOS, RIVAL_COLORS, RIVAL_NAMES, hasInventory, isCapital } from './content';
 import { queueEvent, scaleS, scheduleEvent, SPECIALS } from './events';
-import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, privateValue, scoreCredit, valueCompany, type LocalProfit } from './finance';
+import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, noteAcquisition, noteRivalExit, privateValue, scoreCredit, valueCompany, type LocalProfit } from './finance';
 import { fxOf, inputIndex } from './macro';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news } from './mods';
@@ -35,6 +35,24 @@ export function openRivalOffice(g: GameState, r: Rival, city: string, ind: Indus
   const ro: RivalOffice = { city, ind, share, price: pers.price, sales: 0.02, cap: Math.max(startUnits(ind), share * D * 1.25), opened: g.turn - (share > 0 ? 10 : 0), war: 0 };
   r.offices.push(ro);
   return ro;
+}
+
+/**
+ * In a grid industry every unit a plant makes is sold, so capacity is size, and a rival office's plant can never
+ * start smaller than a whole new plant. Left alone, that hands every energy rival two to four times the player's
+ * capacity at the start. Instead a grid rival starts about the player's size on Easy and Normal (0.7–1.5×), and
+ * about twice it on Brutal (1.5–3×). `scale` shrinks a newcomer further.
+ */
+export function sizeGridRival(g: GameState, r: Rival, ind: IndustryId, scale = 1) {
+  const offices = r.offices.filter((ro) => ro.ind === ind);
+  const total = offices.reduce((s, ro) => s + ro.cap, 0);
+  if (!INDUSTRIES[ind].grid || total <= 0) return;
+  // never smaller than you on average, even on Easy: a market you already lead from the first day is no contest
+  const f = (startUnits(ind) * Math.max(0.9, DIFF[g.difficulty].rivalSize) * randRange(g, 0.8, 1.5) * scale) / total;
+  for (const ro of offices) {
+    ro.cap *= f;
+    ro.share *= f;
+  }
 }
 
 export function generateRivals(g: GameState, n: number): Rival[] {
@@ -73,6 +91,7 @@ export function generateRivals(g: GameState, n: number): Rival[] {
       taken[c] = (taken[c] ?? 0) + share;
       openRivalOffice(g, r, c, ind, share);
     }
+    sizeGridRival(g, r, ind);
     const annual = r.offices.reduce((s, ro) => s + ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind), 0) * 4;
     r.cash = annual * randRange(g, 0.3, 0.6);
     r.debt = annual * p.leverage * 0.5;
@@ -177,7 +196,7 @@ export function rivalValuation(g: GameState, r: Rival, mix?: Partial<Record<Indu
 
 /** How lenders see a rival. */
 export const rivalCredit = (g: GameState, r: Rival) =>
-  scoreCredit({ rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), interest: (r.debt * (g.macro.rate + r.spread)) / 100, debt: r.debt, cash: r.cash, breaches: 0, cfo: 0.5 });
+  scoreCredit({ rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), interest: (r.debt * (g.macro.rate + r.spread)) / 100, debt: r.debt, cash: r.cash, breaches: 0, cfo: 0.5, cpi: g.macro.cpi });
 
 /** An established rival has a year of history and the working capital its trade needs. */
 export function seedRivalAccounts(g: GameState, r: Rival) {
@@ -331,6 +350,7 @@ function absorb(g: GameState, buyer: Rival, target: Rival) {
   buyer.inv += target.inv;
   buyer.wc += target.wc;
   target.offices = [];
+  noteRivalExit(g, target);
   target.alive = false;
   target.fate = `Acquired by ${buyer.name}`;
 }
@@ -406,6 +426,7 @@ export function rivalsFinancials(g: GameState) {
         const buyer = PERSONALITY[r.personality].neverSells ? undefined : alive(g).filter((x) => x !== r && x.cash > r.rev * 2).sort((a, b) => PERSONALITY[b.personality].acquisitive - PERSONALITY[a.personality].acquisitive)[0];
         if (buyer && chance(g, 0.5 + PERSONALITY[buyer.personality].acquisitive * 0.4)) {
           buyer.cash -= r.rev * 1.5;
+          noteAcquisition(g, r.rev * 1.5, buyer.id);
           absorb(g, buyer, r);
           news(g, `${buyer.name} has bought the remains of ${r.name}.`, 'rival');
         } else {
@@ -423,6 +444,7 @@ export function rivalsFinancials(g: GameState) {
         const price = prey.valuation * 1.3;
         r.cash -= price * 0.35;
         r.debt += price * 0.65 + prey.debt;
+        noteAcquisition(g, price + prey.debt, r.id);
         absorb(g, r, prey);
         news(g, `${r.name} has acquired ${prey.name} for ${money(price)}.`, 'rival');
       }
@@ -612,7 +634,7 @@ export function lobbyAgainst(g: GameState, id: number): ActionResult {
   const c = g.company;
   const r = R(g, id);
   if (!r) return fail('No such rival.');
-  if (!hasFlag(g, 'lobby')) return fail('You need a government affairs office (Corporate → Invest) to lobby.');
+  if (!hasFlag(g, 'lobby')) return fail('You need a government affairs office (Corporate → Growth → Invest) to lobby.');
   if (!cool(g, r, 'lobby', 4)) return fail('Regulators have heard enough from you this year.');
   const cost = 0.03 * scaleS(g);
   B.expense(c, 'ga', cost, 'cash');
@@ -697,6 +719,7 @@ export function bidForRival(g: GameState, id: number, hostile: boolean): ActionR
   }
   const before = companyHeadcount(c);
   const offices = r.offices.slice();
+  noteAcquisition(g, price + Math.max(0, r.debt) * 0.5);
   const fair = absorbIntoPlayer(g, r, offices);
   // property is added inside absorbIntoPlayer; book the purchase against it
   c.books.ppe += fair;
@@ -717,6 +740,7 @@ export function bidForRival(g: GameState, id: number, hostile: boolean): ActionR
   for (const k of r.industries) c.tech[k] = Math.max(c.tech[k] ?? 0, (r.tech[k] ?? 0) - 3);
   const added = companyHeadcount(c) - before;
   c.culture = clamp(c.culture - (3 + (added / Math.max(1, before + added)) * 22), 0, 100);
+  noteRivalExit(g, r, price);
   r.alive = false;
   r.fate = `Acquired by ${c.name}`;
   g.counters.acquisitions = (g.counters.acquisitions ?? 0) + 1;
@@ -778,6 +802,7 @@ Object.assign(SPECIALS, {
     if (!r || !ro) return null;
     const price = Math.min(c.books.cash * 0.8, ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind) * 2.5);
     const fair = absorbIntoPlayer(g, r, [ro]);
+    noteAcquisition(g, Math.max(price, fair));
     c.books.ppe += fair;
     c.books.goodwill += Math.max(0, price - fair);
     c.books.cash -= Math.max(price, fair);
@@ -792,11 +817,13 @@ Object.assign(SPECIALS, {
     const pct = clamp((r.valuation / Math.max(1, r.valuation + c.valuation)) * 100, 5, 60);
     const fair = absorbIntoPlayer(g, r, r.offices.slice());
     const value = r.valuation;
+    noteAcquisition(g, Math.max(value, fair) + Math.max(0, r.debt));
     c.books.ppe += fair;
     c.books.goodwill += Math.max(0, value - fair);
     c.books.paidIn += Math.max(value, fair);
     dilute(g, (pct / (100 - pct)) * 100, `${r.name} shareholders`);
     c.culture = clamp(c.culture - 10, 0, 100);
+    noteRivalExit(g, r, value);
     r.alive = false;
     r.fate = `Merged with ${c.name}`;
     return `Merged with ${r.name}; their shareholders now own ${pct.toFixed(0)}%`;
