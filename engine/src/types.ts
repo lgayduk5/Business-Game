@@ -827,6 +827,8 @@ export interface Settings {
   victories: Record<VictoryId, boolean>;
   sandbox: { noBankruptcy: boolean; revealMap: boolean; noEvents: boolean; calmMacro: boolean };
   tutorial: boolean;
+  /** Let the COO decide small cards (no crisis, no rival, nothing over 4% of a quarter's revenue) without asking. */
+  delegate?: boolean;
 }
 
 export interface TurnReport {
@@ -840,6 +842,8 @@ export interface TurnReport {
   valuation: number;
   prevValuation: number;
   bullets: string[];
+  /** Small cards the COO decided at the start of the coming quarter. */
+  delegated?: { title: string; choice: string; text: string }[];
 }
 
 export interface GameState {

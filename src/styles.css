@@ -231,6 +231,9 @@ input[type='text'], input[type='number'], select {
 .chart text { font: 10px var(--sans); fill: var(--ink2); }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .82rem; color: var(--ink2); margin-top: 4px; }
 .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px; }
+.line-toggle { background: none; border: 0; padding: 4px 2px; font: inherit; color: inherit; cursor: pointer; min-height: 32px; }
+.line-toggle.off { opacity: .45; text-decoration: line-through; }
+.line-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .mapwrap { overflow: auto; border: 1.5px solid var(--ink); border-radius: 4px; background: var(--sea); -webkit-overflow-scrolling: touch; }
 .mapwrap svg { display: block; min-width: 880px; width: 100%; height: auto; }
 .city { cursor: pointer; }
@@ -283,3 +286,13 @@ input[type='text'], input[type='number'], select {
 .kv.recap { grid-template-columns: minmax(96px, auto) 1fr; }
 .chip.money { background: var(--bar); }
 .choice[aria-pressed='true'] .chip.money, .choice:disabled .chip.money { background: var(--sheet); }
+
+/* Phones: the HQ office table becomes one card per office (review wave 3). */
+@media (max-width: 500px) {
+  .ledger.stack thead { display: none; }
+  .ledger.stack, .ledger.stack tbody { display: block; width: 100%; }
+  .ledger.stack tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--rule); border-radius: 5px; background: var(--sheet); }
+  .ledger.stack td { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 2px 0; border: 0; text-align: right; }
+  .ledger.stack td.head { grid-column: 1 / -1; display: block; text-align: left; padding-bottom: 4px; }
+  .ledger.stack td[data-label]::before { content: attr(data-label); color: var(--ink2); font-size: .82rem; text-align: left; }
+}

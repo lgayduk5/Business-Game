@@ -26,7 +26,7 @@ function advisor(g: GameState): string {
       <div class="sheet"><h2>Where your value came from so far</h2>${g.history.length > 1 ? attributionBar(pm.shares) : '<p class="muted">After a few quarters this shows how much of your result came from the market, your strategy, your execution and luck.</p>'}
         <p class="small muted"><b>Market</b>: industry growth, the cycle and investor mood. <b>Strategy</b>: which markets you entered, deals, and price positioning. <b>Execution</b>: share, costs and margins in the markets you chose. <b>Luck</b>: how events and bets turned out against their odds.</p>
         <button class="btn sm" data-a="postmortem">Read the full review</button></div>
-      <div class="sheet"><h2>Value over time</h2>${lineChart([{ name: 'Your valuation', color: 'var(--ink)', data: g.history.map((h) => h.valuation) }, { name: 'Most valuable rival', color: 'var(--red)', data: g.history.map((h) => Math.max(0, ...h.rivals)), dash: true }])}</div>
+      <div class="sheet"><h2>Value over time</h2>${lineChart([{ name: 'Your valuation', color: 'var(--ink)', data: g.history.map((h) => h.valuation) }, { name: 'Most valuable rival', color: 'var(--red)', data: g.history.map((h) => Math.max(0, ...h.rivals)), dash: true }], { turns: g.history.map((h) => h.turn), id: 'value' })}</div>
       <div class="sheet wide"><h2>Decisions you have taken</h2>${g.eventLog.length ? `<ul class="feed">${g.eventLog.slice(-12).reverse().map((e) => `<li><span>${turnLabel(e.turn)}</span><span><b>${esc(e.title)}.</b> ${esc(e.choice)} — ${esc(e.result)}</span></li>`).join('')}</ul>` : '<p class="muted">None yet.</p>'}
         <p class="small muted">Luck so far: ${money(a.luck)} ${a.luck >= 0 ? 'better' : 'worse'} than the odds you faced.</p></div>
     </div>`;

@@ -65,6 +65,9 @@ modals.report = (g, m) => {
     </div>
     ${m.reason ? `<div class="note warn" style="margin-top:12px"><b>Fast-forward stopped.</b><p>${esc(m.reason)}</p></div>` : ''}
     ${Math.abs(q.ni - q.cf.cfo) > Math.max(20_000, Math.abs(q.ni) * 0.5) && !notes ? `<div class="note" style="margin-top:12px"><b>Profit and cash went different ways.</b><p>Net income was ${money(q.ni)} but operations ${q.cf.cfo >= 0 ? 'produced' : 'consumed'} ${money(Math.abs(q.cf.cfo))} of cash. The cash-flow statement shows where the difference went.</p></div>` : ''}
+    ${r.delegated?.length ? `<div class="note" style="margin-top:12px"><b>Your COO handled ${r.delegated.length === 1 ? 'a small matter' : `${r.delegated.length} small matters`}</b>
+      ${r.delegated.map((x) => `<p class="small"><b>${esc(x.title)}:</b> ${esc(x.choice)}. ${esc(x.text)}</p>`).join('')}
+      <p class="small muted">Small cards go to your COO while this is on. Change it in the menu.</p></div>` : ''}
     <div style="margin-top:12px">${notes}</div>
     <div class="row end" style="margin-top:14px">
       ${quiet ? `<button class="btn" data-a="fastForward" title="Run up to eight quarters, stopping when something needs you">Fast-forward</button>` : ''}
@@ -93,6 +96,7 @@ on('keepPlaying', () => {
 modals.menu = (g) => `<div class="spread"><h2>Menu</h2><button class="btn sm" data-a="close">Close</button></div>
   <div class="title-stack" style="display:grid;gap:10px">
     ${menuExtras.map((f) => f(g)).join('')}
+    ${g ? `<button class="btn" data-a="toggleDelegate" title="Small cards: no crisis, no rival, nothing worth more than 4% of a quarter's sales. Your COO picks the safest option.">${g.settings.delegate ? 'Small decisions: your COO handles them' : 'Small decisions: you decide every one'}</button>` : ''}
     <button class="btn" data-a="mute">${isMuted() ? 'Turn sound on' : 'Turn sound off'}</button>
     <button class="btn" data-a="howTo">How to play</button>
     <button class="btn danger" data-a="askQuit">Quit to title</button>
@@ -118,6 +122,12 @@ modals.howTo = () => `<div class="spread"><h2>How to play</h2><button class="btn
 on('menu', () => { ui.modal = { kind: 'menu' }; render(); });
 on('howTo', () => { ui.modal = { kind: 'howTo' }; render(); });
 on('term', (d) => { ui.modal = { kind: 'term', data: { id: d.id } }; render(); });
+on('toggleDelegate', () => {
+  const g = ui.g!;
+  g.settings.delegate = !g.settings.delegate;
+  toast(g.settings.delegate ? 'Your COO will handle small decisions from next quarter.' : 'You will see every decision card.');
+  render();
+});
 on('mute', () => { setMuted(!isMuted()); sfx.tick(); render(); });
 on('askQuit', () => {
   ui.modal = { kind: 'confirm', data: { title: 'Quit to the title screen?', text: 'Your game is saved automatically at the end of every quarter.', yes: 'Quit', act: 'quit' } };

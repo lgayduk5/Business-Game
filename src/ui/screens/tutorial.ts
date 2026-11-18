@@ -6,6 +6,8 @@ import { hqExtras } from './hq';
 
 interface Step { title: string; text: string; done: (g: GameState) => boolean; go?: [action: string, label: string, attrs?: string] }
 const c = (g: GameState, k: string) => !!g.counters['tut:' + k];
+/** The checklist shows for the first two years only. */
+export const TUTORIAL_QUARTERS = 8;
 export const STEPS: Step[] = [
   { title: 'Ask a number where it came from', text: 'Every dotted number explains itself. Tap Cash at the top, or any figure below.', done: (g) => c(g, 'tip') },
   { title: 'Visit your office', text: 'It is limited by one thing — demand, people or plant. The yellow note tells you which.', done: (g) => c(g, 'act:office') || c(g, 'tab:ops'), go: ['tab', 'Open Offices', 'data-v="ops"'] },
@@ -18,7 +20,8 @@ export const STEPS: Step[] = [
 ];
 
 hqExtras.unshift((g) => {
-  if (!g.settings.tutorial || g.mode === 'scenario') return '';
+  // Retires on its own after two years (review wave 3): by then it is clutter, finished or not.
+  if (!g.settings.tutorial || g.mode === 'scenario' || g.turn >= TUTORIAL_QUARTERS) return '';
   const done = STEPS.filter((s) => s.done(g)).length;
   if (done === STEPS.length) {
     return `<div class="sheet wide"><div class="spread"><h2 style="margin-top:0">You know the basics</h2><button class="btn sm" data-a="tutOff">Dismiss</button></div>

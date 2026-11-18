@@ -19,14 +19,15 @@ const PHASE_ADVICE: Record<string, string> = {
 function economy(g: GameState): string {
   const m = g.macro;
   const h = m.hist;
+  const turns = h.map((_, i) => g.turn - h.length + i);
   const idx = (v: number, title: string, text: string) => N((v / m.cpi).toFixed(2) + '×', title, text, [['Nominal index', v.toFixed(2)], ['General price level', m.cpi.toFixed(2)]]);
   return `<h1>The economy</h1><div class="note"><b>${{ expansion: 'Steady expansion', boom: 'Boom', slowdown: 'Slowdown', recession: 'Recession', recovery: 'Recovery' }[m.phase]}.</b><p>${PHASE_ADVICE[m.phase]}</p></div>
     <div class="grid2">
       <div class="sheet"><h2>Now</h2>${macroLine(g)}</div>
-      <div class="sheet"><h2>Rates and inflation</h2>${lineChart([{ name: 'Central-bank rate', color: 'var(--ink)', data: h.map((x) => x.rate) }, { name: 'Inflation', color: 'var(--red)', data: h.map((x) => x.infl) }], { fmt: (x) => x.toFixed(1) + '%' })}</div>
-      <div class="sheet"><h2>The cycle</h2>${lineChart([{ name: 'Output gap (above zero = overheating)', color: 'var(--green)', data: h.map((x) => x.gap) }], { fmt: (x) => x.toFixed(1) + '%' })}
+      <div class="sheet"><h2>Rates and inflation</h2>${lineChart([{ name: 'Central-bank rate', color: 'var(--ink)', data: h.map((x) => x.rate) }, { name: 'Inflation', color: 'var(--red)', data: h.map((x) => x.infl) }], { fmt: (x) => x.toFixed(1) + '%', turns, id: 'rates' })}</div>
+      <div class="sheet"><h2>The cycle</h2>${lineChart([{ name: 'Output gap (above zero = overheating)', color: 'var(--green)', data: h.map((x) => x.gap) }], { fmt: (x) => x.toFixed(1) + '%', turns })}
         <p class="small muted">Demand in cyclical industries follows this line. When it runs hot, inflation rises and the central bank leans against it.</p></div>
-      <div class="sheet"><h2>Investor mood</h2>${lineChart([{ name: 'Sentiment (1.0 = normal)', color: 'var(--ink)', data: h.map((x) => x.sentiment) }], { zero: false, fmt: (x) => x.toFixed(2) + '×' })}</div>
+      <div class="sheet"><h2>Investor mood</h2>${lineChart([{ name: 'Sentiment (1.0 = normal)', color: 'var(--ink)', data: h.map((x) => x.sentiment) }], { zero: false, fmt: (x) => x.toFixed(2) + '×', turns })}</div>
       <div class="sheet"><h2>Input prices <span class="muted small">relative to general prices</span></h2><div class="kv">
         <div>Wages</div><div>${idx(m.wageIdx, 'Wages', 'Pay tends to rise a little faster than prices, and faster still when the labour market is tight.')}</div>
         <div>Commodities</div><div>${idx(m.commodity, 'Commodities', 'Materials for manufacturing and food for restaurants. Volatile, and they rise in booms.')}</div>

@@ -272,7 +272,7 @@ export function rivalsDecide(g: GameState) {
           openRivalOffice(g, r, c.id, ind, 0);
           if ((g.discovered[c.id] ?? 0) >= 1) news(g, `${r.name} has opened in ${c.name}.`, 'rival');
           const mine = g.company.offices.find((o) => o.city === c.id && o.ind === ind);
-          if (mine && c.id === g.company.home && EVENT.rival_enters) queueEvent(g, 'rival_enters', ctxFor(g, r, mine));
+          if (mine && c.id === g.company.home && EVENT.rival_enters && rivalCardFree(g) && queueEvent(g, 'rival_enters', ctxFor(g, r, mine))) g.counters.rivalCard = g.turn;
         }
       }
     }
@@ -338,11 +338,17 @@ function liquidate(g: GameState, r: Rival) {
 }
 
 /** Post-market: revenue, costs, cash, technology, distress, consolidation, and moves against the player. */
+/** At most one rival card every fourth quarter (review wave 3): rivals keep acting on the map in between, but you are
+ *  not asked to respond each time, and their moves count against the quarter's share of decision cards. */
+export const RIVAL_CARD_GAP = 4;
+export const rivalCardFree = (g: GameState) => !g.queue.some((e) => EVENT[e.id]?.cat === 'rival') && g.turn - (g.counters.rivalCard ?? -99) >= RIVAL_CARD_GAP;
+
 export function rivalsFinancials(g: GameState) {
   const d = DIFF[g.difficulty];
   const c = g.company;
   const m = g.macro;
-  let acted = g.queue.some((e) => EVENT[e.id]?.cat === 'rival');
+  let acted = !rivalCardFree(g);
+  const asked = acted;
   for (const r of alive(g)) {
     const pers = PERSONALITY[r.personality];
     const q = rivalQuarter(g, r);
@@ -481,6 +487,7 @@ export function rivalsFinancials(g: GameState) {
       }
     }
   }
+  if (acted && !asked) g.counters.rivalCard = g.turn;
 }
 
 // ───────────────────────── player diplomacy ─────────────────────────
@@ -612,7 +619,7 @@ export function bidOdds(g: GameState, r: Rival, hostile: boolean): number {
 }
 /** Take a rival's offices into the player's company. */
 /** Customers an acquirer keeps: about a fifth of them use the change of owner to look elsewhere. */
-export const ACQUIRED_KEEP = 0.8;
+export const ACQUIRED_KEEP = 0.75;
 export function absorbIntoPlayer(g: GameState, r: Rival, offices: RivalOffice[]): number {
   const c = g.company;
   let fair = 0;

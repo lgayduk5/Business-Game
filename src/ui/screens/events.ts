@@ -1,5 +1,5 @@
 // Event cards: a situation, options with their trade-offs, then what happened and why it matters.
-import { TERM, resolveEvent, viewEvent, type EventResult, type GameState } from '@engine';
+import { TERM, delegateEvent, lowStakes, resolveEvent, viewEvent, type EventResult, type GameState } from '@engine';
 import { esc } from '../kit';
 import { on, render, ui } from '../store';
 import { modals, tabDots } from '../shell';
@@ -37,7 +37,9 @@ modals.event = (g, m) => {
     <h2 style="margin-top:8px">${esc(v.title)}</h2><p class="serif" style="font-size:1.1rem;line-height:1.5">${esc(v.text)}</p>
     <div class="choices" style="grid-template-columns:1fr">${v.options.map((o, i) => `<button class="choice" data-a="choose" data-uid="${v.uid}" data-i="${i}" ${o.enabled ? '' : 'disabled'}>
       <b>${esc(o.label)}</b><span class="muted">${esc(o.hint)}</span>
-      <span class="chips">${o.money ? `<span class="chip money">${esc(o.money)}</span>` : ''}${o.odds ? `<span class="chip">${o.odds}</span>` : ''}</span>${o.enabled ? '' : ' <span class="chip bad" style="margin-top:6px">Not available to you</span>'}</button>`).join('')}</div>`;
+      <span class="chips">${o.money ? `<span class="chip money">${esc(o.money)}</span>` : ''}${o.odds ? `<span class="chip">${o.odds}</span>` : ''}</span>${o.enabled ? '' : ' <span class="chip bad" style="margin-top:6px">Not available to you</span>'}</button>`).join('')}</div>
+    ${lowStakes(g!, pe) ? `<div class="row spread" style="margin-top:12px"><span class="small muted">A small call: nothing here moves more than a few percent of a quarter's sales.</span>
+      <button class="btn sm" data-a="delegate" data-uid="${v.uid}" title="Your COO picks the safest option. Turn this on for every small card in the menu.">Let the COO handle it</button></div>` : ''}`;
 };
 
 on('openEvent', () => void nextPrompt.open(ui.g!));
@@ -50,6 +52,17 @@ on('choose', (d) => {
   if (!res) return;
   ui.modal = { kind: 'event', data: { sticky: true, result: res, cat } };
   res.luck < 0 ? sfx.bad() : sfx.tick();
+  render(false);
+});
+on('delegate', (d) => {
+  const g = ui.g!;
+  const pe = g.queue.find((e) => e.uid === Number(d.uid));
+  if (!pe) return;
+  const cat = CAT[viewEvent(g, pe).def.cat];
+  const res = delegateEvent(g, pe.uid);
+  if (!res) return;
+  ui.modal = { kind: 'event', data: { sticky: true, result: { ...res, choice: `${res.choice} (your COO's call)` }, cat } };
+  sfx.tick();
   render(false);
 });
 on('eventDone', () => {

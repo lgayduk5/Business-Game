@@ -140,6 +140,9 @@ export function scheduleEvent(g: GameState, id: string, delay: number, ctx: Even
   if (EVENT[id]) g.scheduled.push({ id, turn: g.turn + Math.max(1, delay), ctx });
 }
 
+/** Cards drawn from the deck per quarter on Normal, on average (Poisson). */
+export const EVENT_RATE = 0.4;
+
 const CAT_W = { macro: 0.8, market: 1, operational: 1, regulatory: 0.8, opportunity: 1, stress: 0.7, rival: 0 } as const;
 
 /** Called at the start of each quarter: deliver scheduled events, then draw from the deck. */
@@ -148,11 +151,13 @@ export function drawEvents(g: GameState) {
   g.scheduled = g.scheduled.filter((s) => s.turn > g.turn);
   for (const s of due) queueEvent(g, s.id, s.ctx);
   if (g.settings.sandbox.noEvents || g.turn < 2 || g.queue.length >= 2) return;
-  const lambda = 0.75 * DIFF[g.difficulty].events;
+  // About half the quarters should pass without a card (decision 26). Cards already waiting — a rival's move,
+  // a covenant breach, a resignation — count against this quarter's draw rather than coming on top of it.
+  const lambda = EVENT_RATE * DIFF[g.difficulty].events;
   const u = rand(g);
   const p0 = Math.exp(-lambda);
   let n = u < p0 ? 0 : u < p0 * (1 + lambda) ? 1 : 2;
-  n = Math.min(n, 2 - g.queue.length);
+  n = Math.max(0, Math.min(n - g.queue.length, 2 - g.queue.length));
   const stress = 1 + 0.25 * ['easy', 'normal', 'hard', 'brutal'].indexOf(g.difficulty);
   const pool = EVENTS.filter((e) => (e.w ?? 1) > 0 && !(e.once && g.fired[e.id] !== undefined) && g.turn - (g.fired[e.id] ?? -999) >= (e.cool ?? 12) && evalCond(g, e.cond));
   for (let i = 0; i < n; i++) {
@@ -630,6 +635,62 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   const tone = out.tone ?? (luck > 0.005 * scaleS(g) ? 'good' : luck < -0.005 * scaleS(g) ? 'bad' : 'info');
   news(g, `${title}: ${text}`, tone);
   return { title, choice, text, effects, lesson: def.lesson, luck, terms: def.terms ?? [] };
+}
+
+// ── "Let the COO handle it" (review wave 3): small decisions need not interrupt the quarter.
+
+/** Cards the COO may take: never a crisis or a rival's move, nothing that touches financing, ownership or the
+ *  company's survival, and no option that can swing more than 4% of a quarter's revenue either way. */
+export const DELEGATE_LIMIT = 0.04;
+const SAFE_SPECIALS = new Set(['payAmount']);
+export function lowStakes(g: GameState, pe: PendingEvent): boolean {
+  const def = EVENT[pe.id];
+  if (!def || def.cat === 'stress' || def.cat === 'rival') return false;
+  const cap = DELEGATE_LIMIT * scaleS(g);
+  for (const opt of def.opts) {
+    for (const o of opt.out) {
+      if ((o.fx ?? []).some((f) => (f[0] === 'special' && !SAFE_SPECIALS.has(f[1])) || ['equity', 'loan', 'debtCall', 'dilute', 'valuation', 'personLeave', 'mnaTarget'].includes(f[0]))) return false;
+      const m = outcomeCash(g, pe.ctx, o);
+      if (m.finance !== 0 || Math.abs(m.spend) > cap || Math.abs(outcomeValue(g, o)) > cap) return false;
+    }
+  }
+  return true;
+}
+
+/** The COO plays safe: the option with the best worst case, then the best average. It knows the odds no better than you do,
+ *  so this is a sensible default rather than the best answer. */
+export function delegateChoice(g: GameState, pe: PendingEvent): number {
+  const def = EVENT[pe.id];
+  let best = -1, bestKey: [number, number] = [-Infinity, -Infinity];
+  def.opts.forEach((opt, i) => {
+    if (!evalCond(g, opt.req, pe.ctx)) return;
+    const worst = Math.min(...opt.out.map((o) => outcomeValue(g, o)));
+    const avg = opt.out.reduce((s, o) => s + outcomeValue(g, o), 0) / opt.out.length;
+    if (worst > bestKey[0] + 1e-9 || (Math.abs(worst - bestKey[0]) <= 1e-9 && avg > bestKey[1])) {
+      best = i;
+      bestKey = [worst, avg];
+    }
+  });
+  return best;
+}
+
+/** Hand one card to the COO. Returns what happened, or null if the card is not one the COO may take. */
+export function delegateEvent(g: GameState, uid: number): EventResult | null {
+  const pe = g.queue.find((e) => e.uid === uid);
+  if (!pe || !lowStakes(g, pe)) return null;
+  const i = delegateChoice(g, pe);
+  return i < 0 ? null : resolveEvent(g, uid, i);
+}
+
+/** With the setting on, the COO takes every small card waiting at the start of a quarter. */
+export function autoDelegate(g: GameState): EventResult[] {
+  if (!g.settings.delegate) return [];
+  const out: EventResult[] = [];
+  for (const pe of [...g.queue]) {
+    const r = delegateEvent(g, pe.uid);
+    if (r) out.push(r);
+  }
+  return out;
 }
 
 const FX_KINDS = new Set(['cash', 'cost', 'flat', 'capex', 'morale', 'culture', 'brand', 'rbrand', 'rep', 'esg', 'tech', 'skill', 'loyalty', 'demand', 'market', 'wages', 'inputs', 'capacity', 'prod', 'attrition', 'staff', 'share', 'hostility', 'relation', 'rivalCash', 'rivalTech', 'rivalBrand', 'rivalShare', 'gap', 'rate', 'infl', 'commodity', 'energyIdx', 'sentiment', 'spread', 'fx', 'regionGap', 'flag', 'unflag', 'personLeave', 'debtCall', 'rateUp', 'waive', 'equity', 'loan', 'dilute', 'valuation', 'writeoff', 'invLoss', 'ppeLoss', 'tax', 'nol', 'mnaTarget', 'discover', 'special']);

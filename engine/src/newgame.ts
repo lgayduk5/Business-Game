@@ -54,7 +54,7 @@ export function newGame(opts: NewGameOpts): GameState {
   const g: GameState = {
     v: SAVE_VERSION, id: 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), seed: opts.seed, rng: hashSeed(opts.seed), uid: 0, turn: 0,
     maxTurns: 100, mode: opts.mode, scenario: opts.scenario, difficulty: opts.difficulty,
-    settings: { victories, sandbox: { noBankruptcy: sandbox, revealMap: sandbox, noEvents: false, calmMacro: false }, tutorial: true },
+    settings: { victories, sandbox: { noBankruptcy: sandbox, revealMap: sandbox, noEvents: false, calmMacro: false }, tutorial: true, delegate: true },
     company: {
       name: opts.name || 'Newco', founder: opts.founder, home: opts.city, primary: opts.industry, divisions: [opts.industry], offices: [],
       tech: { [opts.industry]: clamp(def.startTech + f.tech + (f.ind?.[opts.industry] ?? 0), 5, 100) }, rdBudget: {},

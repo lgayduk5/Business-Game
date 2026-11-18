@@ -13,6 +13,7 @@ export * from './actions';
 export * from './difficulty';
 export * from './newgame';
 export * from './history';
+export * from './forecast';
 export * from './turn';
 export * from './invest';
 export * from './mna';

@@ -2,7 +2,7 @@
 import { advise, trackAttribution } from './advisor';
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, REGION_LIST, EVENT, hasInventory } from './content';
-import { drawEvents, queueEvent } from './events';
+import { autoDelegate, drawEvents, queueEvent } from './events';
 import { covenantStatus, payTaxes, plantDebtService, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
@@ -304,5 +304,7 @@ export function endTurn(g: GameState): void {
     refreshEquityOffer(g);
     if (g.turn % 4 === 0 || !g.candidates.length) refreshCandidates(g);
     drawEvents(g);
+    const done = autoDelegate(g);
+    if (done.length) g.report.delegated = done.map((r) => ({ title: r.title, choice: r.choice, text: r.text }));
   }
 }

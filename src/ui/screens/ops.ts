@@ -1,8 +1,8 @@
 // Offices: staffing, pay, capacity — and the regional levers that shape demand.
 import {
-  CITY, INDUSTRIES, PLANT_STAKE, REGIONS, ROLES, assetFinanceLTV, canRecycle, hasInventory, expandCapacity, expandCost, fire, gmOf, headcount, isCapital, marketWage, money, officeById, pct, plantEquity, plantValue, priceIndex, sellCapacity, sellPlantStake,
+  CITY, INDUSTRIES, PLANT_STAKE, REGIONS, ROLES, assetFinanceLTV, canRecycle, hasInventory, expandCapacity, expandCost, fire, forecastQuarter, gmOf, headcount, isCapital, marketWage, money, officeById, pct, plantEquity, plantValue, priceIndex, sellCapacity, sellPlantStake,
   setBackfill, setMarketing, setPay, setPrice, setReqs, setTraining, severanceCost, staffingHint, unitVarCost, closeOffice,
-  type GameState, type Office, type RegionId, type Role, type IndustryId,
+  type Forecast, type GameState, type Office, type RegionId, type Role, type IndustryId,
 } from '@engine';
 import { $, N, esc, explain, lineChart, seg, slider, stepper, tip } from '../kit';
 import { act, on, render, ui } from '../store';
@@ -52,6 +52,8 @@ function officeView(g: GameState): string {
       <div>Contribution</div><div>${$(l.contribution, 'Office contribution', 'What this office earns after its own costs, before corporate overhead, R&D programs, interest and tax.', [['Revenue', money(l.revenue)], ['Materials / hosting / fuel', money(-l.materials)], ['Payroll', money(-(l.wages.ops + l.wages.sales + l.wages.rnd + l.wages.admin))], ['Rent', money(-l.rent)], ['Facility', money(-l.facility)], ['Marketing', money(-l.marketing)], ['Hiring and training', money(-(l.hiring + l.training))], ['Contribution', money(l.contribution), true]], ['contribution'])}</div>
     </div></div>` : '';
 
+  const next = forecastView(g, o);
+
   const team = `<div class="sheet"><h2>Team</h2>
     <p class="small muted">Morale ${moraleTip(o)}, attrition ${attritionTip(g, o)} a quarter${gm ? `, run by ${N(gm.name, 'General manager', `${gm.trait}. A strong GM lifts productivity, morale and process quality; a weak one drags them down.`, [['Skill', String(gm.skill)], ['Loyalty', String(gm.loyalty)], ['Salary per quarter', money(gm.salary * g.macro.wageIdx)]])}` : ''}.</p>
     <div class="scrollx"><table class="ledger"><thead><tr><th>Role</th><th class="num">People</th><th class="num">Skill</th><th>Open positions</th><th class="num">Payroll</th><th></th></tr></thead><tbody>
@@ -84,12 +86,40 @@ function officeView(g: GameState): string {
     <p class="small muted">Regional brand ${N(c.regionBrand[region].toFixed(0), 'Regional brand', 'How well known you are in this region, 0–100. Built by marketing and by simply having customers; fades about 3.5% a quarter if you stop.', [['Company-wide brand', c.brand.toFixed(0)]], ['brand'])}</p>
   </div>`;
 
-  const chart = o.hist.length > 1 ? `<div class="sheet"><h2>History</h2>${lineChart([{ name: 'Revenue', color: 'var(--ink)', data: o.hist.map((h) => h.rev) }, { name: 'Contribution', color: 'var(--green)', data: o.hist.map((h) => h.contrib) }])}</div>` : '';
+  const chart = o.hist.length > 1 ? `<div class="sheet"><h2>History</h2>${lineChart([{ name: 'Revenue', color: 'var(--ink)', data: o.hist.map((h) => h.rev) }, { name: 'Contribution', color: 'var(--green)', data: o.hist.map((h) => h.contrib) }], { turns: o.hist.map((_, i) => g.turn - o.hist.length + i), id: 'office' })}</div>` : '';
   const close = c.offices.length > 1 ? `<p><button class="btn danger sm" data-a="askClose" data-office="${o.id}">Close this office</button></p>` : '';
 
   return `<div class="spread"><h1>${esc(city.name)} <span class="muted" style="font-size:.7em">${def.name}</span></h1>
     ${c.offices.length > 1 ? `<button class="btn sm" data-a="sub" data-k="ops" data-v="list">All offices</button>` : ''}</div>
-    ${status}<div class="grid2">${quarter}${market}<div class="wide">${team}</div>${plant}${chart}${opsExtras.map((f) => f(g, o)).join('')}</div>${close}`;
+    ${status}<div class="grid2">${quarter}${next}${market}<div class="wide">${team}</div>${plant}${chart}${opsExtras.map((f) => f(g, o)).join('')}</div>${close}`;
+}
+
+// The dry run is cheap (a few milliseconds) but runs once per state of the game, not on every redraw.
+let fcCache: { key: string; f: Forecast } | null = null;
+function forecastFor(g: GameState): Forecast {
+  const key = JSON.stringify(g); // any decision changes the forecast
+  if (fcCache?.key !== key) fcCache = { key, f: forecastQuarter(g) };
+  return fcCache.f;
+}
+
+/** "Next quarter, if nothing changes": demand, capacity, revenue, contribution and cash from a dry run. */
+function forecastView(g: GameState, o: Office): string {
+  const f = forecastFor(g);
+  const n = f.offices[o.id];
+  if (!n) return '';
+  const l = o.last;
+  const units = (x: number) => Math.round(x).toLocaleString();
+  const vs = (a: number, b: number | undefined) => (b && Math.abs(a / b - 1) >= 0.01 ? ` <span class="small ${a < b ? 'neg' : 'pos'}">${a >= b ? '▲' : '▼'} ${Math.abs((a / b - 1) * 100).toFixed(0)}%</span>` : '');
+  const turnedAway = n.bind !== 'demand' && n.lost > 1000;
+  const how = 'A dry run of the coming quarter with the decisions you have made so far: the same people, prices, pay and building plans; no new events and a steady economy. Hiring and customers still vary, so treat it as a likely outcome, not a promise.';
+  return `<div class="sheet"><h2>Next quarter, if nothing changes</h2><div class="kv">
+      <div>Customers want <span class="sub">units</span></div><div>${N(units(n.demand), 'Likely demand', how, [['Last quarter', l ? units(l.demand) : '—']], ['marketShare'])}${vs(n.demand, l?.demand)}</div>
+      <div>You can deliver <span class="sub">units</span></div><div>${N(units(n.capacity), 'Likely capacity', 'What your people and plant could produce next quarter, counting hires already on their way and people likely to leave.', [['Last quarter', l ? units(l.capacity) : '—']], ['capacity'])}${vs(n.capacity, l?.capacity)}</div>
+      <div>Revenue</div><div>${$(n.revenue, 'Likely revenue', how, [['Units sold', units(n.sold)], ['Last quarter', l ? money(l.revenue) : '—']])}${vs(n.revenue, l?.revenue)}</div>
+      <div>Contribution</div><div>${$(n.contribution, 'Likely contribution', 'What this office would earn after its own costs next quarter. ' + how, [['Last quarter', l ? money(l.contribution) : '—']], ['contribution'])}</div>
+      <div>Company cash at quarter end</div><div>${$(f.cash, 'Likely cash', 'Cash for the whole company at the end of the coming quarter, after every office, head office, interest, tax and building already committed.', [['Cash today', money(g.company.books.cash)], ['Cash from operations', money(f.cfo)], ['Net income', money(f.ni)]], ['cashFlow'])}</div>
+    </div>${turnedAway ? `<p class="small hi">On this plan you would turn away about ${money(n.lost)} of sales: ${n.bind === 'facility' ? 'the plant is the limit' : 'there are not enough people'}.</p>` : ''}
+    ${f.cash < 0 ? '<p class="small neg">On this plan the company runs out of cash next quarter.</p>' : ''}</div>`;
 }
 
 function plantView(g: GameState, o: Office): string {

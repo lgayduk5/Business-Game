@@ -54,9 +54,23 @@ export const seg = (act: string, options: [value: string, label: string][], curr
 export const meter = (frac: number, warn = false) => `<div class="meter ${warn ? 'warn' : ''}"><i style="width:${Math.max(0, Math.min(1, frac)) * 100}%"></i></div>`;
 
 // ── charts (inline SVG, drawn from data — no image assets)
-export function lineChart(series: { name: string; color: string; data: number[]; dash?: boolean }[], opts: { h?: number; zero?: boolean; fmt?: (x: number) => string } = {}): string {
-  const W = 320, H = opts.h ?? 120, L = 6, R = 6, T = 8, Bm = 16;
-  const all = series.flatMap((s) => s.data).filter((v) => isFinite(v));
+// Lines the player has switched off, by chart and series name. Kept for the session.
+const HIDDEN = new Set<string>();
+export const toggleLine = (key: string) => (HIDDEN.has(key) ? HIDDEN.delete(key) : HIDDEN.add(key));
+const year = (t: number) => 1 + Math.floor(t / 4);
+
+/**
+ * A line chart. With `turns` (the quarter of each point, aligned to the longest series) the x-axis is marked in years.
+ * With `id`, each series in the legend is a button that hides or shows its line.
+ */
+export function lineChart(
+  series: { name: string; color: string; data: number[]; dash?: boolean }[],
+  opts: { h?: number; zero?: boolean; fmt?: (x: number) => string; turns?: number[]; id?: string } = {},
+): string {
+  const W = 320, H = opts.h ?? 120, L = 6, R = 6, T = 8, Bm = opts.turns ? 28 : 16;
+  const key = (s: { name: string }) => `${opts.id}:${s.name}`;
+  const shown = series.filter((s) => !opts.id || !HIDDEN.has(key(s)));
+  const all = (shown.length ? shown : series).flatMap((s) => s.data).filter((v) => isFinite(v));
   if (all.length < 2) return '<p class="muted small">Not enough history yet — check back after a couple of quarters.</p>';
   let lo = Math.min(...all), hi = Math.max(...all);
   if (opts.zero !== false) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
@@ -65,12 +79,28 @@ export function lineChart(series: { name: string; color: string; data: number[];
   const X = (i: number) => L + ((W - L - R) * i) / Math.max(1, n - 1);
   const Y = (v: number) => T + (H - T - Bm) * (1 - (v - lo) / (hi - lo));
   const f = opts.fmt ?? money;
-  const paths = series.map((s) => `<polyline fill="none" stroke="${s.color}" stroke-width="2" ${s.dash ? 'stroke-dasharray="4 3"' : ''} stroke-linejoin="round" points="${s.data.map((v, i) => `${X(i + n - s.data.length).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')}"/>`).join('');
+  const paths = shown.map((s) => `<polyline fill="none" stroke="${s.color}" stroke-width="2" ${s.dash ? 'stroke-dasharray="4 3"' : ''} stroke-linejoin="round" points="${s.data.map((v, i) => `${X(i + n - s.data.length).toFixed(1)},${Y(v).toFixed(1)}`).join(' ')}"/>`).join('');
   const zero = lo < 0 && hi > 0 ? `<line x1="${L}" x2="${W - R}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--ink3)" stroke-width="1" stroke-dasharray="2 3"/>` : '';
-  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(series.map((s) => s.name).join(', '))} over time">
-    <rect x="0" y="0" width="${W}" height="${H - Bm + 2}" fill="var(--bar)" opacity=".55"/>${zero}${paths}
-    <text x="${L}" y="${H - 3}">${esc(f(lo))}</text><text x="${W - R}" y="${H - 3}" text-anchor="end">high ${esc(f(hi))}</text></svg>
-    <div class="legend">${series.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('')}</div>`;
+  // Year marks: a faint rule at the start of each year, labelled; thinned out so labels never crowd.
+  let axis = '';
+  const tt = opts.turns;
+  if (tt && tt.length === n) {
+    const starts = tt.map((t, i) => [t, i] as const).filter(([t]) => ((t % 4) + 4) % 4 === 0);
+    const every = Math.max(1, Math.ceil(starts.length / 8));
+    axis = starts.map(([t, i]) => `<line x1="${X(i).toFixed(1)}" x2="${X(i).toFixed(1)}" y1="${T}" y2="${H - Bm + 2}" stroke="var(--ink3)" stroke-width=".6" opacity=".45"/>`
+      + (year(t) % every === 0 ? `<text x="${X(i).toFixed(1)}" y="${H - Bm + 13}" text-anchor="${i === 0 ? 'start' : 'middle'}">Y${year(t)}</text>` : '')).join('');
+  }
+  const legend = series.map((s) => {
+    const on = !opts.id || !HIDDEN.has(key(s));
+    const sw = `<i style="background:${s.color}${s.dash ? ';background:repeating-linear-gradient(90deg,' + s.color + ' 0 4px,transparent 4px 7px)' : ''}"></i>${esc(s.name)}`;
+    return opts.id && series.length > 1
+      ? `<button type="button" class="line-toggle${on ? '' : ' off'}" data-a="chartLine" data-k="${esc(key(s))}" aria-pressed="${on}" title="${on ? 'Hide' : 'Show'} this line">${sw}</button>`
+      : `<span>${sw}</span>`;
+  }).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(shown.map((s) => s.name).join(', '))} over time">
+    <rect x="0" y="0" width="${W}" height="${H - Bm + 2}" fill="var(--bar)" opacity=".55"/>${axis}${zero}${paths}
+    <text x="${L}" y="${H - 3}">low ${esc(f(lo))}</text><text x="${W - R}" y="${H - 3}" text-anchor="end">high ${esc(f(hi))}</text></svg>
+    <div class="legend">${legend}</div>`;
 }
 export function spark(data: number[], color = 'var(--ink)'): string {
   if (data.length < 2) return '';

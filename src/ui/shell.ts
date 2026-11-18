@@ -1,6 +1,6 @@
 // App frame: top strip, navigation, modal host.
 import { quarterOf, yearOf, type GameState } from '@engine';
-import { ICON, esc, logo } from './kit';
+import { ICON, esc, logo, toggleLine } from './kit';
 import { on, render, ui, type Tab } from './store';
 import { cashTip } from './tips';
 import { sfx } from '../audio';
@@ -60,5 +60,10 @@ on('sub', (d) => {
     ui.tab = tab;
     return render(false);
   }
+  render();
+});
+
+on('chartLine', (d) => {
+  toggleLine(d.k!);
   render();
 });

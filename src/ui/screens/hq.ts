@@ -75,17 +75,17 @@ function hq(g: GameState): string {
     { name: 'Revenue', color: 'var(--ink)', data: hist.map((h) => h.revenue) },
     { name: 'Net income', color: 'var(--green)', data: hist.map((h) => h.ni) },
     { name: 'Cash', color: 'var(--red)', data: hist.map((h) => h.cash), dash: true },
-  ])}</div>`;
+  ], { turns: hist.map((h) => h.turn), id: 'hq' })}</div>`;
 
-  const offices = `<div class="sheet wide"><div class="spread"><h2>Offices</h2><button class="btn sm" data-a="tab" data-v="ops">Manage</button></div><div class="scrollx"><table class="ledger">
+  const offices = `<div class="sheet wide"><div class="spread"><h2>Offices</h2><button class="btn sm" data-a="tab" data-v="ops">Manage</button></div><div class="scrollx"><table class="ledger stack">
     <thead><tr><th>Office</th><th class="num">Revenue</th><th class="num">Margin</th><th class="num">Share</th><th class="num">Used</th><th class="num">Morale</th><th>Limit</th></tr></thead><tbody>
     ${c.offices.map((o) => {
       const l = o.last;
-      return `<tr class="tap" data-a="office" data-id="${o.id}"><td><b>${esc(CITY[o.city].name)}</b> <span class="muted small">${INDUSTRIES[o.ind].short}, ${headcount(o)} people</span></td>
-      <td class="num">${l ? $(l.revenue, 'Office revenue', 'Units sold × price.', [['Units sold', Math.round(l.sold).toLocaleString()], ['Price per unit', money(l.price)]]) : '—'}</td>
-      <td class="num">${l && l.revenue > 0 ? P(l.contribution / l.revenue, 'Contribution margin', 'Office revenue minus everything the office itself costs (materials, payroll, rent, marketing, hiring). Corporate overhead, R&D programs, interest and tax come on top.', [['Contribution', money(l.contribution)]], 0, ['contribution']) : '—'}</td>
-      <td class="num">${shareTip(o)}</td><td class="num">${capacityTip(g, o)}</td><td class="num">${moraleTip(o)}</td>
-      <td>${l ? `<span class="chip ${l.bind === 'demand' ? '' : 'warn'}">${BIND_TEXT[l.bind][0].replace('Limited by ', '')}</span>` : ''}</td></tr>`;
+      return `<tr class="tap" data-a="office" data-id="${o.id}"><td class="head"><b>${esc(CITY[o.city].name)}</b> <span class="muted small">${INDUSTRIES[o.ind].short}, ${headcount(o)} people</span></td>
+      <td class="num" data-label="Revenue">${l ? $(l.revenue, 'Office revenue', 'Units sold × price.', [['Units sold', Math.round(l.sold).toLocaleString()], ['Price per unit', money(l.price)]]) : '—'}</td>
+      <td class="num" data-label="Margin">${l && l.revenue > 0 ? P(l.contribution / l.revenue, 'Contribution margin', 'Office revenue minus everything the office itself costs (materials, payroll, rent, marketing, hiring). Corporate overhead, R&D programs, interest and tax come on top.', [['Contribution', money(l.contribution)]], 0, ['contribution']) : '—'}</td>
+      <td class="num" data-label="Share">${shareTip(o)}</td><td class="num" data-label="Capacity used">${capacityTip(g, o)}</td><td class="num" data-label="Morale">${moraleTip(o)}</td>
+      <td data-label="Limit">${l ? `<span class="chip ${l.bind === 'demand' ? '' : 'warn'}">${BIND_TEXT[l.bind][0].replace('Limited by ', '')}</span>` : ''}</td></tr>`;
     }).join('')}</tbody></table></div></div>`;
 
   const best = victoryStatus(g).filter((v) => v.enabled).sort((a, b) => b.progress - a.progress)[0];

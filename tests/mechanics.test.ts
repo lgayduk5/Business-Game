@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CITIES, FACTOR_FEE, PLANT_STAKE, canRecycle, checkEnd, endTurn, equityOf, finalGrade, newGame, openOffice, openOfficeCost, openOfficeFinancing, plantEquity,
+  CITIES, FACTOR_FEE, PLANT_STAKE, canRecycle, checkEnd, endTurn, equityOf, finalGrade, forecastQuarter, newGame, openOffice, openOfficeCost, openOfficeFinancing, plantEquity,
   setFactoring, sellPlantStake, staffingHint, totalAssets, totalLiabilities, valuation, type GameState,
 } from '../engine/src/index';
 import { opts, play } from './helpers';
@@ -106,5 +106,24 @@ describe('graded ending', () => {
     const fg = finalGrade(g);
     expect(fg.rank).toBe(1);
     expect(fg.won).toBe(true);
+  });
+});
+
+describe('next-quarter forecast', () => {
+  it('is a dry run: it leaves the game untouched and lands close to what then happens in a calm quarter', () => {
+    const g = play(newGame(opts({ industry: 'retail', seed: 'forecast' })), 4);
+    g.queue = [];
+    g.settings.sandbox = { ...g.settings.sandbox, noEvents: true, calmMacro: true };
+    const before = JSON.stringify(g);
+    const f = forecastQuarter(g);
+    expect(JSON.stringify(g)).toBe(before);
+    const o = g.company.offices[0];
+    const n = f.offices[o.id];
+    expect(n.capacity).toBeGreaterThan(0);
+    endTurn(g);
+    const l = o.last!;
+    expect(n.revenue / l.revenue).toBeGreaterThan(0.9);
+    expect(n.revenue / l.revenue).toBeLessThan(1.1);
+    expect(Math.abs(f.cash - g.company.books.cash)).toBeLessThan(0.1 * Math.max(1, l.revenue));
   });
 });
