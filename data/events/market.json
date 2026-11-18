@@ -622,5 +622,187 @@
       }
     ],
     "lesson": "Cash not invested at a good return belongs to the shareholders. A dividend is a commitment the market will hold you to."
+  },
+  {
+    "id": "ai_shift",
+    "cat": "market",
+    "title": "AI changes the work",
+    "text": "New AI tools can now do a large part of what your people in {city} do. Customers are starting to ask why they pay for hours a machine could do.",
+    "cond": { "ind": ["saas", "consulting"], "minTurn": 16 },
+    "bind": ["office"],
+    "once": true,
+    "opts": [
+      {
+        "label": "Adopt it early, everywhere",
+        "hint": "Retrain, re-price and accept a hard year.",
+        "out": [
+          {
+            "text": "Productivity jumps once people trust the tools; the transition is hard on morale.",
+            "fx": [["cost", 0.08, "rd"], ["morale", -5, "all"], ["prod", 10, 16, "all"], ["tech", 3]]
+          }
+        ]
+      },
+      {
+        "label": "Pilot it in {city} first",
+        "hint": "Learn before you commit.",
+        "out": [
+          {
+            "text": "The pilot works, and the rest of the company asks for it.",
+            "fx": [["cost", 0.02, "rd"], ["prod", 6, 12, "office"], ["morale", -2, "office"]]
+          }
+        ]
+      },
+      {
+        "label": "Wait and see",
+        "hint": "Let rivals make the mistakes.",
+        "out": [
+          { "w": 0.5, "text": "Rivals adopt it and undercut your prices.", "tone": "bad", "fx": [["rivalTech", 3], ["demand", -4, 8, "all"]] },
+          { "w": 0.5, "text": "The first tools disappoint. Waiting cost nothing.", "fx": [] }
+        ]
+      }
+    ],
+    "lesson": "When technology changes the work, the early adopter pays for the learning and the late adopter pays in lost customers. A pilot is how you buy that information cheaply.",
+    "terms": ["rd", "operatingLeverage"]
+  },
+  {
+    "id": "short_report",
+    "cat": "market",
+    "title": "A short seller’s report",
+    "text": "A fund that bets against companies has published a report calling your accounts “aggressive” and your growth “bought”. Your shares fell 12% at the open.",
+    "cond": { "isPublic": true },
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Rebut it point by point",
+        "hint": "Specific answers, fast.",
+        "out": [
+          {
+            "w": 0.6,
+            "boost": ["rep", 60, 1.5],
+            "text": "Investors read your answers and the shares recover.",
+            "fx": [["cost", 0.01, "ga"], ["valuation", 2, 4]]
+          },
+          {
+            "w": 0.4,
+            "text": "The rebuttal draws attention to the one point that was fair.",
+            "tone": "bad",
+            "fx": [["cost", 0.01, "ga"], ["valuation", -8, 4]]
+          }
+        ]
+      },
+      {
+        "label": "Buy back shares",
+        "hint": "Show the market you think they are cheap.",
+        "out": [{ "text": "The buyback steadies the price.", "fx": [["special", "buyback10"], ["valuation", 3, 4]] }]
+      },
+      {
+        "label": "Say nothing",
+        "hint": "Let the results speak.",
+        "out": [{ "text": "The shares drift lower for a few months, then the story is forgotten.", "fx": [["valuation", -6, 3]] }]
+      }
+    ],
+    "lesson": "Short sellers sometimes find real problems and sometimes manufacture them. How a company responds is itself a signal: confident, specific answers work; anger and silence rarely do.",
+    "terms": ["sentiment", "buyback"]
+  },
+  {
+    "id": "exhire_ceo",
+    "cat": "market",
+    "title": "An old colleague, a new rival",
+    "text": "The executive who left you is now chief executive of {rival}. They know your customers, your prices and your weak spots.",
+    "cond": { "keyLeftWithin": 8 },
+    "bind": ["rival"],
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Call them and make peace",
+        "hint": "Old loyalties count for something.",
+        "out": [{ "text": "A friendly lunch. They promise to compete fairly.", "fx": [["relation", 20], ["hostility", -2]] }]
+      },
+      {
+        "label": "Sue over the non-compete",
+        "hint": "Courts enforce these only sometimes.",
+        "out": [
+          {
+            "w": 0.4,
+            "text": "The court enforces it: they must stay out of your markets for a year.",
+            "fx": [["cost", 0.03, "other"], ["rivalShare", -15], ["hostility", 2]]
+          },
+          {
+            "w": 0.6,
+            "text": "The judge throws it out. Now it is personal.",
+            "tone": "bad",
+            "fx": [["cost", 0.03, "other"], ["hostility", 3], ["rep", -1]]
+          }
+        ]
+      },
+      {
+        "label": "Hire their sales team before they hire yours",
+        "hint": "Signing bonuses, today.",
+        "out": [{ "text": "Three of their best come over.", "fx": [["cost", 0.04, "ga"], ["special", "addSales", 3], ["hostility", 2]] }]
+      }
+    ],
+    "lesson": "People carry knowledge, relationships and grudges with them. Losing a key person can create a competitor; how you treat people on the way out decides what kind.",
+    "terms": ["keyPerson"]
+  },
+  {
+    "id": "activist_stake",
+    "cat": "market",
+    "title": "An activist investor buys in",
+    "text": "A fund known for shaking up boards has bought 6% of your shares. Its letter asks for a large buyback, a sale of anything that is not core, or a sale of the whole company.",
+    "cond": { "isPublic": true, "minTurn": 40, "founderBelow": 0.6 },
+    "cool": 32,
+    "opts": [
+      {
+        "label": "Give them a board seat and a buyback",
+        "hint": "Buy peace with cash.",
+        "out": [{ "text": "The fund declares victory. The shares rise.", "fx": [["special", "buyback10"], ["valuation", 3, 4]] }]
+      },
+      {
+        "label": "Invite offers for the company",
+        "hint": "Let the market say what you are worth.",
+        "out": [{ "text": "Bankers start calling buyers.", "fx": [["valuation", 5, 2]], "chain": [["take_private", 1, 0.7]] }]
+      },
+      {
+        "label": "Fight them",
+        "hint": "Put it to a shareholder vote.",
+        "out": [{ "text": "They call a vote at the next shareholder meeting.", "fx": [["cost", 0.01, "ga"]], "chain": [["proxy_fight", 2, 1]] }]
+      }
+    ],
+    "lesson": "Activists buy into companies they think are under-managed and push for change. They are often right about the problem and sometimes wrong about the cure.",
+    "terms": ["buyback", "sentiment"]
+  },
+  {
+    "id": "proxy_fight",
+    "cat": "market",
+    "title": "The proxy fight",
+    "text": "Shareholders vote this quarter on the activist’s candidates for your board.",
+    "w": 0,
+    "opts": [
+      {
+        "label": "Campaign hard for your own slate",
+        "hint": "Meetings with every large shareholder.",
+        "out": [
+          {
+            "w": 0.55,
+            "boost": ["rep", 60, 1.5],
+            "text": "Shareholders back you. The fund sells out.",
+            "fx": [["cost", 0.03, "ga"], ["valuation", 2, 4]]
+          },
+          {
+            "w": 0.45,
+            "text": "The activists win two seats and force cuts.",
+            "tone": "bad",
+            "fx": [["cost", 0.03, "ga"], ["special", "boardCuts"], ["valuation", 3, 4]]
+          }
+        ]
+      },
+      {
+        "label": "Settle: give them two seats",
+        "hint": "A noisier board, but no war.",
+        "out": [{ "text": "A settlement. The board is noisier and the shares a little higher.", "fx": [["valuation", 2, 4], ["special", "buyback10"]] }]
+      }
+    ],
+    "lesson": "In a proxy fight the votes belong to the institutions that own most of the shares. They back management that has kept its promises: your record is your campaign.",
+    "terms": ["sentiment"]
   }
 ]

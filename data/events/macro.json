@@ -536,5 +536,63 @@
       }
     ],
     "lesson": "Carbon pricing moves the cost curve. Low-cost producers benefit twice: their costs did not rise, and their competitors’ did."
+  },
+  {
+    "id": "bank_fails",
+    "cat": "macro",
+    "title": "Your bank has failed",
+    "text": "Regulators have closed the bank that holds most of your cash. Deposits above the insured limit are frozen while the administrators work out what is left.",
+    "cond": { "macro": "recession", "minCashQ": 4 },
+    "once": true,
+    "opts": [
+      {
+        "label": "Wait for the administrators",
+        "hint": "Failed banks usually pay back most of their deposits — eventually.",
+        "out": [
+          { "w": 0.65, "text": "Two quarters later, 95 cents on the dollar comes back.", "fx": [["cost", 0.15, "other"], ["demand", -2, 2, "all"]] },
+          {
+            "w": 0.35,
+            "text": "The hole is deeper than anyone said: 80 cents on the dollar.",
+            "tone": "bad",
+            "fx": [["cost", 0.6, "other"], ["demand", -2, 2, "all"]]
+          }
+        ]
+      },
+      {
+        "label": "Sell the claim to a distressed-debt fund",
+        "hint": "Cash today, at a discount.",
+        "out": [{ "text": "The fund pays 88 cents on the dollar, today.", "fx": [["cost", 0.35, "other"]] }]
+      }
+    ],
+    "lesson": "Cash in a bank is a loan to that bank. Above the insured limit it is only as safe as the bank, which is why treasurers spread deposits across several banks and hold some in short-term government bills.",
+    "terms": ["runway", "cashFlow"]
+  },
+  {
+    "id": "tariff_war",
+    "cat": "macro",
+    "title": "A tariff war",
+    "text": "Governments are trading tariffs. The goods and parts you bring into {region} now carry a 20% duty.",
+    "cond": { "ind": ["mfg", "retail"] },
+    "bind": ["office"],
+    "cool": 20,
+    "opts": [
+      {
+        "label": "Absorb it",
+        "hint": "Hold prices and eat the cost while the dispute lasts.",
+        "out": [{ "text": "Margins thin while the politicians argue.", "fx": [["inputs", 10, 6]] }]
+      },
+      {
+        "label": "Pass it on to customers",
+        "hint": "Raise prices to cover the duty.",
+        "out": [{ "text": "Customers grumble; some trade down.", "fx": [["special", "priceUp", 5], ["demand", -3, 4, "region"]] }]
+      },
+      {
+        "label": "Move production home",
+        "hint": "Build local supply: expensive now, cheaper if the dispute drags on.",
+        "out": [{ "text": "The new supply line is running within the year.", "fx": [["capex", 0.25], ["inputs", 3, 6]] }]
+      }
+    ],
+    "lesson": "Where you make things is a strategic choice. Cheap global supply chains carry political risk; local ones cost more but cannot be taxed at the border.",
+    "terms": ["grossMargin", "pricingPower"]
   }
 ]

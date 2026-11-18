@@ -61,3 +61,37 @@ describe('event cards say what they cost', () => {
     expect(missing).toEqual([]);
   });
 });
+
+describe('new cards from the review', () => {
+  it('a take-private offer ends the game with a grade, judged on the price paid', () => {
+    const g = newGame(opts({ seed: 'exit' }));
+    g.company.cap.isPublic = true;
+    const before = g.company.valuation;
+    g.queue = [];
+    expect(queueEvent(g, 'take_private', {})).toBe(true);
+    resolveEvent(g, g.queue[0].uid, 0);
+    expect(g.status).not.toBe('playing');
+    expect(g.outcome?.how).toBe('exit');
+    expect(g.outcome?.grade).toMatch(/^[A-F]$/);
+    expect(g.company.valuation).toBeCloseTo(before * 1.3, 0);
+  });
+  it('the biggest-customer card needs a large receivables book; the old-colleague card needs a recent departure', () => {
+    const g = newGame(opts({ industry: 'consulting', seed: 'conds' }));
+    play(g, 2, () => undefined);
+    const rev = g.company.quarters[g.company.quarters.length - 1].pnl.revenue;
+    g.company.books.ar = 0.1 * rev;
+    expect(evalCond(g, { minAR: 0.6 })).toBe(false);
+    g.company.books.ar = rev;
+    expect(evalCond(g, { minAR: 0.6 })).toBe(true);
+    expect(evalCond(g, { keyLeftWithin: 8 })).toBe(false);
+    g.counters.keyLeft = g.turn - 3;
+    expect(evalCond(g, { keyLeftWithin: 8 })).toBe(true);
+  });
+  it('the union drive leads to a first contract', () => {
+    const g = newGame(opts({ seed: 'union' }));
+    g.queue = [];
+    queueEvent(g, 'union', bindCtx(g, EVENTS.find((e) => e.id === 'union')!)!);
+    resolveEvent(g, g.queue[0].uid, 0);
+    expect(g.scheduled.some((s) => s.id === 'union_contract')).toBe(true);
+  });
+});

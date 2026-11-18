@@ -396,7 +396,13 @@
       {
         "label": "Recognise it",
         "hint": "Negotiate in good faith.",
-        "out": [{ "text": "Wages rise; so does trust.", "fx": [["wages", 4, 12], ["morale", 6, "office"], ["rep", 3], ["esg", 3]] }]
+        "out": [
+          {
+            "text": "Wages rise; so does trust.",
+            "fx": [["wages", 4, 12], ["morale", 6, "office"], ["rep", 3], ["esg", 3]],
+            "chain": [["union_contract", 2, 1]]
+          }
+        ]
       },
       {
         "label": "Address the grievances directly",
@@ -411,7 +417,8 @@
           {
             "w": 0.5,
             "text": "The vote passes anyway, and now you are the villain.",
-            "fx": [["cost", 0.03, "other"], ["wages", 4, 12], ["morale", -8, "office"], ["rep", -4]]
+            "fx": [["cost", 0.03, "other"], ["wages", 4, 12], ["morale", -8, "office"], ["rep", -4]],
+            "chain": [["union_contract", 2, 1]]
           }
         ]
       }
@@ -728,5 +735,48 @@
       }
     ],
     "lesson": "In the absence of information people assume the worst. Transparency is cheaper than attrition."
+  },
+  {
+    "id": "union_contract",
+    "cat": "operational",
+    "title": "The union’s first contract",
+    "text": "The union in {city} has tabled its demands for a first contract: more pay, set hours, and a say in how work is assigned.",
+    "w": 0,
+    "bind": ["office"],
+    "opts": [
+      {
+        "label": "Sign a three-year deal",
+        "hint": "Peace, at a price you can plan for.",
+        "out": [{ "text": "Done. Costs are higher but certain.", "fx": [["wages", 3, 12], ["morale", 6, "all"], ["attrition", -20, 12]] }]
+      },
+      {
+        "label": "Tie raises to productivity",
+        "hint": "A deal that pays for itself, if the productivity comes.",
+        "out": [
+          { "w": 0.7, "text": "Agreed: raises as output rises.", "fx": [["wages", 2, 12], ["prod", 4, 12, "office"], ["morale", 2, "office"]] },
+          {
+            "w": 0.3,
+            "text": "Talks drag; a short strike before the deal.",
+            "tone": "bad",
+            "fx": [["capacity", -25, 1, "office"], ["wages", 2, 12], ["morale", -4, "office"]]
+          }
+        ]
+      },
+      {
+        "label": "Refuse and wait them out",
+        "hint": "The side that can wait longer usually wins.",
+        "out": [
+          {
+            "w": 0.5,
+            "text": "A two-month strike, then a deal on worse terms for everyone.",
+            "tone": "bad",
+            "fx": [["capacity", -40, 1, "office"], ["morale", -10, "office"], ["wages", 3, 8], ["rep", -3]]
+          },
+          { "w": 0.5, "text": "The union backs down. The resentment does not.", "fx": [["morale", -6, "office"], ["attrition", 15, 8]] }
+        ]
+      }
+    ],
+    "lesson": "A contract turns labour costs from a fight every year into a number you can plan around. Strikes are expensive for both sides, which is why most end in a deal both could have signed earlier.",
+    "terms": ["morale", "attrition"]
   }
 ]

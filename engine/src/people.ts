@@ -172,6 +172,7 @@ const city = (o: Office) => CITY[o.city].name;
 /** Remove a key person and apply the damage their departure does. */
 export function personLeaves(g: GameState, p: Person, why = 'resigned'): string {
   const c = g.company;
+  g.counters.keyLeft = g.turn; // a former key person may turn up at a rival
   c.people = c.people.filter((x) => x.id !== p.id);
   const planned = g.company.investments.some((i) => i.state === 'active' && i.def === 'succession');
   const soft = planned ? 0.5 : 1;

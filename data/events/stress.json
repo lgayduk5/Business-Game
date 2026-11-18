@@ -680,5 +680,39 @@
       }
     ],
     "lesson": "Public companies answer to their shareholders. Activists target companies whose share price lags what their assets could earn."
+  },
+  {
+    "id": "biggest_customer_bust",
+    "cat": "stress",
+    "title": "Your biggest customer goes bust",
+    "text": "Your largest customer has filed for bankruptcy, owing you a quarter of everything on your receivables ledger. Its orders have stopped too.",
+    "cond": { "minAR": 0.6 },
+    "cool": 24,
+    "opts": [
+      {
+        "label": "Write it off and chase it in court",
+        "hint": "Slow, uncertain, sometimes worth it.",
+        "out": [
+          {
+            "w": 0.5,
+            "text": "After a year in court you recover a third.",
+            "fx": [["writeoff", 0.17], ["cost", 0.01, "other"], ["demand", -4, 4, "all"]]
+          },
+          {
+            "w": 0.5,
+            "text": "The estate is empty. Nothing comes back.",
+            "tone": "bad",
+            "fx": [["writeoff", 0.25], ["cost", 0.01, "other"], ["demand", -4, 4, "all"]]
+          }
+        ]
+      },
+      {
+        "label": "Sell the debt to a collector",
+        "hint": "A little cash now; the rest is gone.",
+        "out": [{ "text": "A collector pays 25 cents on the dollar.", "fx": [["writeoff", 0.19], ["demand", -4, 4, "all"]] }]
+      }
+    ],
+    "lesson": "Receivables are loans to your customers. Letting one customer owe a large slice of your balance sheet means carrying its risk; credit limits and a spread of customers are the defence.",
+    "terms": ["receivables", "customerConcentration"]
   }
 ]

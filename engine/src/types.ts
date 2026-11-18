@@ -352,6 +352,8 @@ export interface Cond {
   minBrand?: number;
   investors?: boolean; // has outside shareholders
   invest?: string; // has active investment with id
+  minAR?: number; // receivables at least this many quarters of revenue
+  keyLeftWithin?: number; // a key person left in the last N quarters
 }
 
 export interface Outcome {

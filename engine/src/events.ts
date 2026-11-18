@@ -71,6 +71,8 @@ export function evalCond(g: GameState, c: (Cond & { cashS?: number }) | undefine
   if (c.minBrand !== undefined && co.brand < c.minBrand) return false;
   if (c.investors && co.cap.holders.length === 0) return false;
   if (c.invest && !co.investments.some((i) => i.def === c.invest && i.state === 'active')) return false;
+  if (c.minAR !== undefined && !(rev > 0 && co.books.ar >= c.minAR * rev)) return false;
+  if (c.keyLeftWithin !== undefined && !(g.counters.keyLeft !== undefined && g.turn - g.counters.keyLeft <= c.keyLeftWithin)) return false;
   return true;
 }
 
@@ -514,7 +516,7 @@ function boosted(g: GameState, ctx: EventCtx, o: Outcome): number {
   return w;
 }
 
-const FATAL = new Set(['sellCompany', 'takeover', 'oust']);
+const FATAL = new Set(['sellCompany', 'takeover', 'oust', 'takePrivate']);
 /** Expected value of an option by the engine's own yardstick (used by bots and the balance harness, never shown). */
 export function optionEV(g: GameState, pe: PendingEvent, i: number): number {
   const opt = EVENT[pe.id].opts[i];
@@ -632,7 +634,7 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   if (Math.abs(luck) > 0.04 * scaleS(g)) g.attribution.notes.push({ turn: g.turn, kind: 'luck', text: `${title}: ${text}`, value: luck });
   g.eventLog.push({ turn: g.turn, id: def.id, title, choice, result: text, luck, cat: def.cat });
   const rival = pe.ctx.rival !== undefined ? g.rivals.find((r) => r.id === pe.ctx.rival) : undefined;
-  if (rival && def.cat === 'rival') feud(g, rival, 'them', `${title}. You: ${choice.toLowerCase()}. ${text}`);
+  if (rival && (def.cat === 'rival' || def.bind?.includes('rival'))) feud(g, rival, 'them', `${title}. You: ${choice.toLowerCase()}. ${text}`);
   if (g.eventLog.length > 200) g.eventLog.shift();
   // Colour the news by how it turned out against the odds (or the outcome's own tone), not by whether money was spent.
   const tone = out.tone ?? (luck > 0.005 * scaleS(g) ? 'good' : luck < -0.005 * scaleS(g) ? 'bad' : 'info');
