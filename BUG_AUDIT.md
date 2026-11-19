@@ -29,7 +29,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 4. People / HR — `people.ts`
 - [x] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
 - [x] 6. Investments & M&A — `invest.ts`, `mna.ts`
-- [ ] 7. Events — `events.ts`, `data/events/*.json`
+- [x] 7. Events — `events.ts`, `data/events/*.json`
 - [ ] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
 - [ ] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
 - [ ] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
@@ -213,3 +213,38 @@ Checks: lint clean · typecheck clean · 209/209 tests · `sim:ci` passes, no re
 - (mna.ts has no divestiture code; rival sales live in `rivals.ts`, system 8.)
 
 Checks: lint clean · typecheck clean · 216/216 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems.
+
+### 7. Events — done
+
+(Commits `f1694cd` WIP — the run was interrupted by an API limit and resumed — plus the follow-up commit.)
+
+**Fixed** (regression tests: `tests/audit-events.test.ts`, 13 tests)
+- `events.ts:660` — the outcome draw could pick a zero-weight outcome on a draw of exactly 0 (now mirrors `weighted()`). (Closes system 1 flag.)
+- `events.ts:368` `buyback10` — at a $0 share price it retired up to 30% of outside shares for $0 while the card said
+  "Pays out ~$8.5M". Now refused, and the card shows no amount. (Closes system 2 flag.)
+- `events.ts:331`, `actions.ts:374` — retention covered 9 resignation checks, not "two years". The setters were off by one (all three readers count inclusively). (Closes system 4 flag.)
+- `mods.ts:64` `setFlag` — the same off-by-one: the "two-year" currency hedge lasted 9 quarters.
+- `events.ts:~690` — resolving one card could leave a stale one: let a resigning person go and the rival's poaching card
+  for them stayed, still charging its cost and handing loyalty to everyone. Cards are now pruned after each resolve.
+- `events.ts:91` — walkout, union and antitrust cards named a random office (wrong 75% of the time with 4 offices, e.g.
+  "Walkout in Toronto" at morale 80). The office pool now respects `maxMorale`/`minShare`.
+- `events.ts:98` — regional energy and port cards picked regions with no office in their industry (about 50%), so they did nothing.
+- `events.ts:96` — `cons_partner_exit` named an office other than the partner's own (153 of 187 binds).
+- `events.ts:447` — `rivalShare` did nothing without a bound rival (`mfg_breakdown`, `log_big_contract`).
+- `macro.json` `currency_crisis` — "Raise local prices" raised prices in *every* region (`priceUp` 8 → −8, the engine's
+  existing "this region only" convention; verified in the handler).
+- `events.ts:404` — in multi-division companies, wage, input, attrition, regional-market and `payUp` effects leaked into other
+  divisions (cloud credits cut a factory's input costs by 40%).
+- `events.ts:~640` `chainCtx` — follow-ups inherited the parent card's office or person, so closing an office cancelled
+  the bribery probe and the cloud-credit renewal. `cartel_probe` (`rival.json`) now binds its rival.
+- `tests/events.test.ts` — one existing test now sets the low morale the union card requires (test setup fix, not weakened).
+
+**Flags (not fixed)**
+- [Med] 12 event flags are set but never read (e.g. `lockin`, `cartel`): the "lock customers in" options carry only their downside.
+- [Low] `log_port_strike` is in the macro category, which skips North American regions, so it never fires for a company only there.
+- [Low] A follow-up is silently dropped if a card with the same id is already queued.
+- [Low] Text and effect disagree: walkout says "a third resign" (15% do), the order squeeze says "a third of your volume"
+  (20%), and "Emergency investors" labels the holder of every equity raise. Staff cuts from events pay no severance.
+- [Low] `rivals.ts` `buyRivalOffice` buys a different city when the rival has none in the named one. → system 8
+
+Checks: lint clean · typecheck clean · 229/229 tests · `sim:ci` passes, no red flags · 56-game probe: no text leaks, NaN, unbalanced books or leftover cards.

@@ -90,6 +90,7 @@ describe('new cards from the review', () => {
   it('the union drive leads to a first contract', () => {
     const g = newGame(opts({ seed: 'union' }));
     g.queue = [];
+    g.company.offices[0].morale = 50; // the drive is about an unhappy office (cond maxMorale)
     queueEvent(g, 'union', bindCtx(g, EVENTS.find((e) => e.id === 'union')!)!);
     resolveEvent(g, g.queue[0].uid, 0);
     expect(g.scheduled.some((s) => s.id === 'union_contract')).toBe(true);
