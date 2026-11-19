@@ -28,7 +28,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 3. Market, macro & modifiers — `market.ts`, `macro.ts`, `mechanics.ts`, `mods.ts`, `policyData.ts`
 - [x] 4. People / HR — `people.ts`
 - [x] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
-- [ ] 6. Investments & M&A — `invest.ts`, `mna.ts`
+- [x] 6. Investments & M&A — `invest.ts`, `mna.ts`
 - [ ] 7. Events — `events.ts`, `data/events/*.json`
 - [ ] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
 - [ ] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
@@ -182,3 +182,34 @@ Checks: lint clean · typecheck clean · 202/202 tests · `sim:ci` passes, no re
 - [Low] Unknown region, role or industry ids throw instead of refusing; `newgame.ts:60` doesn't validate difficulty.
 
 Checks: lint clean · typecheck clean · 209/209 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems.
+
+### 6. Investments & M&A — done
+
+**Fixed** (regression tests: `tests/audit-invest.test.ts`)
+- `invest.ts:12,57,98,124,146`, `mna.ts:14,61,75` — start, cancel, diligence, license, target diligence and
+  acquire still ran after the game ended. They now refuse like `actions.ts` (continued games allowed).
+- `invest.ts:138` `licenseValue` — a staged project costs nothing to start, so you could start a drug and license it
+  out in the same click, repeatedly: 50 loops took cash from $2.7M to $82.6M in one quarter via the biotech UI button.
+  Licensing now needs one funded quarter first.
+- `invest.ts:258` — the history trim kept the last 80 entries even if older ones were still running, so **running
+  investments silently vanished**, along with their effect and any securities or plant behind them. Running entries are now always kept.
+- `mna.ts:78` — an acquisition could put your own stores beside a franchisee (the bypass of the system 5 fix). Now refused.
+- `mna.ts:82,105` — buying a business into a plant part-owned by a fund gave the fund 49% of it for nothing
+  (probe: a $49M wind farm took the fund's stake from $6M to $28M and quadrupled its payouts). The fund now pays its
+  share, as in `expandCapacity`.
+
+**Flags (not fixed)**
+- [High] Licensing is still a money machine: start 3 drugs, license them next quarter. Probe: $41M cash in 12 quarters
+  against $193K revenue a quarter. The license value ignores how little has been spent. Design decision.
+- [High] `finance.ts:241` `pipelineValue` — starting staged projects costs almost nothing but adds p × 40 × sizing cost
+  to valuation at once. Starting them in the final quarter pumped valuation $72M → $147M (saas) and $51M → $191M
+  (consulting) for about $0.5M. An end-of-game grade/victory exploit. → system 9
+- [Med] Bought revenue counts as growth in the valuation: it spikes 2–3× within 3–4 quarters after a deal (saas $223M → $469M)
+  and drops by the price just after it, with no at-cost carry like new plant gets. The spike can be timed for the end of the game. → `finance.ts`
+- [Low] The engine licenses any staged project but the UI only offers it for biotech. `venture_fund` `unique:false` is ignored.
+  A staged start while overdrawn says "That needs $0". Unknown office or region ids are charged and then wasted.
+- [Low] Goodwill impairment runs after the books close, so it lands in the next quarter. Acquired plant is valued without
+  inflation. The $15K target-diligence floor isn't inflation-adjusted.
+- (mna.ts has no divestiture code; rival sales live in `rivals.ts`, system 8.)
+
+Checks: lint clean · typecheck clean · 216/216 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems.

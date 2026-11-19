@@ -10,6 +10,9 @@ import { companyHeadcount, headcount } from './people';
 import type { ActionResult, GameState, MnaTarget } from './types';
 import { chance, clamp, money, nextUid, pick, randInt, randRange, weighted } from './util';
 
+/** Player actions are refused once the game has ended (a continued game is still being played), as in actions.ts. */
+const over = (g: GameState): ActionResult | undefined => (g.status === 'playing' || g.continued ? undefined : { ok: false, msg: 'The game is over.' });
+
 const SUFFIX: Record<string, string[]> = { saas: ['Labs', 'Software', 'Cloud'], retail: ['Kitchens', 'Stores', 'Table'], mfg: ['Works', 'Industries', 'Precision'], logistics: ['Freight', 'Lines', 'Express'], energy: ['Power', 'Renewables', 'Wind'], consulting: ['Partners', 'Advisory', 'Group'], biotech: ['Therapeutics', 'Bio', 'Sciences'] };
 
 export function spawnTarget(g: GameState, cityId?: string): MnaTarget | undefined {
@@ -55,6 +58,8 @@ export function diligenceTarget(g: GameState, id: string): ActionResult {
   const t = g.targets.find((x) => x.id === id);
   if (!t) return { ok: false, msg: 'That deal is gone.' };
   if (t.diligenced) return { ok: false, msg: 'Already investigated.' };
+  const ended = over(g);
+  if (ended) return ended;
   const cost = targetDiligenceCost(t);
   if (cost > g.company.books.cash) return { ok: false, msg: 'Not enough cash for due diligence.' };
   B.expense(g.company, 'ga', cost, 'cash');
@@ -67,11 +72,18 @@ export function acquireTarget(g: GameState, id: string): ActionResult {
   const c = g.company;
   const t = g.targets.find((x) => x.id === id);
   if (!t) return { ok: false, msg: 'That deal is gone.' };
-  if (t.price > c.books.cash) return { ok: false, msg: `The price is ${money(t.price)}; you have ${money(c.books.cash)}. Arrange financing first.` };
+  const ended = over(g);
+  if (ended) return ended;
+  // as openOffice: your own stores or a franchisee in a city, never both selling to the same customers
+  if (c.franchises?.some((f) => f.city === t.city && f.ind === t.ind)) return { ok: false, msg: 'A franchisee runs your stores there.' };
+  let o = c.offices.find((x) => x.city === t.city && x.ind === t.ind);
+  // bought into a plant a fund part-owns, the fund puts in its share of the price, as it does for an expansion
+  // (otherwise it took its share of the bought plant's earnings, and of its value, for nothing)
+  const partner = (o?.minority ?? 0) * t.price;
+  if (t.price - partner > c.books.cash) return { ok: false, msg: `The price is ${money(t.price)}${partner ? `, ${money(partner)} of it from the plant’s fund` : ''}; you have ${money(c.books.cash)}. Arrange financing first.` };
   const def = INDUSTRIES[t.ind];
   const fair = t.cap * def.capPerUnit * 1000 * 0.6;
   const split = { ops: Math.max(1, Math.round(t.staff * 0.7)), sales: Math.round(t.staff * 0.15), rnd: Math.round(t.staff * 0.05), admin: Math.max(1, Math.round(t.staff * 0.1)) };
-  let o = c.offices.find((x) => x.city === t.city && x.ind === t.ind);
   const before = companyHeadcount(c);
   if (o) {
     for (const r of ['ops', 'sales', 'rnd', 'admin'] as const) {
@@ -90,6 +102,7 @@ export function acquireTarget(g: GameState, id: string): ActionResult {
     o.morale = 58;
     c.offices.push(o);
   }
+  if (partner > 0) B.issueEquity(c, partner);
   B.acquire(c, t.price, fair, o);
   noteAcquisition(g, t.price);
   o.integration = 4;
@@ -102,5 +115,5 @@ export function acquireTarget(g: GameState, id: string): ActionResult {
   g.targets = g.targets.filter((x) => x !== t);
   g.counters.acquisitions = (g.counters.acquisitions ?? 0) + 1;
   news(g, `${c.name} acquired ${t.name} in ${CITY[t.city].name} for ${money(t.price)}.`, 'good');
-  return { ok: true, msg: `${t.name} is yours. Integration takes four quarters; ${headcount(o)} people now work in ${CITY[t.city].name}.` };
+  return { ok: true, msg: `${t.name} is yours${partner ? `, ${money(partner)} of it paid by the plant’s fund` : ''}. Integration takes four quarters; ${headcount(o)} people now work in ${CITY[t.city].name}.` };
 }

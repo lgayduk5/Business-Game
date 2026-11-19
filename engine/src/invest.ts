@@ -8,6 +8,9 @@ import type { ActionResult, ActiveInvestment, GameState, IndustryId, InvestmentD
 import { chance, clamp, money, nextUid } from './util';
 
 const DEPR_Q = 20; // capitalised project spend is written off over five years
+/** Player actions are refused once the game has ended (a continued game is still being played), as in actions.ts. */
+const over = (g: GameState): ActionResult | undefined => (g.status === 'playing' || g.continued ? undefined : { ok: false, msg: 'The game is over.' });
+const running = (i: ActiveInvestment) => i.state === 'ramp' || i.state === 'active';
 
 /** Annual revenue of whatever the investment applies to. */
 function revBasis(g: GameState, def: InvestmentDef, scope?: string): number {
@@ -51,6 +54,8 @@ export function startInvestment(g: GameState, defId: string, scope?: string): Ac
   const c = g.company;
   const def = INV[defId];
   if (!def) return { ok: false, msg: 'Unknown investment.' };
+  const ended = over(g);
+  if (ended) return ended;
   const av = invAvailable(g, def, scope);
   if (!av.ok) return { ok: false, msg: av.why };
   const upfront = invCost(g, def, scope);
@@ -90,6 +95,8 @@ export function cancelInvestment(g: GameState, uid: number): ActionResult {
   const c = g.company;
   const inv = c.investments.find((i) => i.uid === uid);
   if (!inv || (inv.state !== 'ramp' && inv.state !== 'active')) return { ok: false, msg: 'Nothing to cancel.' };
+  const ended = over(g);
+  if (ended) return ended;
   const def = INV[inv.def];
   let msg = `${def.name} stopped.`;
   if (isSecurity(def) && inv.bookValue > 0) {
@@ -114,6 +121,8 @@ export function diligence(g: GameState, defId: string, scope?: string): ActionRe
   const def = INV[defId];
   if (!def) return { ok: false, msg: 'Unknown investment.' };
   if (c.diligence[defId]) return { ok: false, msg: 'Already investigated.' };
+  const ended = over(g);
+  if (ended) return ended;
   const cost = diligenceCost(g, def, scope);
   if (cost > c.books.cash) return { ok: false, msg: 'Not enough cash for due diligence.' };
   B.expense(c, 'ga', cost, 'cash');
@@ -124,7 +133,9 @@ export function diligence(g: GameState, defId: string, scope?: string): ActionRe
 /** License out a staged project in progress: cash now, upside gone. */
 export function licenseValue(g: GameState, inv: ActiveInvestment): number {
   const def = INV[inv.def];
-  if (!def.stages || inv.state !== 'ramp') return 0;
+  // nothing to license until the first quarter has been funded: starting a project costs nothing up front, so
+  // licensing it in the same quarter was free money, repeatable without limit
+  if (!def.stages || inv.state !== 'ramp' || inv.start >= g.turn) return 0;
   let p = 1;
   for (let i = inv.stage; i < def.stages.length; i++) p *= def.stages[i].p;
   return p * inv.upfront * 14 * g.macro.sentiment;
@@ -132,6 +143,8 @@ export function licenseValue(g: GameState, inv: ActiveInvestment): number {
 export function licenseOut(g: GameState, uid: number): ActionResult {
   const inv = g.company.investments.find((i) => i.uid === uid);
   if (!inv) return { ok: false, msg: 'No such project.' };
+  const ended = over(g);
+  if (ended) return ended;
   const v = licenseValue(g, inv);
   if (v <= 0) return { ok: false, msg: 'Nothing to license.' };
   B.windfall(g.company, v);
@@ -239,7 +252,11 @@ export function stepInvestments(g: GameState): number {
       inv.state = 'done';
     }
   }
-  c.investments = c.investments.filter((i) => i.state === 'ramp' || i.state === 'active' || g.turn - i.start < 60).slice(-80);
+  // keep every running investment, and as much recent history as fits in 80 entries (trimming the whole list used
+  // to drop the oldest running ones: their effect, and any securities or plant behind them, were silently lost)
+  const past = c.investments.filter((i) => !running(i) && g.turn - i.start < 60);
+  const keep = new Set(past.slice(Math.max(0, past.length - Math.max(0, 80 - c.investments.filter(running).length))));
+  c.investments = c.investments.filter((i) => running(i) || keep.has(i));
   return ap;
 }
 
