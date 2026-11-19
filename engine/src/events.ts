@@ -656,7 +656,10 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   const effects = applyFx(g, out.fx ?? [], pe.ctx);
   for (const [id, delay, p] of out.chain ?? []) if (chance(g, p ?? 1)) scheduleEvent(g, id, delay, pe.ctx);
   g.queue = g.queue.filter((e) => e.uid !== uid);
-  if (g.status !== 'playing' && !g.continued) g.queue = []; // that choice ended the game (a sale, a takeover)
+  if (g.status !== 'playing') { // that choice ended the game (a sale, a takeover), a kept-going one included
+    g.continued = false;
+    g.queue = [];
+  }
   g.attribution.luck += luck;
   if (Math.abs(luck) > 0.04 * scaleS(g)) g.attribution.notes.push({ turn: g.turn, kind: 'luck', text: `${title}: ${text}`, value: luck });
   g.eventLog.push({ turn: g.turn, id: def.id, title, choice, result: text, luck, cat: def.cat });

@@ -36,8 +36,9 @@ export function weighted<T>(g: GameState, items: readonly T[], w: (t: T) => numb
   if (total <= 0) return undefined;
   let r = rand(g) * total;
   for (const it of items) {
-    r -= Math.max(0, w(it));
-    if (r <= 0) return it;
+    const wi = Math.max(0, w(it));
+    r -= wi;
+    if (wi > 0 && r <= 0) return it; // a zero weight is never picked, even when the draw is exactly 0
   }
   return items[items.length - 1];
 }

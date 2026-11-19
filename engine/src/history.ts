@@ -64,7 +64,8 @@ export function seedHistory(g: GameState) {
     last.util = last.capacity > 0 ? last.sold / last.capacity : 0;
     o.last = last;
     const mkt = last.market * localPrice(g, o.city, o.ind);
-    o.hist = BACKCAST.map((f) => ({ rev: last.revenue * f, contrib: last.contribution * f, share: o.share, mkt: mkt * f, px: priceIndex(g, o) }));
+    // `last` is already the final seeded quarter, so the path back from it is f / f1 (its own entry equals it)
+    o.hist = BACKCAST.map((f) => ({ rev: (last.revenue * f) / f1, contrib: (last.contribution * f) / f1, share: o.share, mkt: mkt * f, px: priceIndex(g, o) }));
   }
 
   // Four quarters of accounts on today's balance sheet: what the business earned went to its owners and
@@ -90,8 +91,10 @@ export function seedHistory(g: GameState) {
 
   const share = globalShare(g, c.primary);
   const morale = c.offices.length ? c.offices.reduce((s, o) => s + o.morale * headcount(o), 0) / Math.max(1, q.headcount) : 0;
+  // Values and shares are measured at the end of each seeded quarter: today's figures are the last one's.
+  const back = (i: number) => BACKCAST[i] / f1;
   g.history = c.quarters.map((x, i) => ({
-    turn: x.turn, revenue: x.pnl.revenue, ebitda: x.ebitda, ni: x.ni, cash: b.cash, debt: b.debt, valuation: c.valuation * BACKCAST[i], share: share * BACKCAST[i], headcount: x.headcount,
-    morale, gap: g.macro.gap, rate: g.macro.rate, rivals: g.rivals.map((r) => (r.alive ? r.valuation * BACKCAST[i] : 0)),
+    turn: x.turn, revenue: x.pnl.revenue, ebitda: x.ebitda, ni: x.ni, cash: b.cash, debt: b.debt, valuation: c.valuation * back(i), share: share * back(i), headcount: x.headcount,
+    morale, gap: g.macro.gap, rate: g.macro.rate, rivals: g.rivals.map((r) => (r.alive ? r.valuation * back(i) : 0)),
   }));
 }

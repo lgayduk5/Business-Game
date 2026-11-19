@@ -244,6 +244,8 @@ export function launchDivision(g: GameState, ind: IndustryId): ActionResult {
   if (cost > c.books.cash) return no(`Launching a new division costs ${money(cost)}.`);
   B.expense(c, 'rd', cost, 'cash');
   c.divisions.push(ind);
+  // set up every city's market now, so that looking at one on the map later draws no random numbers
+  for (const id of Object.keys(CITY)) market(g, id, ind);
   c.tech[ind] = INDUSTRIES[ind].startTech - 4;
   news(g, `${c.name} is entering ${INDUSTRIES[ind].name}.`, 'info');
   return ok(`${INDUSTRIES[ind].name} division launched. You start behind the incumbents; open an office to begin trading.`);

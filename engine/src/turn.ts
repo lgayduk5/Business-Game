@@ -238,6 +238,9 @@ export function endTurn(g: GameState): void {
   if (c.factoring) B.interest(c, FACTOR_FEE * FACTOR_SHARE * revenue);
   const dpo = revenue > 0 ? dpoW / revenue : INDUSTRIES[c.primary].dpo;
   B.payAP(c, Math.max(0, c.books.ap - (apSpend * dpo) / 90));
+  // franchise royalties and the input-lock fee belong to the quarter's profit, so they come before tax and the cash check
+  stepHedge(g);
+  stepFranchises(g);
 
   // ── financing costs and tax
   serviceDebt(g);
@@ -264,8 +267,6 @@ export function endTurn(g: GameState): void {
   } else c.negCashTurns = 0;
 
   // ── close the books
-  stepHedge(g);
-  stepFranchises(g);
   grantOptions(g, options);
   const q = B.closeQuarter(c, g.turn, c.open, { headcount: companyHeadcount(c), byInd });
   c.quarters.push(q);
@@ -315,13 +316,17 @@ export function endTurn(g: GameState): void {
   };
   g.advisor = advise(g);
   checkEnd(g);
-  // a finished game takes no more decisions (a takeover offer still waiting could otherwise undo a win)
-  if (g.status !== 'playing' && !g.continued) g.queue = [];
+  // a finished game takes no more decisions (a takeover offer still waiting could otherwise undo a win); one the
+  // player kept going after a win is over all the same, since bankruptcy still applies
+  if (g.status !== 'playing') {
+    g.continued = false;
+    g.queue = [];
+  }
 
   // ── roll into the next quarter
   g.turn++;
   g.mods = g.mods.filter((m) => m.until >= g.turn);
-  if (g.status === 'playing' || g.continued) {
+  if (g.status === 'playing') {
     refreshLoanOffers(g);
     refreshEquityOffer(g);
     if (g.turn % 4 === 0 || !g.candidates.length) refreshCandidates(g);

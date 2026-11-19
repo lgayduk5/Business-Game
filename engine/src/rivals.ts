@@ -691,6 +691,7 @@ export function absorbIntoPlayer(g: GameState, r: Rival, offices: RivalOffice[],
     const def = INDUSTRIES[ro.ind];
     if (!c.divisions.includes(ro.ind)) {
       c.divisions.push(ro.ind);
+      for (const ct of CITIES) market(g, ct.id, ro.ind); // as for a launched division: no random draws left for the map to make
       c.tech[ro.ind] = r.tech[ro.ind] ?? def.startTech;
     }
     const staff = { ops: Math.max(1, Math.round((ro.cap / def.opsOut) * 0.9)), sales: Math.max(0, Math.round(ro.sales * (marketUnits(g, ro.city, ro.ind) / def.salesCover))), rnd: 0, admin: 1 };
