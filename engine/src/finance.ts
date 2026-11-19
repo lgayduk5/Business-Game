@@ -4,7 +4,7 @@ import { CITY, FOUNDER, INDUSTRIES, INV, NAMES } from './content';
 import { invSum, news, tempMod } from './mods';
 import { DIFF, SPRINT_BARS } from './difficulty';
 import { companyHeadcount, exec, execBonus } from './people';
-import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer, Office, Rival } from './types';
+import type { ActionResult, CapTable, Company, GameState, IndustryId, Loan, LoanOffer, NewPlant, Office, Rival } from './types';
 import { clamp, money, nextUid, normal, pick, randRange } from './util';
 
 const RATINGS: [number, string, number, number][] = [
@@ -234,6 +234,35 @@ export function growthOf(revs: number[]): number {
 }
 export const revenueGrowth = (c: Company): number => growthOf(c.quarters.map((q) => q.pnl.revenue));
 
+/** Quarters of sales a new grid office needs before its growth is like-for-like: two full years, one in each year compared. */
+export const LIKE_FOR_LIKE_Q = 8;
+/**
+ * Like-for-like revenue: each quarter's revenue less the sales of new grid offices without two full years of them. A
+ * grid plant sells its whole output from its first quarter, so a new one's sales are a step the valuation already counts
+ * at cost, not growth (as retailers leave new stores out of like-for-like sales). It joins once both years compared
+ * include it. Elsewhere a new office wins its customers over time, and that is growth.
+ */
+export function likeForLike(revs: number[], plants: readonly NewPlant[]): number[] {
+  const out = revs.slice();
+  for (const p of plants) {
+    const h = p.rev;
+    if (!h || h.length >= LIKE_FOR_LIKE_Q) continue;
+    h.forEach((x, i) => {
+      const j = out.length - h.length + i;
+      if (j >= 0) out[j] = Math.max(0, out[j] - x);
+    });
+  }
+  return out;
+}
+/**
+ * A record of new plant, the same for the player and rivals; `done` is the first quarter it can sell. A whole new
+ * office in a grid industry (`office`) also tracks its sales for like-for-like growth; an expansion's sales cannot be
+ * told apart from the rest of the office's, and it adds a fraction of what a new plant does.
+ */
+export function newPlant(ind: IndustryId, cost: number, done: number, office?: { at?: string }): NewPlant {
+  return office && INDUSTRIES[ind].grid ? { cost, done, rev: [], ...(office.at ? { at: office.at } : {}) } : { cost, done };
+}
+
 /** Risk-adjusted value of staged R&D still in progress (mostly matters for biotech). */
 export function pipelineValue(g: GameState): number {
   let v = 0;
@@ -345,9 +374,12 @@ export function noteAcquisition(g: GameState, paid: number, rivalId?: number) {
 
 /**
  * Share of a new plant's cost still carried at cost: valuation works from the last twelve months of sales, which take
- * a year to include a new plant in full, so until then the part not yet in them counts at what it cost.
+ * a year to include a new plant in full, so until then the part not yet in them counts at what it cost. The year runs
+ * from the plant's first quarter of sales (`done`), so it is carried in full until it has sold anything.
  */
 export const rampCarry = (g: GameState, r: { done: number }) => Math.max(0, 1 - (g.turn - r.done + 1) / 4);
+/** New plant still matters to valuation: part of it is carried at cost, or its sales are not yet like-for-like. */
+export const plantStillNew = (g: GameState, r: NewPlant) => rampCarry(g, r) > 0 || (!!r.rev && r.rev.length < LIKE_FOR_LIKE_Q);
 /** Plant under construction, plus the part of recently finished plant that the accounts do not yet reflect, at cost. */
 export const plantAtCost = (g: GameState) =>
   g.company.offices.reduce((s, o) => s + o.building.reduce((t, b) => t + b.cost, 0) + (o.ramp ?? []).reduce((t, r) => t + r.cost * rampCarry(g, r), 0), 0);
@@ -357,8 +389,16 @@ export function valuation(g: GameState): { equity: number; parts: Record<string,
   const c = g.company;
   const b = c.books;
   const sentiment = g.macro.sentiment * tempMod(g, 'valuation') * (c.cap.isPublic ? 1 : FOUNDER[c.founder].valuation);
-  return valueCompany({
-    rev: B.ttm(c, (q) => q.pnl.revenue), ebitda: B.ttm(c, (q) => q.ebitda), growth: revenueGrowth(c), mix: revenueMix(c),
+  const revs = c.quarters.map((q) => q.pnl.revenue);
+  const v = valueCompany({
+    rev: B.ttm(c, (q) => q.pnl.revenue),
+    // investors look through the one-off cost of opening offices and plant (setup, project-finance fees, running costs
+    // before the first sale): left in the trailing year, it cut the multiple on the whole business for a year, then
+    // lifted it again (rivals pay theirs out of cash and sell from their first quarter, so theirs never reaches EBITDA)
+    ebitda: B.ttm(c, (q) => q.ebitda + (q.opening ?? 0)),
+    // like-for-like: a new grid plant's sales are not growth until both years compared include them
+    growth: growthOf(likeForLike(revs, c.offices.flatMap((o) => o.ramp ?? []))),
+    mix: revenueMix(c),
     tech: c.tech[c.primary] ?? 40, brand: c.brand, reputation: c.reputation, sentiment, rate: g.macro.rate,
     cash: b.cash + b.securities, debt: b.debt, pipeline: pipelineValue(g),
     // a plant being built is carried at cost until it runs (without this, building one on borrowed money wiped out the
@@ -369,6 +409,9 @@ export function valuation(g: GameState): { equity: number; parts: Record<string,
     // the funds' stakes, valued as the market values the rest of the company (no infrastructure-fund premium)
     minority: c.offices.reduce((s, o) => s + (o.minority ?? 0) * plantEquity(g, o, 1), 0),
   });
+  v.parts.opening = B.ttm(c, (q) => q.opening ?? 0);
+  v.parts.growthAll = growthOf(revs);
+  return v;
 }
 
 export const founderStake = (c: Company) => c.cap.founder / c.cap.shares;

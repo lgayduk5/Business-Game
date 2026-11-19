@@ -211,8 +211,11 @@ describe('a plant being built', () => {
     expect(openOffice(g, city, 'energy').ok).toBe(true);
     const o = g.company.offices.find((x) => x.city === city)!;
     expect(o.ramp?.length).toBe(1);
+    // the quarter it opens, and four of sales (it sells nothing until its first staff arrive)
     for (let i = 0; i < 5; i++) endTurn(g);
-    expect(o.ramp?.length ?? 0).toBe(0);
+    expect(g.company.valParts.cip).toBe(0);
+    // a grid office's record stays until its sales are like-for-like (decision 89; see valuation.test.ts)
+    expect(o.ramp?.[0].rev).toHaveLength(4);
   });
 });
 

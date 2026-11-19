@@ -3,7 +3,7 @@ import { advise, trackAttribution } from './advisor';
 import * as B from './books';
 import { CITY, FOUNDER, INDUSTRIES, REGION_LIST, EVENT, hasInventory } from './content';
 import { autoDelegate, drawEvents, queueEvent } from './events';
-import { covenantStatus, payTaxes, plantDebtService, rampCarry, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
+import { covenantStatus, newPlant, payTaxes, plantDebtService, plantStillNew, refreshEquityOffer, refreshLoanOffers, revalue, serviceDebt, stepIPO, type LocalProfit } from './finance';
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
@@ -41,12 +41,12 @@ function completeBuilds(g: GameState) {
     for (const b of o.building) {
       if (b.ready <= g.turn) {
         o.cap += b.units;
-        (o.ramp ??= []).push({ cost: b.cost, done: g.turn });
+        (o.ramp ??= []).push(newPlant(o.ind, b.cost, g.turn));
         news(g, `New capacity is online in ${CITY[o.city].name}: +${Math.round(b.units).toLocaleString()} units a quarter.`, 'good');
       }
     }
     o.building = o.building.filter((b) => b.ready > g.turn);
-    if (o.ramp) o.ramp = o.ramp.filter((r) => rampCarry(g, r) > 0);
+    if (o.ramp) o.ramp = o.ramp.filter((r) => plantStillNew(g, r));
   }
   for (const s of g.scouting) {
     if (s.ready <= g.turn) {
@@ -187,6 +187,9 @@ export function endTurn(g: GameState): void {
 
     res.unitCost = res.sold > 0 ? (res.materials + res.wages.ops + res.facility) / res.sold : 0;
     res.contribution = res.revenue - res.materials - wages - res.rent - res.facility - res.marketing - res.hiring - res.training;
+    // an office opened this quarter cannot sell until its first staff arrive: what it costs meanwhile is part of opening it
+    if (o.opened === g.turn && !o.hist.length) c.opening = (c.opening ?? 0) + Math.max(0, -res.contribution);
+    for (const p of o.ramp ?? []) if (p.rev && p.done <= g.turn) p.rev.push(res.revenue);
     revenue += res.revenue;
     arTarget += (res.revenue * def.dso * slow) / 90;
     defTarget += res.revenue * def.deferred;

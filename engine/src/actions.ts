@@ -1,7 +1,7 @@
 // Player actions. Each validates, mutates the state and returns {ok, msg}.
 import * as B from './books';
 import { CITY, INDUSTRIES, isCapital } from './content';
-import { plantEquity, plantValue } from './finance';
+import { newPlant, plantEquity, plantValue } from './finance';
 import { market, marketUnits } from './market';
 import { invSum, news } from './mods';
 import { makeOffice, makePerson } from './newgame';
@@ -65,6 +65,7 @@ function assetLoan(g: GameState, o: Office, lent: number, buildQ: number) {
     start: g.turn, maturity: g.turn + term, amort: lent / term, minCoverage: 1.2, breaches: 0, waivedUntil: g.turn + buildQ + 2, office: o.id });
   B.borrow(c, lent);
   B.expense(c, 'other', lent * 0.01, 'cash');
+  c.opening = (c.opening ?? 0) + lent * 0.01; // part of what the plant costs (capitalised in real accounts): valuation looks through it
 }
 
 export function expandCapacity(g: GameState, officeId: string, units: number, financed = false): ActionResult {
@@ -199,10 +200,12 @@ export function openOffice(g: GameState, cityId: string, ind: IndustryId, financ
   const def = INDUSTRIES[ind];
   const o = makeOffice(g, cityId, ind, { ops: 0, sales: 0, rnd: 0, admin: 1 }, cost.units);
   B.expense(c, 'ga', cost.setup, 'cash');
+  c.opening = (c.opening ?? 0) + cost.setup;
   if (lent > 0) assetLoan(g, o, lent, 0);
   if (cost.capex > 0) {
     B.capex(c, cost.capex, o);
-    o.ramp = [{ cost: cost.capex, done: g.turn }]; // valued at cost while its first year of sales comes in
+    // valued at cost while its first year of sales comes in; it sells nothing until its first staff arrive next quarter
+    o.ramp = [newPlant(ind, cost.capex, g.turn + 1, {})];
   }
   o.staff.ops.reqs = isCapital(ind) ? Math.max(1, Math.ceil((cost.units / def.opsOut) * 0.8)) : 3;
   o.staff.sales.reqs = ind === 'retail' ? 0 : 1;

@@ -177,7 +177,7 @@ export function closeQuarter(c: Company, turn: number, prev: Books, extra: Pick<
     net: cfo + cfi + cff, directOp: t.op,
   };
   const q: Quarter = {
-    turn, pnl, bs: { ...b }, cf, ebitda: ebitdaOf(pnl), ni, ...extra,
+    turn, pnl, bs: { ...b }, cf, ebitda: ebitdaOf(pnl), ni, opening: c.opening ?? 0, ...extra,
     check: {
       bs: totalAssets(b) - totalLiabilities(b) - equityOf(b),
       cash: b.cash - prev.cash - cf.net,
@@ -185,6 +185,7 @@ export function closeQuarter(c: Company, turn: number, prev: Books, extra: Pick<
   };
   c.pnl = emptyPnL();
   c.cfTags = emptyTags();
+  c.opening = 0;
   return q;
 }
 

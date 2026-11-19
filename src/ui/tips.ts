@@ -28,15 +28,18 @@ export function valuationTip(g: GameState): string {
   const c = g.company;
   const v = c.valParts;
   const w = v.ebitdaW ?? 0;
+  // new grid plant is left out of growth until its sales are like-for-like; opening costs are left out of EBITDA
+  const lfl = Math.abs((v.growthAll ?? v.growth ?? 0) - (v.growth ?? 0)) > 0.005;
+  const opening = (v.opening ?? 0) > 0 ? ' before opening costs' : '';
   const rows: Row[] = [
     ['Revenue, last 12 months', money(v.rev ?? 0)],
     ['× industry multiple', x2(v.mult ?? 0, 1) + '×'],
-    ['× growth factor', `${x2(v.growthF ?? 1)} (growth ${pct(v.growth ?? 0)})`],
-    ['× margin factor', `${x2(v.marginF ?? 1)} (EBITDA ${pct(v.margin ?? 0)} vs ${pct(v.target ?? 0)} typical)`],
+    ['× growth factor', `${x2(v.growthF ?? 1)} (${lfl ? `like-for-like growth ${pct(v.growth ?? 0)}; ${pct(v.growthAll ?? 0)} counting new plant` : `growth ${pct(v.growth ?? 0)}`})`],
+    ['× margin factor', `${x2(v.marginF ?? 1)} (EBITDA${opening} ${pct(v.margin ?? 0)} vs ${pct(v.target ?? 0)} typical)`],
     ['= priced on revenue', money(v.byRev ?? 0)],
   ];
   if (w > 0) {
-    rows.push(['EBITDA, last 12 months', money(v.ebitda ?? 0)], ['× EBITDA multiple × growth', `${x2(v.ebitdaMult ?? 0, 1)}× × ${x2(v.growthF ?? 1)}`], ['= priced on profits', money(v.byEbitda ?? 0)],
+    rows.push([`EBITDA${opening}, last 12 months`, money(v.ebitda ?? 0)], ['× EBITDA multiple × growth', `${x2(v.ebitdaMult ?? 0, 1)}× × ${x2(v.growthF ?? 1)}`], ['= priced on profits', money(v.byEbitda ?? 0)],
       [`Blend: growth below 25% shifts investors to profits`, `${pct(1 - w)} revenue / ${pct(w)} profits`]);
   }
   rows.push(

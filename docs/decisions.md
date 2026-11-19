@@ -327,3 +327,41 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     the Expert tier stays defined for a future industry. The same change lifted retail, which had sat on the Tough
     ceiling since the second review, a point over it; local independents are a little stronger (fringe 14 → 15),
     which brings it back inside.
+89. **New plant does not move the valuation by itself.** The playtest noted honest Easy energy games losing four
+    fifths of their value the quarter they opened a plant ($9.8M → $2.0M, then $0.5M), quadrupling a year later
+    ($26M) and falling back ($5.7M). No cash event explains it: the bot sold part of its first plant to a fund and
+    opened a second, 70% financed against it. Valuation read the trailing year three ways it should not have,
+    each now fixed for rivals exactly as for you:
+    - *Opening costs* (an office's setup, the project-finance fee, and what the office costs to run before its
+      first sale) sat in the trailing year's EBITDA. Through the margin factor a one-off $0.4M cut the multiple on
+      the whole business by 40% for a year, then lifted it again when it dropped out. Valuation now looks through
+      them, as analysts do with pre-opening costs (the fee would be capitalised with the plant). They are still
+      costs in the accounts and still leave the bank. Rivals pay theirs out of cash and sell from their first
+      quarter, so theirs never reached EBITDA.
+    - *The year at cost started a quarter early.* A new office cannot sell until its first staff arrive, the
+      quarter after it opens, yet its plant was already carried at three quarters of its cost. The year now runs
+      from the first quarter of sales (the quarter it opens for a rival, whose office trades at once).
+    - *A new grid plant's sales read as growth.* A grid plant sells its whole output from its first quarter, so a
+      second plant doubles sales at a stroke, and the growth factor re-rated the whole company (2.6× the multiple)
+      while the same plant was already carried at cost, then wore off over the next year. Growth is now
+      like-for-like, as retailers report it: a new office in a grid industry joins once both years compared
+      include its sales (two full years). Elsewhere a new office wins its customers over time, which is growth.
+      An expansion still counts too: its sales cannot be told from the rest of the office's (attributing them by
+      share of capacity overstated them while the crew lagged the plant, and made matters worse).
+    In `npm run playtest` the honest strategies' quarters where the value moved 4× or more fell from 106 to 51
+    (energy 85 → 32; Easy energy 24 → 3). The reported game now moves at most 1.5× in a quarter ($9.8M → $7.6M →
+    $4.9M …). Balance barely moves: energy wins 74% (was 76%; Sprint 70%, was 72%), every other industry within two
+    points.
+90. **What still moves 4× in a quarter is real.** In biotech it is trial results: a failed phase takes the
+    pipeline's value with it. In consulting on Hard and Brutal it is losses, as EBITDA turns negative under debt.
+    In energy it is leverage: the project loans and the funds' stakes in the plants are 60–90% of what the
+    business is worth, so the shares are a thin slice, and an ordinary 10–20% move in the business moves them
+    fourfold. In 29 of the 35 remaining cases outside biotech and consulting the business itself moved by less
+    than 1.5×, and the moves are its own: margins falling as costs grow, early growth wearing off once a plant is
+    full (no longer hidden by the new plant's sales), an expansion's growth, and a new plant that, valued on its
+    sales, is worth less than it cost (a $13M plant in Tokyo sells $2.7M a year). The carry at cost also runs off a
+    quarter at a time while a new office's first quarter of sales is only part of one (its crew is still arriving),
+    which deepens the dip a little. The playtest keeps the note, which is what it is for. One more source is a
+    scenario quirk: the rate shock seeds its year of history with the founding office's two operators running a
+    2,600-unit portfolio, so its first quarters read as doubling sales. Staffing the portfolio makes the scenario
+    trivial (a player who does nothing survives it), so that waits for a rebalance of the scenario.
