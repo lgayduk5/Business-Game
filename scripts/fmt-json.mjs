@@ -5,7 +5,8 @@ export function fmt(v, indent = '', width = 150) {
   if (typeof v !== 'object' || v === null || flat.length + indent.length <= width) return flat;
   const ni = indent + '  ';
   if (Array.isArray(v)) return '[\n' + v.map((x) => ni + fmt(x, ni, width)).join(',\n') + '\n' + indent + ']';
-  return '{\n' + Object.entries(v).map(([k, x]) => ni + JSON.stringify(k) + ': ' + fmt(x, ni, width)).join(',\n') + '\n' + indent + '}';
+  // an undefined member is left out, as JSON.stringify does (and as the one-line form above already did)
+  return '{\n' + Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => ni + JSON.stringify(k) + ': ' + fmt(x, ni, width)).join(',\n') + '\n' + indent + '}';
 }
 
 // CLI: node scripts/fmt-json.mjs data/events/*.json  → rewrites files in place.

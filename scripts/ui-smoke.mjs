@@ -6,13 +6,18 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require(process.env.PLAYWRIGHT_PATH ?? '/opt/npm-tools/node_modules/playwright')); }
 
 const PORT = 4179;
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
+// vite itself, not through npx: killing npx left the server running, and the next run (its own server refused the
+// busy port) then tested whatever that stale server was serving
+const server = spawn(process.execPath, [fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url)), 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
+process.on('exit', () => server.kill());
 await new Promise((r) => setTimeout(r, 2500));
+if (server.exitCode !== null) throw new Error(`vite preview did not start (is port ${PORT} already in use?)`);
 mkdirSync('shots', { recursive: true });
 const errors = [];
 const browser = await chromium.launch({ channel: process.env.SMOKE_CHANNEL || undefined, args: ['--no-sandbox'] });
@@ -90,7 +95,7 @@ try {
     if (queued) {
       await tap('[data-a=endTurn]'); await page.waitForSelector('.modal'); await shot('07a-event');
       await tap('.modal [data-a=choose]'); await shot('07b-event-result'); await tap('.modal [data-a=eventDone]');
-    }
+    } else errors.push(`${name}: could not queue the data_breach card, so no event was played through`);
     await page.locator('.n').first().click(); await page.waitForTimeout(150); await shot('08-tooltip');
     await page.mouse.click(5, 300);
     // keyboard: five steps on the price slider must move it five steps (focus survives each re-render)
@@ -103,7 +108,7 @@ try {
       const after = Number(await page.locator('input[data-c=price]').first().inputValue());
       const focused = await page.evaluate(() => document.activeElement?.getAttribute('data-c'));
       if (Math.abs(after - before - 0.1) > 0.001 || focused !== 'price') errors.push(`${name}: price slider moved from ${before} to ${after} after five arrow presses (focus on ${focused})`);
-    }
+    } else errors.push(`${name}: no price slider on the Operations tab, so keyboard focus was not checked`);
     await page.mouse.click(5, 300);
     for (const t of ['map', 'ops', 'corp', 'intel']) {
       if (!(await page.locator(`.tabs [data-v=${t}]`).count())) continue;

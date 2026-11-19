@@ -3,7 +3,7 @@
 //   npm run sim -- --sprint             the same for ten-year Sprint games, writes docs/balance-sprint.md
 //   npm run sim:ci                      reduced grid for CI: fails on red flags, writes nothing
 //   npm run sim:check                   fails if the committed reports are stale or list any red flag
-//   npm run sim -- --seeds 4 --turns 60 --bots steady,blitz --diff normal,brutal --ind saas,mfg --no-write
+//   npm run sim -- --seeds 4 --turns 60 --bots steady,blitz --diff normal,brutal --ind saas,mfg   a reduced grid: prints, writes nothing
 // Each game pits one scripted player bot against the rival AIs on a given difficulty, industry, founder
 // and seed. Games run in parallel on every core. The report covers win rates, how games end, which
 // victories are reached and by whom, pacing, and red flags that would make the game degenerate. The full runs also
@@ -64,10 +64,12 @@ function playOne({ bot, diff, ind, k, f, turns, sprint, paired }: Job): Result {
 function fingerprint(): string {
   const root = fileURLToPath(new URL('..', import.meta.url));
   const walk = (d: string): string[] => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
+  // paths relative to the repository with forward slashes, so the same commit gives the same hash on every machine
+  const rel = (f: string) => f.slice(root.length).split('\\').join('/');
   // data/winrates.json is written by this harness, so it cannot be part of what the harness measures
-  const files = [...walk(join(root, 'engine/src')), ...walk(join(root, 'data')).filter((f) => f.endsWith('.json') && !f.includes('schemas') && !f.endsWith('winrates.json')), join(root, 'scripts/sim.ts')].sort();
+  const files = [...walk(join(root, 'engine/src')), ...walk(join(root, 'data')).filter((f) => f.endsWith('.json') && !rel(f).startsWith('data/schemas/') && rel(f) !== 'data/winrates.json'), join(root, 'scripts/sim.ts')].sort((a, b) => (rel(a) < rel(b) ? -1 : 1));
   const h = createHash('sha1');
-  for (const f of files) h.update(f.slice(root.length)).update(readFileSync(f, 'utf8').replace(/\r\n/g, '\n'));
+  for (const f of files) h.update(rel(f)).update(readFileSync(f, 'utf8').replace(/\r\n/g, '\n'));
   return h.digest('hex').slice(0, 16);
 }
 
@@ -89,13 +91,16 @@ async function runAll(jobs: Job[]): Promise<Result[]> {
     w.once('message', resolve);
     w.once('error', reject);
   })));
-  return parts.flat();
+  // back in job order, so the report reads the same whatever the number of workers
+  return jobs.map((_, i) => parts[i % n][Math.floor(i / n)]);
 }
 
 function opt(k: string, d: string): string {
   const args = process.argv.slice(2);
   const i = args.indexOf('--' + k);
-  return i >= 0 ? args[i + 1] : d;
+  if (i < 0) return d;
+  if (args[i + 1] === undefined || args[i + 1].startsWith('--')) throw new Error(`--${k} needs a value`);
+  return args[i + 1];
 }
 
 async function main() {
@@ -147,6 +152,12 @@ async function main() {
       jobs.push({ bot, diff, ind, k: 100 + k, f, turns: TURNS, sprint: SPRINT, paired: true });
     }
   }
+  // an empty grid would find no red flags and pass
+  if (!jobs.some((j) => !j.paired) || !(TURNS > 0)) throw new Error('Nothing to play: --seeds and --turns must be positive numbers, and --bots, --diff and --ind must name something.');
+  // Only the full grid (the default options) writes the committed reports and win rates: `--check` takes them for
+  // the full run, and a reduced one (fewer seeds, quarters, strategies or founders) skips most of the red-flag checks.
+  const fullGrid = PAIRED && Object.keys(BOTS).every((b) => BOT_IDS.includes(b)) && SEEDS >= 8 && (SPRINT || TURNS >= 100);
+  if (WRITE && !fullGrid) console.error('A reduced grid: docs/ and data/winrates.json are left as they are (only the default options write them).');
   const all = await runAll(jobs);
   const pairedRs = all.filter((r) => r.paired);
   const results = all.filter((r) => !r.paired);
@@ -360,9 +371,8 @@ ${pacing}
 ${flags.length ? flags.map((f) => '- ' + f).join('\n') : 'None. No probe strategy beats honest play overall or on any single victory, doing nothing never wins, every victory is a realistic plan on some difficulty, every industry is as hard as its label says, a strong plan wins sometimes in every industry on every difficulty, and difficulty levels are ordered.'}
 `;
   console.log(report);
-  if (WRITE) writeFileSync(new URL(SPRINT ? '../docs/balance-sprint.md' : '../docs/balance.md', import.meta.url), report);
+  if (WRITE && fullGrid) writeFileSync(new URL(SPRINT ? '../docs/balance-sprint.md' : '../docs/balance.md', import.meta.url), report);
   // the difficulty cards show these: honest strategies by industry and difficulty, for the full game and for Sprints
-  const fullGrid = DIFFS.length === 4 && INDS.length === IND_LIST.length && HONEST.every((b) => BOT_IDS.includes(b)) && SEEDS >= 8;
   if (WRITE && fullGrid) {
     const url = new URL('../data/winrates.json', import.meta.url);
     let all: Record<string, unknown> = {};

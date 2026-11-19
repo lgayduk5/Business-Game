@@ -37,7 +37,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
 - [x] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
 - [x] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
-- [ ] 15. Tooling, build & PWA — `vite.config.ts`, `index.html`, `public/manifest.webmanifest`, `scripts/*`, `engine/src/bots.ts`, CI
+- [x] 15. Tooling, build & PWA — `vite.config.ts`, `index.html`, `public/manifest.webmanifest`, `scripts/*`, `engine/src/bots.ts`, CI
 - [ ] Final: regenerate balance reports, full verification (lint, typecheck, test, sim:ci, sim:check, build)
 
 ## Findings
@@ -450,3 +450,32 @@ Checks: lint clean · typecheck clean · 292/292 tests · build OK · smoke pass
 - [Low] Medals and the one-go record are lost if browser storage is off.
 
 Checks: lint clean · typecheck clean · 300/300 tests · build OK · smoke passes (phone, desktop, offline), re-run by coordinator.
+
+### 15. Tooling, build & PWA — done
+
+**Fixed** (regression tests: `tests/audit-tooling.test.ts`; plus checks inside the scripts)
+- `vite.config.ts:40` — the service worker's install step filled the new cache from the browser's HTTP cache. GitHub Pages lets browsers keep
+  files for 10 minutes, so an update found inside that window cached the *previous* build's page, which points at JS files deleted along with
+  the old cache: **the installed app would not start offline after an update.** Confirmed with a Playwright deploy simulation (max-age=600
+  server); it now fetches with `cache: 'reload'`.
+- `scripts/sim.ts:95` — results came back in worker order, so report row order depended on the core count (3 vs 4 workers gave different
+  docs; the numbers were identical). Results are now restored to job order.
+- `sim.ts:102,156` — a flag given last with no value crashed or gave NaN, and `--seeds 0`/`abc` ran zero games and *passed* with no red flags. Both now fail clearly.
+- `sim.ts:159,374` — any reduced run (fewer seeds, bots or founders, `--turns 60`) overwrote the committed reports and `winrates.json`
+  with the current fingerprint, so `sim:check` passed on a reduced grid. Only the full default grid writes now. (Coordinator checked: it still
+  requires every difficulty and industry, and the defaults, 12 seeds and 100 turns or a Sprint, qualify.)
+- `sim.ts:68` — the fingerprint hashed paths with the OS separator, so on Windows `sim:check` would always report stale. Paths are normalised; the Linux hash is unchanged.
+- `scripts/ui-smoke.mjs:17-20` — `server.kill()` killed npx but left `vite preview` running, so the next run was refused the port and
+  **tested the stale server**. It now runs vite directly, kills it on exit, and fails if the server didn't start.
+- `ui-smoke.mjs:98,111` — the event-card and price-slider checks could be skipped silently; they now fail instead.
+- `scripts/fmt-json.mjs:9` — long objects wrote undefined members as `null`, unlike `JSON.stringify`. Data files re-format identically.
+- `.github/workflows/ci.yml` — `pages: write`/`id-token: write` moved from the workflow to the deploy job only (the test job runs third-party packages).
+- Housekeeping (coordinator): two orphaned `vite preview` servers left by the subagents' probe scripts were stopped.
+
+**Flags (not fixed)**
+- [Low] Playtest's random-action player never takes the company public, so `buyBack`/`followOn`/`setGuidance` are never exercised there.
+- [Low] `index.html` — the `black-translucent` status bar puts white status text on the light background on iOS.
+- [Low] `sim.ts` — a worker that exits without sending results hangs the run; `playtest --out` given last silently writes nothing.
+- [Low] CI cancels in-progress runs on `main`, which can cancel a Pages deploy mid-way; `package.json` has no `engines` field.
+
+Checks: lint clean · typecheck clean · 305/305 tests · build clean, no warnings · smoke passes, including offline · `sim:ci` passes, no red flags (re-run by coordinator) · `playtest --quick` 528 games, no problems.

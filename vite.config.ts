@@ -34,8 +34,10 @@ function serviceWorker(): Plugin {
       const sw = `// Generated at build time — do not edit.
 const VERSION = 'gc-${version}';
 const ASSETS = ${JSON.stringify(['./', ...files.map((f) => './' + f)])};
+// Straight from the server, not the browser's HTTP cache: GitHub Pages lets browsers keep files for ten minutes,
+// and a page kept from the last build would point at files this cache does not hold (the game would not open offline).
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS)));
+  e.waitUntil(caches.open(VERSION).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(
