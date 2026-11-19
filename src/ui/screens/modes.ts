@@ -90,8 +90,9 @@ async function refreshPoints(g: GameState) {
   points = canRewind(g) ? (await snapshots(g.id)).slice(0, REWIND_QUARTERS) : [];
   pointsFor = g.id;
 }
-afterTurn.push(async (g) => {
-  if (canRewind(g)) await snapshot(g, REWIND_QUARTERS);
+afterTurn.push(async (g, starts) => {
+  // after a fast-forward, the start of each quarter it passed as well (else the end screen offers points too far back)
+  if (canRewind(g)) for (const s of [...starts, g]) await snapshot(s, REWIND_QUARTERS);
   await refreshPoints(g);
 });
 startHooks.push(() => {

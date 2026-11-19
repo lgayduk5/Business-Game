@@ -1,11 +1,12 @@
 // Turn flow and the modals around it: quarterly report, menu, glossary term, game over.
 import { TERM, canKeepPlaying, gameGrade, gradeRule, keepPlaying, money, needsAttention, pct, turnLabel, type GameState } from '@engine';
 import { esc } from '../kit';
-import { on, render, runTurns, toast, ui } from '../store';
+import { on, persist, render, runTurns, toast, ui } from '../store';
 import { modals } from '../shell';
 import { isMuted, setMuted, sfx } from '../../audio';
 
-export const afterTurn: ((g: GameState) => void | Promise<void>)[] = [];
+/** Run after quarters resolve, with the start of each quarter a fast-forward passed on the way (see runQuarters). */
+export const afterTurn: ((g: GameState, starts: GameState[]) => void | Promise<void>)[] = [];
 export const menuExtras: ((g: GameState | null) => string)[] = [];
 /** Extra blocks on the game-over screen (score code, stars, rewind…). */
 export const overExtras: ((g: GameState) => string)[] = [];
@@ -20,10 +21,18 @@ async function advance(turns: number) {
   }
   ui.busy = turns > 1 ? 'Fast-forwarding…' : 'Closing the books…';
   render();
-  const r = await runTurns(g, turns);
+  let r: Awaited<ReturnType<typeof runTurns>>;
+  try {
+    r = await runTurns(g, turns);
+  } catch (e) {
+    // the game is left as it was before the quarter, rather than stuck behind the busy screen
+    ui.busy = '';
+    toast(`The quarter could not be closed: ${(e as Error).message}`, true);
+    return render();
+  }
   ui.g = r.state;
   ui.busy = '';
-  for (const h of afterTurn) await h(ui.g);
+  for (const h of afterTurn) await h(ui.g, r.starts);
   const st = ui.g.status;
   if (st !== 'playing' && !ui.g.continued) {
     st === 'won' ? sfx.win() : sfx.lose();
@@ -135,7 +144,8 @@ on('askQuit', () => {
   ui.modal = { kind: 'confirm', data: { title: 'Quit to the title screen?', text: 'Your game is saved automatically at the end of every quarter.', yes: 'Quit', act: 'quit' } };
   render();
 });
-on('quit', () => {
+on('quit', async () => {
+  await persist.now(); // the last decisions may still be waiting for the autosave, which stops once the game is left
   ui.modal = null;
   ui.screen = 'title';
   render(false);

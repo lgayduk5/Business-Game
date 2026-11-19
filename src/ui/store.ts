@@ -1,5 +1,5 @@
 // App state, render loop, event delegation and the bridge to the engine worker.
-import { endTurn, needsAttention, pruneStale, type ActionResult, type Difficulty, type FounderId, type GameState, type IndustryId, type RegionId } from '@engine';
+import { pruneStale, runQuarters, type ActionResult, type Difficulty, type FounderId, type GameState, type IndustryId, type RegionId } from '@engine';
 import { fmtLive, getTip, resetTips } from './kit';
 
 export type Tab = 'hq' | 'map' | 'ops' | 'corp' | 'intel';
@@ -179,7 +179,8 @@ export function initEvents() {
 // ── engine worker: turns resolve off the main thread so the UI never stalls on a phone.
 let worker: Worker | null = null;
 let seq = 0;
-const pending = new Map<number, (r: { state: GameState; n: number; reason: string }) => void>();
+type Run = ReturnType<typeof runQuarters>;
+const pending = new Map<number, (r: Run) => void>();
 function getWorker(): Worker | null {
   if (worker || typeof Worker === 'undefined') return worker;
   try {
@@ -190,7 +191,7 @@ function getWorker(): Worker | null {
     };
     worker.onerror = () => {
       worker = null;
-      for (const [, res] of pending) res({ state: ui.g!, n: -1, reason: 'error' });
+      for (const [, res] of pending) res({ state: ui.g!, n: -1, reason: 'error', starts: [] });
       pending.clear();
     };
   } catch {
@@ -198,22 +199,21 @@ function getWorker(): Worker | null {
   }
   return worker;
 }
-export function runTurns(g: GameState, turns: number): Promise<{ state: GameState; n: number; reason: string }> {
+/** Resolve quarters (in the worker when there is one). Rejects if the engine fails, leaving `g` as it was. */
+export function runTurns(g: GameState, turns: number): Promise<Run> {
   const w = getWorker();
-  const local = () => {
-    let n = 0, reason = '';
-    while (n < turns) {
-      endTurn(g);
-      n++;
-      reason = needsAttention(g);
-      if (reason) break;
-    }
-    return { state: g, n, reason };
-  };
-  if (!w) return Promise.resolve(local());
-  return new Promise((resolve) => {
+  // on a copy, as the worker does, so a quarter that fails part-way does not leave a half-played game to be saved
+  const local = () => runQuarters(JSON.parse(JSON.stringify(g)) as GameState, turns);
+  if (!w) return new Promise((resolve) => resolve(local()));
+  return new Promise((resolve, reject) => {
     const id = ++seq;
-    pending.set(id, (r) => resolve(r.n < 0 ? local() : r));
+    pending.set(id, (r) => {
+      try {
+        resolve(r.n < 0 ? local() : r);
+      } catch (e) {
+        reject(e);
+      }
+    });
     w.postMessage({ id, state: g, turns });
   });
 }

@@ -16,30 +16,40 @@ export async function refreshSaves() {
   ui.saves = await listSaves();
 }
 
+// The browser can refuse a save (storage full, or turned off in private browsing): say so, once, rather than
+// let the player find the game gone when the page next opens.
+const UNSAVED = 'This game could not be saved: the browser\'s storage is full or turned off. It will be lost when this page closes.';
+let warned = false;
+function kept(ok: boolean) {
+  if (!ok && !warned) toast(UNSAVED, true);
+  warned = !ok;
+}
+
 // autosave every quarter, when a game starts, shortly after every decision, and when the app is hidden
 afterTurn.push(async (g) => {
-  await autosave(g);
+  kept(await autosave(g));
 });
 let saveTimer = 0;
 async function saveNow() {
   const g = ui.g;
   if (!g || ui.busy || ui.screen !== 'game') return;
-  await autosave(g);
+  kept(await autosave(g));
 }
 persist.soon = () => {
   clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => void saveNow(), 700);
 };
+// also lists the saves again, so the title screen shown after leaving a game offers it at its latest quarter
 persist.now = () => {
   clearTimeout(saveTimer);
-  return saveNow();
+  return saveNow().then(refreshSaves);
 };
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') void persist.now();
 });
 window.addEventListener('pagehide', () => void persist.now());
 startHooks.push(() => {
-  if (ui.g) void autosave(ui.g).then(refreshSaves);
+  if (ui.g) void autosave(ui.g).then(kept).then(refreshSaves);
 });
 
 titleExtras.push(() => {
@@ -100,10 +110,10 @@ on('saveMenu', async () => {
 });
 on('saveSlot', async (d) => {
   if (ui.g!.rules.ironman) return;
-  await saveTo(d.slot!, ui.g!);
+  const ok = await saveTo(d.slot!, ui.g!);
   await refreshSaves();
   ui.modal = null;
-  act({ ok: true, msg: `Saved to slot ${d.slot!.replace('slot', '')}.` }, sfx.tick);
+  act(ok ? { ok, msg: `Saved to slot ${d.slot!.replace('slot', '')}.` } : { ok, msg: UNSAVED }, sfx.tick);
 });
 on('export', () => {
   if (ui.g!.rules.ironman) return;
@@ -115,10 +125,10 @@ on('import', async (_d, el) => {
   if (!file) return;
   try {
     const g = await importSave(file);
-    await saveTo('auto:' + g.id, g);
+    const ok = await saveTo('auto:' + g.id, g);
     await refreshSaves();
     enter(g);
-    toast(`Imported ${g.company.name}, ${turnLabel(g.turn)}.`);
+    toast(ok ? `Imported ${g.company.name}, ${turnLabel(g.turn)}.` : UNSAVED, !ok);
   } catch (e) {
     toast((e as Error).message, true);
   }

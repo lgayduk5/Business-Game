@@ -31,9 +31,11 @@ function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBRequest<T
   return open().then((db) => new Promise((resolve) => {
     if (!db) return resolve(undefined);
     try {
-      const r = fn(db.transaction(STORE, mode).objectStore(STORE));
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => resolve(undefined);
+      const t = db.transaction(STORE, mode);
+      const r = fn(t.objectStore(STORE));
+      // done once committed: a full disk fails the commit after the request itself has succeeded
+      t.oncomplete = () => resolve(r.result);
+      t.onabort = t.onerror = () => resolve(undefined);
     } catch {
       resolve(undefined);
     }
@@ -45,15 +47,17 @@ const meta = (slot: string, g: GameState): Rec => ({
   state: JSON.parse(JSON.stringify(g)) as GameState,
 });
 
-export async function saveTo(slot: string, g: GameState): Promise<void> {
+/** False if the browser did not keep the save (storage full or unavailable): it then lasts only until the page closes. */
+export async function saveTo(slot: string, g: GameState): Promise<boolean> {
   const rec = meta(slot, g);
   memory.set(slot, rec);
-  await tx('readwrite', (s) => s.put(rec));
+  return (await tx('readwrite', (s) => s.put(rec))) !== undefined;
 }
-export async function autosave(g: GameState): Promise<void> {
-  await saveTo('auto:' + g.id, g);
+export async function autosave(g: GameState): Promise<boolean> {
+  const ok = await saveTo('auto:' + g.id, g);
   const autos = (await listSaves()).filter((x) => x.slot.startsWith('auto:'));
   for (const old of autos.slice(AUTO_KEEP)) await deleteSave(old.slot);
+  return ok;
 }
 async function listAll(): Promise<SaveMeta[]> {
   const all = ((await tx<Rec[]>('readonly', (s) => s.getAll() as IDBRequest<Rec[]>)) ?? [...memory.values()]) as Rec[];
@@ -82,9 +86,15 @@ export async function snapshots(gameId: string): Promise<{ slot: string; turn: n
 export async function dropSnapshots(gameId: string): Promise<void> {
   for (const s of await snapshots(gameId)) await deleteSave(s.slot);
 }
+/** A copy of the saved game, or null if there is none or it cannot be read (damaged, or from a newer version). */
 export async function loadFrom(slot: string): Promise<GameState | null> {
   const rec = (await tx<Rec>('readonly', (s) => s.get(slot) as IDBRequest<Rec>)) ?? memory.get(slot);
-  return rec ? migrate(rec.state) : null;
+  try {
+    // a copy: the record kept in memory (no IndexedDB) must not change as the loaded game is played
+    return rec ? migrate(JSON.parse(JSON.stringify(rec.state)) as GameState) : null;
+  } catch {
+    return null;
+  }
 }
 export async function deleteSave(slot: string): Promise<void> {
   memory.delete(slot);

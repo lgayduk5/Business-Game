@@ -32,7 +32,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 7. Events — `events.ts`, `data/events/*.json`
 - [x] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
 - [x] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
-- [ ] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
+- [x] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
 - [ ] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
 - [ ] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
 - [ ] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
@@ -307,3 +307,38 @@ Checks: lint clean · typecheck clean · 238/238 tests · `sim:ci` passes, no re
 - [Low] Phase III shows "$50M" while the bar is inflation-adjusted; the `rate_shock` deadline branch is dead code.
 
 Checks: lint clean · typecheck clean · 248/248 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems · 44-game fuzz of advisor/grade/scenario text: no NaN or crashes.
+
+### 10. Save / load & persistence — done
+
+The save/load round trip itself is sound. 42 bot games reloaded every quarter, plus 24 more across every mode with
+mid-quarter reloads, never diverged from twins that were never saved. 17 saves written by the pre-audit engine
+(`d81b8d2`) load and play on, so no `SAVE_VERSION` bump or migration is needed (`outcome.final` is optional, with a
+fallback). No prototype pollution from crafted `__proto__` keys.
+
+**Fixed** (regression tests: `tests/audit-save.test.ts`, 7 tests)
+- `src/storage/saves.ts:90` `loadFrom` — without IndexedDB (the in-memory store) loading returned the stored object itself,
+  so playing on silently rewrote the save: slot 1 saved at Q3 reloaded at Q6 while the list still said Q3. Now returns a copy.
+- `engine/src/save.ts:73` — saves loaded from browser storage skipped the newer-version check, so an older build in another tab
+  would play a newer save and write it back. `loadFrom` threw on a damaged record instead of returning null.
+- `saves.ts:37,51`, `files.ts:23` (+ slot and import handlers) — a save counted as done when its request succeeded, before the
+  transaction committed; a full disk fails at commit. Failures were ignored, so **the game was silently lost on reload**.
+  `saveTo`/`autosave` now report whether the save was kept, and the player is warned once.
+- `engine/src/modes.ts:103` new `runQuarters` (used by `worker.ts`, `store.ts`; snapshot hook in `src/ui/screens/modes.ts:93`) —
+  fast-forward kept only its last quarter as a rewind point. Fast-forwarding into the end left the end screen with 4 replay
+  buttons that all failed with "too far back".
+- `store.ts:203`, `modals.ts:27` — an engine exception during a turn **hung the UI forever** behind "Closing the books…". It now
+  rejects, shows a toast, and leaves the game unchanged.
+- `modals.ts:147` (quit), `files.ts:43` — decisions made within 0.7 s of quitting were never autosaved, and *Continue* on the title
+  showed a stale quarter or game. (Fixed from reading the code; covered by the smoke test below.)
+
+**Flags (not fixed)**
+- [Med] No coordination between two tabs: a stale tab overwrites the autosave when hidden or closed, and **Ironman can be rewound** by keeping a second tab open.
+- [Med] **Ironman save-scumming**: an event's outcome shows before the 700 ms autosave, so closing the tab and choosing again works.
+- [Low] Loading an older slot replaces that game's autosave. A 7th game deletes the oldest game's autosave, including an Ironman game's only save.
+- [Low] Rewind points aren't offered after a page reload or a load; `dropSnapshots` is never called.
+- [Low] `fromSaveFile` validates very little: damaged files show raw TypeError text, or load and then fail on the first quarter.
+- [Low] `listAll` reads every full save just to list them, several times per turn.
+- [Low] Save size grows about 0.75 KB per quarter (302 KB at 400 quarters, 130 KB of it `g.history`). Not a practical problem.
+- [Low] The Daily challenge's "one go" isn't enforced. → system 14
+
+Checks: lint clean · typecheck clean · 255/255 tests · `npm run build` passes · `npm run smoke` passes, including the offline service-worker check (run by coordinator; Playwright is preinstalled here).

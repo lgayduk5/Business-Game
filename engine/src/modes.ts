@@ -5,6 +5,8 @@ import { scenarioDef } from './scenarios';
 import type { Difficulty, FounderId, GameState, IndustryId, NewGameOpts } from './types';
 import { hashSeed, turnLabel } from './util';
 import { founderStake } from './finance';
+import { endTurn } from './turn';
+import { needsAttention } from './advisor';
 
 // ── the daily challenge: the same world for everyone on a given date, played as a ten-year Ironman
 
@@ -91,6 +93,28 @@ export function rewindTo(current: GameState, snapshot: GameState): GameState {
   const c = current.company;
   g.replay = { from: snapshot.turn, title: current.outcome?.title ?? `Where you were at ${turnLabel(current.turn)}`, valuation: c.valuation, founderValue: c.valuation * founderStake(c) };
   return g;
+}
+
+/**
+ * Resolve up to `turns` quarters, stopping early when something needs the player (as fast-forward does). `starts` holds
+ * the start of each quarter passed on the way, the last REWIND_QUARTERS of them, so that a fast-forward into the end
+ * still leaves the last year to rewind to (the start of the final quarter is `state` itself when it is still playing).
+ */
+export function runQuarters(g: GameState, turns: number): { state: GameState; n: number; reason: string; starts: GameState[] } {
+  let n = 0;
+  let reason = '';
+  const starts: GameState[] = [];
+  while (n < turns) {
+    if (n && canRewind(g)) {
+      starts.push(JSON.parse(JSON.stringify(g)) as GameState);
+      if (starts.length > REWIND_QUARTERS) starts.shift();
+    }
+    endTurn(g);
+    n++;
+    reason = needsAttention(g);
+    if (reason) break;
+  }
+  return { state: g, n, reason, starts };
 }
 
 // ── scenario stars: one for finishing, one for the bonus, one for finishing on Brutal

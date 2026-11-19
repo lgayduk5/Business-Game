@@ -68,6 +68,9 @@ export const MIGRATIONS: Record<number, Step> = {
 export function migrate(g: GameState): GameState {
   const need = ['company', 'macro', 'rivals', 'turn', 'rng', 'seed'] as const;
   for (const k of need) if (g[k] === undefined) throw new Error(`The save is damaged (missing ${k}).`);
+  // checked here as well as in fromSaveFile: games kept in the browser are loaded straight through migrate, and a
+  // tab still running an older build must not play (and save back) a game a newer build has written
+  if ((g.v ?? 0) > SAVE_VERSION) throw new Error('This save comes from a newer version of the game. Update the app and try again.');
   let v = Math.max(1, g.v ?? 1);
   while (v < SAVE_VERSION) {
     MIGRATIONS[v]?.(g);
