@@ -6,7 +6,7 @@ import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news, setFlag } from './mods';
 import { DIFF } from './difficulty';
 import { feud } from './feud';
-import { companyHeadcount, exec, headcount, personLeaves } from './people';
+import { companyHeadcount, cutPlan, exec, headcount, personLeaves } from './people';
 import type { Cond, EventCtx, EventDef, EventOption, Fx, GameState, Office, Outcome, PendingEvent, RegionId, Role, Scope } from './types';
 import { ROLES } from './types';
 import { chance, clamp, money, nextUid, rand, stochRound, weighted } from './util';
@@ -571,7 +571,7 @@ const SPECIAL_MONEY: Record<string, (g: GameState, ctx: EventCtx, arg: number) =
   waiverFee: (g, ctx) => ({ spend: -0.015 * (g.company.loans.find((l) => l.id === ctx.loan)?.principal ?? 0) }),
   buyRivalOffice: (g, ctx) => {
     const r = g.rivals.find((x) => x.id === ctx.rival);
-    const ro = r?.offices.find((x) => x.city === ctx.city) ?? r?.offices[0];
+    const ro = ctx.city ? r?.offices.find((x) => x.city === ctx.city) : r?.offices[0];
     return ro ? { spend: -Math.min(Math.max(0, g.company.books.cash) * 0.8, ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind) * 2.5) } : {};
   },
   paydown: (g, _ctx, arg) => ({ finance: -Math.min(Math.max(0, g.company.books.cash) * 0.8, g.company.books.debt * arg) }),
@@ -583,6 +583,7 @@ const SPECIAL_MONEY: Record<string, (g: GameState, ctx: EventCtx, arg: number) =
   },
   factorAR: (g) => ({ finance: 0.68 * g.company.books.ar }),
   buyback10: (g) => ({ finance: g.company.cap.isPublic && g.company.cap.price > 0 ? -0.1 * Math.max(0, g.company.books.cash) : 0 }),
+  boardCuts: (g) => ({ spend: -cutPlan(g, 0.1).reduce((s, x) => s + x.cost, 0) }),
 };
 
 /** Cash an outcome moves: spend (costs and windfalls) and finance (borrowing, repaying, selling shares). */

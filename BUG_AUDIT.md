@@ -30,7 +30,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
 - [x] 6. Investments & M&A — `invest.ts`, `mna.ts`
 - [x] 7. Events — `events.ts`, `data/events/*.json`
-- [ ] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
+- [x] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
 - [ ] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
 - [ ] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
 - [ ] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
@@ -248,3 +248,34 @@ Checks: lint clean · typecheck clean · 216/216 tests · `sim:ci` passes, no re
 - [Low] `rivals.ts` `buyRivalOffice` buys a different city when the rival has none in the named one. → system 8
 
 Checks: lint clean · typecheck clean · 229/229 tests · `sim:ci` passes, no red flags · 56-game probe: no text leaks, NaN, unbalanced books or leftover cards.
+
+### 8. Rival AI & competitors — done
+
+**Fixed** (regression tests: `tests/audit-rivals.test.ts`)
+- `rivals.ts:703,759` `bidForRival` (+ `src/ui/screens/rivals.ts:148`) — at a $0 share price the stock half of a bid
+  was issued at $0.01 a share (probe: founder 100% → 0.6%). The whole price is now paid in cash (new `bidCash`), and the bid
+  dialog shows the same split. (Closes system 2 flag.)
+- `rivals.ts:631,659,760` — poaching, suing and bidding started their 2/8/4-quarter cooldowns even when refused
+  for lack of cash, so retrying with cash got "They rejected an approach recently". The cash check now comes first.
+- `rivals.ts:583,467` — truces covered 9 quarters ("two years") and alliances 13 against their own 12-quarter
+  demand bonus. They now cover 8 and 12 and lapse at the close of their last quarter.
+- `rivals.ts:243,851` + `events.ts:574` — the distress card named your city even where the rival had no office, then
+  bought an office of theirs in another city ("Go after their customers" did nothing). It now names a city the rival is in, with no silent fallback. (Closes system 7 flag.)
+- `rivals.ts:901` + new `people.ts:153 cutPlan` + `events.ts:586` — `boardCuts` added staff to empty roles, spared every
+  team of 5 or fewer and paid no severance. It now cuts one job in ten across the company and pays severance, which the card shows. (Closes system 4 flag.)
+- `rivals.ts:393` — a rival bought earlier in the same quarter's loop kept trading, could queue cards that used up the
+  rival-card slot, and could buy another rival into a dead company.
+- `rivals.ts:482` — a retail rival retaliated by opening a free *software* office in your home city, an industry it doesn't run, which also got around its office limit.
+- The 7 player diplomacy and bid actions now refuse after the game ends.
+
+**Flags (not fixed)**
+- [Med] `rivals.ts:~720` `absorbIntoPlayer` — buying into a plant part-owned by a fund gives the fund 49% of the bought plant for
+  nothing (probe: fund payouts $0.82M → $1.06M over 8 quarters after a $0.69M purchase). Same bug fixed in `mna.ts`; the card's money text needs changing too.
+- [Low] Rival buyouts can put your own stores beside a franchisee (the bypass `mna.ts` closed). Buying a rival's last office leaves a rival with no offices until it goes bankrupt.
+- [Low] The bid's cash check ignores the 1% adviser fee, so a bid can leave you overdrawn. `improveRelations` and `lobbyAgainst` have no cash check.
+- [Low] Design: a bid pays for the rival's cash, but its cash, receivables and stock vanish. `mergeRival` takes on no debt or cash.
+  `endPact` leaves the alliance's +3% demand running.
+- [Low] The rival AI cheats a little: its retaliation office is free, and rivals read your exact share history, tech and negative-cash count without intel.
+- [Low] `data/events/rival.json` `rival_retaliation` says "your home market", but it may now name another city. → system 11
+
+Checks: lint clean · typecheck clean · 238/238 tests · `sim:ci` passes, no red flags (re-run by coordinator) · `playtest --quick` 528 games, no problems · about 140 probe games: no NaN, duplicate ids, shares over 1, unbalanced books, or offices left on dead rivals.

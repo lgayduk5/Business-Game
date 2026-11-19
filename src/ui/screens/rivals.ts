@@ -1,6 +1,6 @@
 // Rivals and goals: who you are up against, what they are doing to you, and how close you are to winning.
 import {
-  CITY, INDUSTRIES, PERSONALITY, bidForRival, bidOdds, bidPrice, improveRelations, lobbyAgainst, money, officeDetail, officeVisible, pct, poachTalent,
+  CITY, INDUSTRIES, PERSONALITY, bidCash, bidForRival, bidOdds, bidPrice, improveRelations, lobbyAgainst, money, officeDetail, officeVisible, pct, poachTalent,
   proposeAlliance, proposeTruce, rivalById, rivalKnown, SPRINT_OFF, sueRival, truceOdds, turnLabel, victoryStatus,
   type CityDef, type GameState, type Rival,
   nemesis,
@@ -145,11 +145,11 @@ modals.bid = (g, m) => {
   const r = rivalById(g!, m.id)!;
   const price = bidPrice(g!, r, m.hostile);
   const c = g!.company;
-  const cash = c.cap.isPublic ? price * 0.5 : price;
+  const cash = bidCash(g!, price);
   return `<h2>${m.hostile ? 'Hostile bid for' : 'Offer to buy'} ${esc(r.name)}</h2>
     <p>${m.hostile ? 'You go straight to their shareholders with a premium they will find hard to refuse — if their board cannot stop it.' : `You make ${esc(r.ceo)} an offer. Distressed and friendly companies are far more likely to say yes.`}</p>
     <div class="kv" style="margin:12px 0"><div>Price</div><div><b class="serif">${money(price)}</b></div>
-      <div>Paid in cash</div><div><b class="serif">${money(cash)}</b>${c.cap.isPublic ? ' <span class="small muted">(the rest in your shares)</span>' : ''}</div>
+      <div>Paid in cash</div><div><b class="serif">${money(cash)}</b>${cash < price ? ' <span class="small muted">(the rest in your shares)</span>' : ''}</div>
       <div>Debt you take on</div><div><b class="serif">${money(r.debt * 0.5)}</b></div>
       <div>Chance it goes through</div><div><b class="serif">${odds(bidOdds(g!, r, m.hostile))}</b></div>
       <div>Adviser fees, win or lose</div><div><b class="serif">${money(price * 0.01)}</b></div></div>

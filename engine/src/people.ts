@@ -145,6 +145,30 @@ export function severanceCost(g: GameState, o: Office, role: Role, n: number): n
   return n * marketWage(g, o, role) * o.pay * (0.5 + 1.5 * CITY[o.city].reg);
 }
 
+/**
+ * Who goes in a cut of `frac` of the workforce across the company ("one job in ten, everywhere"): whole people,
+ * shared over every office and role by largest remainder, so small teams take their share too. Nobody is added,
+ * and an office keeps one person in operations and in administration if it has one. `cost` is the severance.
+ */
+export function cutPlan(g: GameState, frac: number): { o: Office; role: Role; n: number; cost: number }[] {
+  const c = g.company;
+  const slots = c.offices.flatMap((o) => ROLES.map((role) => {
+    const have = o.staff[role].n;
+    const most = Math.max(0, have - (role === 'ops' || role === 'admin' ? 1 : 0));
+    const want = Math.min(most, have * frac);
+    return { o, role, n: Math.floor(want), rem: want - Math.floor(want), most };
+  }));
+  let left = Math.round(frac * companyHeadcount(c)) - slots.reduce((s, x) => s + x.n, 0);
+  for (const x of slots.slice().sort((a, b) => b.rem - a.rem)) {
+    if (left <= 0) break;
+    if (x.n < x.most) {
+      x.n++;
+      left--;
+    }
+  }
+  return slots.filter((x) => x.n > 0).map(({ o, role, n }) => ({ o, role, n, cost: severanceCost(g, o, role, n) }));
+}
+
 export function layoff(g: GameState, o: Office, role: Role, n: number): ActionResult {
   const c = g.company;
   const s = o.staff[role];

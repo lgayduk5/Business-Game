@@ -10,7 +10,7 @@ import { addMod, hasFlag, news } from './mods';
 import { feud } from './feud';
 import { DIFF } from './difficulty';
 import { makeOffice } from './newgame';
-import { companyHeadcount } from './people';
+import { companyHeadcount, cutPlan } from './people';
 import type { ActionResult, EventCtx, GameState, IndustryId, Office, Rival, RivalOffice } from './types';
 import { chance, clamp, money, pick, rand, randInt, randRange, shuffle, weighted } from './util';
 
@@ -239,6 +239,14 @@ function ctxForRival(g: GameState, r: Rival, o?: Office): EventCtx {
   const off = o ?? overlapOffice(g, r) ?? g.company.offices[0];
   return { rival: r.id, office: off.id, city: off.city, region: CITY[off.city].region, ind: off.ind };
 }
+/** "Buy their {city} operation": a city the rival is in — one where you compete with it, or else its biggest. */
+function distressCtx(g: GameState, r: Rival): EventCtx {
+  const ctx = ctxFor(g, r);
+  if (r.offices.some((ro) => ro.city === ctx.city)) return ctx;
+  const size = (ro: RivalOffice) => ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind);
+  const big = r.offices.reduce<RivalOffice | undefined>((a, ro) => (!a || size(ro) > size(a) ? ro : a), undefined);
+  return big ? { ...ctx, city: big.city, region: CITY[big.city].region, ind: big.ind } : ctx;
+}
 
 /** Pre-market decisions: prices, sales effort, capacity, expansion, financing. */
 export function rivalsDecide(g: GameState) {
@@ -382,6 +390,7 @@ export function rivalsFinancials(g: GameState) {
   let acted = !rivalCardFree(g);
   const asked = acted;
   for (const r of alive(g)) {
+    if (!r.alive) continue; // bought by a rival earlier in this loop: it no longer trades, borrows or moves
     if (r.ramp) r.ramp = r.ramp.filter((x) => rampCarry(g, x) > 0);
     const pers = PERSONALITY[r.personality];
     const q = rivalQuarter(g, r);
@@ -414,10 +423,6 @@ export function rivalsFinancials(g: GameState) {
     r.hostility = clamp(r.hostility - 0.12 * (pers.grudgeDecay ?? 1), 0, 10);
     if (pers.community) r.brand = Math.max(r.brand, 45); // members stay loyal
     r.relation += (0 - r.relation) * 0.03;
-    if (r.pact && r.pactUntil < g.turn) {
-      r.pact = undefined;
-      if (r.known) news(g, `Your agreement with ${r.name} has lapsed.`, 'rival');
-    }
 
     // distress and bankruptcy (a state champion is bailed out, three times at most)
     if (r.cash < 0 && pers.subsidised && (r.aid ?? 0) < 3) {
@@ -429,7 +434,7 @@ export function rivalsFinancials(g: GameState) {
     }
     if (r.cash < 0) {
       r.distress++;
-      if (r.distress === 2 && r.known && EVENT.rival_distress && !acted) acted = queueEvent(g, 'rival_distress', ctxFor(g, r));
+      if (r.distress === 2 && r.known && EVENT.rival_distress && !acted) acted = queueEvent(g, 'rival_distress', distressCtx(g, r));
       if (r.distress >= 4) {
         const buyer = PERSONALITY[r.personality].neverSells ? undefined : alive(g).filter((x) => x !== r && x.cash > r.rev * 2).sort((a, b) => PERSONALITY[b.personality].acquisitive - PERSONALITY[a.personality].acquisitive)[0];
         if (buyer && chance(g, 0.5 + PERSONALITY[buyer.personality].acquisitive * 0.4)) {
@@ -458,7 +463,13 @@ export function rivalsFinancials(g: GameState) {
       }
     }
 
-    if (r.pact || acted || g.turn - r.lastMove < 3 || g.turn < 4) continue;
+    // an agreement covers this quarter's moves through its last quarter, and lapses as that quarter closes
+    const inPact = !!r.pact;
+    if (r.pact && r.pactUntil <= g.turn) {
+      r.pact = undefined;
+      if (r.known) news(g, `Your agreement with ${r.name} has lapsed.`, 'rival');
+    }
+    if (inPact || acted || g.turn - r.lastMove < 3 || g.turn < 4) continue;
     const ov = overlapOffice(g, r);
     const threat = r.offices.reduce((s, ro) => s + (c.offices.find((o) => o.city === ro.city && o.ind === ro.ind)?.share ?? 0), 0);
     const aggr = pers.aggression * d.aggression;
@@ -467,9 +478,11 @@ export function rivalsFinancials(g: GameState) {
     if (r.grievances > 0 && chance(g, 0.35 + pers.grudge * 0.5)) {
       r.grievances = 0;
       r.hostility = clamp(r.hostility + 1.5, 0, 10);
-      const home = c.offices.find((o) => o.city === c.home) ?? c.offices[0];
+      // in a business it runs: your home market if you meet it there, else wherever you do (a retailer opens no software office)
+      const theirs = (o: Office) => r.industries.includes(o.ind);
+      const home = c.offices.find((o) => o.city === c.home && theirs(o)) ?? c.offices.find(theirs) ?? c.offices.find((o) => o.city === c.home) ?? c.offices[0];
       let ro = r.offices.find((x) => x.city === home.city && x.ind === home.ind);
-      if (!ro && r.cash > 0) ro = openRivalOffice(g, r, home.city, home.ind, 0);
+      if (!ro && r.cash > 0 && theirs(home)) ro = openRivalOffice(g, r, home.city, home.ind, 0);
       if (ro) ro.war = 5;
       r.lastMove = g.turn;
       if (EVENT.rival_retaliation) acted = queueEvent(g, 'rival_retaliation', ctxFor(g, r, home));
@@ -539,6 +552,8 @@ const R = (g: GameState, id: number) => {
   return r && r.alive ? r : undefined;
 };
 const fail = (msg: string): ActionResult => ({ ok: false, msg });
+/** Player actions refuse once the game has ended (as in actions.ts), unless the player chose to keep playing. */
+const over = (g: GameState): ActionResult | undefined => (g.status === 'playing' || g.continued ? undefined : fail('The game is over.'));
 const cool = (g: GameState, r: Rival, key: string, quarters: number): boolean => {
   const k = `dip:${key}:${r.id}`;
   if (g.turn - (g.counters[k] ?? -99) < quarters) return false;
@@ -549,6 +564,8 @@ const cool = (g: GameState, r: Rival, key: string, quarters: number): boolean =>
 export function improveRelations(g: GameState, id: number): ActionResult {
   const r = R(g, id);
   if (!r) return fail('No such rival.');
+  const ended = over(g);
+  if (ended) return ended;
   if (!cool(g, r, 'rel', 2)) return fail('You have only just sat down with them. Give it a couple of quarters.');
   const cost = 0.01 * scaleS(g);
   B.expense(g.company, 'ga', cost, 'cash');
@@ -563,7 +580,7 @@ export function truceOdds(g: GameState, r: Rival): number {
 }
 export function startPact(g: GameState, r: Rival, pact: 'truce' | 'alliance', quarters: number) {
   r.pact = pact;
-  r.pactUntil = g.turn + quarters;
+  r.pactUntil = g.turn + quarters - 1; // inclusive, as setFlag: `quarters` quarters counting this one
   r.hostility = clamp(r.hostility - 3, 0, 10);
   r.grievances = 0;
   for (const ro of r.offices) ro.war = 0;
@@ -571,6 +588,8 @@ export function startPact(g: GameState, r: Rival, pact: 'truce' | 'alliance', qu
 export function proposeTruce(g: GameState, id: number): ActionResult {
   const r = R(g, id);
   if (!r) return fail('No such rival.');
+  const ended = over(g);
+  if (ended) return ended;
   if (r.pact) return fail('You already have an agreement with them.');
   if (!cool(g, r, 'truce', 4)) return fail('They turned you down recently. Ask again in a year.');
   if (chance(g, truceOdds(g, r))) {
@@ -585,6 +604,8 @@ export function proposeTruce(g: GameState, id: number): ActionResult {
 export function proposeAlliance(g: GameState, id: number): ActionResult {
   const r = R(g, id);
   if (!r) return fail('No such rival.');
+  const ended = over(g);
+  if (ended) return ended;
   if (r.pact === 'alliance') return fail('You are already allies.');
   if (r.relation < 20) return fail('They do not trust you enough yet. Improve relations first.');
   if (!cool(g, r, 'ally', 4)) return fail('Asked too recently.');
@@ -601,10 +622,13 @@ export function poachTalent(g: GameState, id: number): ActionResult {
   const c = g.company;
   const r = R(g, id);
   if (!r) return fail('No such rival.');
+  const ended = over(g);
+  if (ended) return ended;
   if (r.pact) return fail('That would break your agreement.');
-  if (!cool(g, r, 'poach', 2)) return fail('Their people are on their guard. Wait a couple of quarters.');
+  // money first: an approach you cannot pay for is not made, so it starts no cooldown
   const cost = 0.03 * scaleS(g);
   if (cost > c.books.cash) return fail('Not enough cash for signing bonuses.');
+  if (!cool(g, r, 'poach', 2)) return fail('Their people are on their guard. Wait a couple of quarters.');
   B.expense(c, 'ga', cost, 'cash');
   r.grievances++;
   r.hostility = clamp(r.hostility + 1, 0, 10);
@@ -627,10 +651,12 @@ export function sueRival(g: GameState, id: number): ActionResult {
   const c = g.company;
   const r = R(g, id);
   if (!r) return fail('No such rival.');
+  const ended = over(g);
+  if (ended) return ended;
   if (r.pact) return fail('That would break your agreement.');
-  if (!cool(g, r, 'sue', 8)) return fail('You already have a case against them.');
   const cost = 0.04 * scaleS(g);
   if (cost > c.books.cash) return fail('Lawyers want paying up front.');
+  if (!cool(g, r, 'sue', 8)) return fail('You already have a case against them.');
   B.expense(c, 'other', cost, 'cash');
   r.grievances++;
   r.hostility = clamp(r.hostility + 2, 0, 10);
@@ -642,6 +668,8 @@ export function lobbyAgainst(g: GameState, id: number): ActionResult {
   const c = g.company;
   const r = R(g, id);
   if (!r) return fail('No such rival.');
+  const ended = over(g);
+  if (ended) return ended;
   if (!hasFlag(g, 'lobby')) return fail('You need a government affairs office (Corporate → Growth → Invest) to lobby.');
   if (!cool(g, r, 'lobby', 4)) return fail('Regulators have heard enough from you this year.');
   const cost = 0.03 * scaleS(g);
@@ -671,6 +699,8 @@ export function bidOdds(g: GameState, r: Rival, hostile: boolean): number {
   if (hostile) return r.isPublic ? 0.6 : 0.25 + (r.distress > 0 ? 0.4 : 0);
   return clamp(0.15 + r.relation / 150 + (r.distress > 0 ? 0.5 : 0) + (r.profit < 0 ? 0.15 : 0) - (pers.id === 'conservative' ? 0.15 : 0) - (pers.id === 'predator' ? 0.2 : 0), 0.02, 0.95);
 }
+/** The cash part of a bid: half, if you are listed and your shares are worth something; otherwise all of it. */
+export const bidCash = (g: GameState, price: number) => (g.company.cap.isPublic && g.company.cap.price > 0 ? price * 0.5 : price);
 /** Take a rival's offices into the player's company. */
 /** Customers an acquirer keeps: about a fifth of them use the change of owner to look elsewhere. */
 export const ACQUIRED_KEEP = 0.75;
@@ -723,10 +753,12 @@ export function bidForRival(g: GameState, id: number, hostile: boolean): ActionR
   const c = g.company;
   const r = R(g, id);
   if (!r) return fail('No such rival.');
-  if (!cool(g, r, 'bid', 4)) return fail('They rejected an approach recently. Wait a year.');
+  const ended = over(g);
+  if (ended) return ended;
   const price = bidPrice(g, r, hostile);
-  const cashPart = c.cap.isPublic ? price * 0.5 : price;
-  if (cashPart > c.books.cash) return fail(`You need ${money(cashPart)} in cash${c.cap.isPublic ? ' (the other half is paid in shares)' : ''}. You have ${money(c.books.cash)}.`);
+  const cashPart = bidCash(g, price);
+  if (cashPart > c.books.cash) return fail(`You need ${money(cashPart)} in cash${cashPart < price ? ' (the other half is paid in shares)' : c.cap.isPublic ? ' (your shares trade at $0, so none of it can be paid in shares)' : ''}. You have ${money(c.books.cash)}.`);
+  if (!cool(g, r, 'bid', 4)) return fail('They rejected an approach recently. Wait a year.');
   B.expense(c, 'other', price * 0.01, 'cash'); // advisers
   if (!chance(g, bidOdds(g, r, hostile))) {
     r.hostility = clamp(r.hostility + (hostile ? 3 : 0.5), 0, 10);
@@ -745,7 +777,7 @@ export function bidForRival(g: GameState, id: number, hostile: boolean): ActionR
   c.books.cash -= cashPart;
   c.cfTags.acq -= cashPart;
   if (price > cashPart) {
-    const n = (price - cashPart) / Math.max(0.01, c.cap.price);
+    const n = (price - cashPart) / c.cap.price;
     c.cap.shares += n;
     c.cap.holders.push({ name: `${r.name} shareholders`, shares: n, round: 'Acquisition', price: c.cap.price });
     c.books.paidIn += price - cashPart;
@@ -816,9 +848,10 @@ Object.assign(SPECIALS, {
   buyRivalOffice: (g: GameState, ctx: EventCtx) => {
     const r = rivalById(g, ctx.rival);
     const c = g.company;
-    const ro = r?.offices.find((x) => x.city === ctx.city) ?? r?.offices[0];
+    // the operation the card names, never one in another city
+    const ro = ctx.city ? r?.offices.find((x) => x.city === ctx.city) : r?.offices[0];
     if (!r || !ro) return null;
-    const price = Math.min(c.books.cash * 0.8, ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind) * 2.5);
+    const price = Math.min(Math.max(0, c.books.cash) * 0.8, ro.share * marketUnits(g, ro.city, ro.ind) * localPrice(g, ro.city, ro.ind) * 2.5);
     // the price on the card is what is paid; plant worth more than that is booked at the price
     const fair = absorbIntoPlayer(g, r, [ro], price);
     noteAcquisition(g, price);
@@ -866,12 +899,24 @@ Object.assign(SPECIALS, {
     return 'The board has removed you';
   },
   boardCuts: (g: GameState) => {
-    for (const o of g.company.offices) {
-      for (const k of ['ops', 'sales', 'rnd', 'admin'] as const) o.staff[k].n = Math.max(k === 'admin' || k === 'ops' ? 1 : 0, Math.round(o.staff[k].n * 0.9));
+    // one job in ten, everywhere, with severance paid as for any layoff
+    const c = g.company;
+    let n = 0, cost = 0;
+    for (const x of cutPlan(g, 0.1)) {
+      const s = x.o.staff[x.role];
+      s.n -= x.n;
+      s.reqs = 0;
+      s.fresh = Math.min(s.fresh, s.n);
+      n += x.n;
+      cost += x.cost;
+    }
+    B.expense(c, 'other', cost, 'cash');
+    g.counters.layoffs = (g.counters.layoffs ?? 0) + n;
+    for (const o of c.offices) {
       o.morale = clamp(o.morale - 10, 0, 100);
       o.scar += 12;
     }
-    g.company.culture = clamp(g.company.culture - 4, 0, 100);
-    return 'One in ten jobs cut across the company';
+    c.culture = clamp(c.culture - 4, 0, 100);
+    return `${n} jobs cut across the company, ${money(cost)} in severance`;
   },
 });
