@@ -33,7 +33,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
 - [x] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
 - [x] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
-- [ ] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
+- [x] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
 - [ ] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
 - [ ] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
 - [ ] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
@@ -342,3 +342,33 @@ fallback). No prototype pollution from crafted `__proto__` keys.
 - [Low] The Daily challenge's "one go" isn't enforced. → system 14
 
 Checks: lint clean · typecheck clean · 255/255 tests · `npm run build` passes · `npm run smoke` passes, including the offline service-worker check (run by coordinator; Playwright is preinstalled here).
+
+### 11. Content data & schemas — done
+
+**Fixed** (regression tests: `tests/audit-content.test.ts`, 24 tests. All data edits are text only: the coordinator checked that every number outside strings is unchanged.)
+- Schemas — 5 content files had none: added `data/schemas/{founders,rivals,glossary,names,scenarios}.schema.json`. The
+  industries schema required only 7 of its ~48 fields, and cities didn't require `tal`/`blurb`; both now require everything the engine
+  reads. Investment `fx` keys, event `cond`/`req` keys and boost stats are now checked. **A misspelt condition used to be ignored,
+  so the card fired for everyone.** `tests/schema.ts` gained local `$ref` support.
+- Text that contradicted its effect, fixed: walkout "a third resign" → one in seven (15%); "you hire replacements" → three in ten
+  fired (−30%); order squeeze "a third" → a fifth; bio_short "a fifth" → 15%; market_crash "a fifth" → a quarter; cons_bench
+  "20% off" → 5%; big_customer/saas_enterprise "three years" → two; rival_distress "a dozen" → eight; drug pitch "one in sixteen" →
+  one in eleven (the UI shows 9%); Lagos "faster than anywhere" → "almost anywhere" (Bangalore grows faster).
+- `rival.json` — `rival_retaliation` no longer says "your home market" (it can bind another city; closes system 8 flag).
+  `rival_price_war` "Hit their home market" actually cuts their share in the shared city; relabelled.
+- `scenarios.json` phase3 — the goal now says "$50M valuation, in today's money" (the bar was $53.8M by quarter 14). (Closes system 9 flag.)
+- `events.ts` `equity` — raises at or above the valuation are labelled "New investors / Placement"; only rescues say "Emergency investors / Bridge". (Closes system 7 flag.)
+- `docs/content-guide.md` — the condition list was missing hasRival, minAR and keyLeftWithin; the effects table was missing nol.
+
+**Flags (not fixed)**
+- [Med] **13 event flags are set but never read**, so these options carry only their downside: lockin (big_customer,
+  new_entrant, rival_enters), localised (trade_war "immune later"), lean (recession_warning), controls (fraud), modern
+  (legacy_systems), resilient (bio_cmo), privacy (privacy_law, privacy_fine), bribed (bribe), certified (saas_cert, which
+  can re-offer certification while you hold it), cloudLock (saas_cloud_credits), ppa (energy_ppa), university (university), cartel
+  (rival_cartel). Five investment flags are also unread but harmless: green, intel, offshore, taxScheme, succession.
+- [Med] The `dual_sourcing` investment ("Disruptions pass you by") does nothing except add 1.5% to input costs: its `resilient` flag is never read.
+- [Low] `events.ts` boardPatience flags (4/6/8 quarters) last no longer than the card's 8-quarter cooldown, so they do nothing, and "four more quarters" sets 6.
+- [Low] `customer_bust` recovery (0.05 × S) isn't tied to the write-off: at retail's 2-day DSO the "third" recovered is many times the loss.
+- [Low] `exhire_ceo` says "out of your markets for a year", but the effect is a one-off −15% to the rival's share, hitting all its offices if you share no city.
+
+Checks: lint clean · typecheck clean · 279/279 tests · `sim:ci` passes, no red flags.

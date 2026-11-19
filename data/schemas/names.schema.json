@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Names",
+  "description": "data/names.json — pools the game draws names from",
+  "type": "object",
+  "properties": {
+    "first": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "First names for key people" },
+    "last": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Surnames for key people" },
+    "traits": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Personality traits for key people" },
+    "targets": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "First word of acquisition-target names" },
+    "investors": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Venture investors who offer rounds" },
+    "banks": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Lenders" }
+  },
+  "required": ["first", "last", "traits", "targets", "investors", "banks"],
+  "additionalProperties": false
+}

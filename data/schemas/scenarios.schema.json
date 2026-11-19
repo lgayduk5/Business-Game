@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scenarios",
+  "description": "data/scenarios.json — challenges and learner-campaign chapters (ScenarioDef in engine/src/types.ts)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string", "description": "Stable identifier (saved in medals and saves)" },
+      "name": { "type": "string", "description": "Display name" },
+      "blurb": { "type": "string", "description": "One line for the picker" },
+      "brief": { "type": "string", "description": "The situation, shown before starting" },
+      "industry": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"], "description": "Industry of the company" },
+      "city": { "type": "string", "description": "Home city id (data/cities.json)" },
+      "founder": {
+        "enum": ["engineer", "sales", "finance", "operator", "serial", "scientist", "heir", "consultant"],
+        "description": "Founder id (data/founders.json)"
+      },
+      "difficulty": { "enum": ["easy", "normal", "hard", "brutal"], "description": "" },
+      "turns": { "type": "number", "description": "Quarters to reach the goal" },
+      "seed": { "type": "string", "description": "Fixed seed, so everyone plays the same game" },
+      "goal": {
+        "type": "object",
+        "properties": {
+          "kind": { "enum": ["valuation", "survive", "revenue", "share", "cash", "ipo", "offices", "profit"], "description": "What is measured" },
+          "value": { "type": "number", "description": "The bar; a multiple of the starting figure when `relative`. A valuation bar rises with inflation." },
+          "text": { "type": "string", "description": "The goal in words. Templates: {target} (relative goals), {city}, {rival}" },
+          "maxDilution": { "type": "number", "description": "Fail if the founder owns less than 1 − this", "minimum": 0, "maximum": 1 },
+          "noEquity": { "type": "boolean", "description": "Fail on any equity raise" },
+          "relative": { "type": "boolean", "description": "`value` is a multiple of the starting revenue or valuation" }
+        },
+        "required": ["kind", "value", "text"],
+        "additionalProperties": false
+      },
+      "setup": { "type": "string", "description": "Key into the scenario setup functions in engine/src/scenarios.ts" },
+      "chapter": { "type": "number", "description": "Learner campaign chapter (1–5); absent for the challenges" },
+      "layer": { "type": "string", "description": "The layer of the game a chapter opens up" },
+      "lesson": { "type": "string", "description": "What the chapter teaches" },
+      "tips": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Pointers shown on HQ while the chapter is played" },
+      "bonus": { "type": "string", "description": "What earns the second star" }
+    },
+    "required": ["id", "name", "blurb", "brief", "industry", "city", "founder", "difficulty", "turns", "seed", "goal", "setup"],
+    "additionalProperties": false
+  }
+}

@@ -93,7 +93,12 @@
       "rankByGrowth": { "type": "boolean", "description": "The end-of-game grade ranks companies by how much they grew, not by size" },
       "productChurn": { "type": "number", "minimum": 0, "maximum": 0.3, "description": "Share of customers lost each quarter, at most, by an office whose product trails the best in its market" }
     },
-    "required": ["id", "name", "marketBase", "wages", "opsOut", "start", "roles"],
+    "required": [
+      "id", "name", "short", "icon", "blurb", "economics", "failure", "tier", "marketBase", "trend", "cyc", "elast", "mktElast", "wq", "wb", "stick",
+      "fringe", "organic", "wages", "opsOut", "varCost", "inputKey", "capPerUnit", "buildQ", "deprQ", "fixedPerCap", "seatRent", "dso", "dio", "dpo",
+      "deferred", "spoil", "salesCover", "mktEff", "baseAttr", "rdCost", "techGain", "techDecay", "revMult", "targetMargin", "regSens", "scale",
+      "startTech", "capTarget", "local", "techW", "start", "roles"
+    ],
     "additionalProperties": false
   }
 }

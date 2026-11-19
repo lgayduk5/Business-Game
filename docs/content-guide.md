@@ -36,7 +36,7 @@ To add a new events *file*, also add one import line in `engine/src/content.ts`.
 - `cond` (and an option's `req`) gate the event; all fields must hold. See `Cond` in `engine/src/types.ts`:
   `minTurn maxTurn ind notInd minRev maxRev minHead maxHead minOffices minRegions isPublic hasDebt noDebt
   minCashQ maxCashQ flag notFlag macro notMacro minCulture maxCulture minRep maxRep minEsg maxMorale exec noExec
-  hostile friendly inventory capital minShare founderBelow profit loss minTech minBrand investors invest`,
+  hasRival hostile friendly inventory capital minShare founderBelow profit loss minTech minBrand investors invest minAR keyLeftWithin`,
   plus `cashS` on options (cash of at least that many × S).
 - `out` lists weighted outcomes. `boost: [stat, threshold, multiplier]` multiplies an outcome's weight when the
   company passes a check (`culture rep brand esg tech morale intel relation`, or `["flag", name, m]`, `["exec", "CFO", m]`).
@@ -50,7 +50,7 @@ so events scale with the company.
 
 | Tuple | Meaning |
 | --- | --- |
-| `["cash", x]` `["cost", x, line?]` `["flat", kUSD, line?]` `["capex", x]` `["tax", x]` | Money in / expense (line: `cogs sm rd ga other`) / fixed-dollar expense / capitalised spend / tax bill |
+| `["cash", x]` `["cost", x, line?]` `["flat", kUSD, line?]` `["capex", x]` `["tax", x]` `["nol", x]` | Money in / expense (line: `cogs sm rd ga other`) / fixed-dollar expense / capitalised spend / tax bill / tax losses to carry forward |
 | `["morale", n, scope?]` `["skill", n, scope?]` `["staff", pct, role?, scope?]` | People. Scope: `office`, `region`, `ind`, `all` |
 | `["culture", n]` `["brand", n]` `["rbrand", n]` `["rep", n]` `["esg", n]` `["tech", n]` `["loyalty", n]` | Company stats |
 | `["demand", pct, quarters, scope?]` | Your pull with customers |

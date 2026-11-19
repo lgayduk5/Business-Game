@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rivals",
+  "description": "data/rivals.json — rival personalities (RivalPersonalityDef in engine/src/types.ts) and the pools rival names, CEOs and colours are drawn from",
+  "type": "object",
+  "properties": {
+    "personalities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "enum": ["expander", "costcutter", "innovator", "predator", "conservative", "disruptor", "dynasty", "state", "bigtech", "pe", "coop"],
+            "description": "Stable identifier (Personality)"
+          },
+          "label": { "type": "string", "description": "Display name" },
+          "blurb": { "type": "string", "description": "How it behaves, shown on the rival page" },
+          "price": { "type": "number", "description": "Preferred price index" },
+          "sales": { "type": "number", "description": "Sales and marketing spend as a share of revenue" },
+          "rd": { "type": "number", "description": "R&D as a share of revenue" },
+          "expand": { "type": "number", "description": "Probability weight of opening new offices" },
+          "leverage": { "type": "number", "description": "Target debt / annual revenue" },
+          "aggression": { "type": "number", "description": "Likelihood of hostile moves", "minimum": 0, "maximum": 1 },
+          "quality": { "type": "number", "description": "Operational quality 0..100", "minimum": 0, "maximum": 100 },
+          "eff": { "type": "number", "description": "Cost multiplier (lower is leaner)" },
+          "acquisitive": { "type": "number", "description": "Appetite for takeovers" },
+          "grudge": { "type": "number", "description": "How strongly it retaliates" },
+          "moves": {
+            "type": "object",
+            "description": "Weights of its hostile moves",
+            "properties": {
+              "war": { "type": "number", "description": "Price wars" },
+              "poach": { "type": "number", "description": "Poaching" },
+              "lawsuit": { "type": "number", "description": "Lawsuits" },
+              "lobby": { "type": "number", "description": "Lobbying" }
+            },
+            "required": ["war", "poach", "lawsuit", "lobby"],
+            "additionalProperties": false
+          },
+          "neverSells": { "type": "boolean", "description": "Cannot be bought, by you or anyone" },
+          "grudgeDecay": { "type": "number", "description": "How fast its hostility cools, against 1 for most" },
+          "privately": { "type": "boolean", "description": "Never lists its shares" },
+          "subsidised": { "type": "boolean", "description": "The state tops up its cash when it runs out" },
+          "homeShield": { "type": "boolean", "description": "Regulators at home will not act against it" },
+          "late": { "type": "boolean", "description": "Appears only as a late entrant" },
+          "targetsBest": { "type": "boolean", "description": "Enters by attacking the player’s best market" },
+          "ratesSell": { "type": "boolean", "description": "Sells offices to pay down debt when rates rise" },
+          "community": { "type": "boolean", "description": "Its brand never falls below a floor" }
+        },
+        "required": ["id", "label", "blurb", "price", "sales", "rd", "expand", "leverage", "aggression", "quality", "eff", "acquisitive", "grudge", "moves"],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "description": "One entry per personality"
+    },
+    "names": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Company names for rivals" },
+    "ceos": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Names for rival CEOs" },
+    "colors": {
+      "type": "array",
+      "items": { "type": "string", "description": "#rrggbb" },
+      "minItems": 1,
+      "description": "Map and chart colours, assigned by rival id"
+    }
+  },
+  "required": ["personalities", "names", "ceos", "colors"],
+  "additionalProperties": false
+}

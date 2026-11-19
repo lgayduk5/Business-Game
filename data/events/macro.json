@@ -149,7 +149,7 @@
     "id": "market_crash",
     "cat": "macro",
     "title": "Markets in freefall",
-    "text": "Share prices have fallen by a fifth in three weeks. Nobody can say exactly why, which is making it worse.",
+    "text": "Share prices have fallen by a quarter in three weeks. Nobody can say exactly why, which is making it worse.",
     "w": 0.4,
     "cool": 30,
     "cond": { "minTurn": 10 },

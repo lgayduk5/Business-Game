@@ -474,7 +474,9 @@ export function applyFx(g: GameState, fx: Fx[], ctx: EventCtx): string[] {
         const gross = n * (pre / co.cap.shares);
         B.issueEquity(co, gross * 0.95);
         co.cap.shares += n;
-        co.cap.holders.push({ name: 'Emergency investors', shares: n, round: 'Bridge', price: pre / (co.cap.shares - n) });
+        // a rescue is priced at a discount; a raise at or above the valuation (a bull market, a term sheet, a white knight) is not one
+        const rescue = f[2] < 1;
+        co.cap.holders.push({ name: rescue ? 'Emergency investors' : 'New investors', shares: n, round: rescue ? 'Bridge' : 'Placement', price: pre / (co.cap.shares - n) });
         co.cap.lastRoundTurn = g.turn;
         co.cap.boardPressure = Math.min(10, co.cap.boardPressure + 1);
         g.counters.equityRaised = (g.counters.equityRaised ?? 0) + gross;

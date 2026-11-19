@@ -184,13 +184,13 @@
         "hint": "A town hall and real commitments.",
         "out": [
           { "w": 0.6, "text": "They believe you.", "fx": [["morale", 12, "office"]], "boost": ["culture", 55, 1.8] },
-          { "w": 0.4, "text": "They have heard it before. A third resign.", "fx": [["staff", -15, null, "office"]] }
+          { "w": 0.4, "text": "They have heard it before. One in seven resign.", "fx": [["staff", -15, null, "office"]] }
         ]
       },
       {
         "label": "Replace them",
         "hint": "Nobody is irreplaceable.",
-        "out": [{ "text": "You hire replacements. The rest of the company watches.", "fx": [["staff", -30, null, "office"], ["rep", -4], ["culture", -5]] }]
+        "out": [{ "text": "Three in ten are fired. The rest of the company watches.", "fx": [["staff", -30, null, "office"], ["rep", -4], ["culture", -5]] }]
       }
     ],
     "lesson": "A walkout is the end of a long process of not being heard. Morale and pay trends told you this was coming."
@@ -573,7 +573,7 @@
       {
         "label": "Ignore it",
         "hint": "Short sellers profit from fear.",
-        "out": [{ "text": "The shares fall a fifth and drift.", "fx": [["valuation", -15, 4]] }]
+        "out": [{ "text": "The shares fall 15% and drift.", "fx": [["valuation", -15, 4]] }]
       }
     ],
     "lesson": "Markets price uncertainty. Transparent data narrows it; silence widens it."

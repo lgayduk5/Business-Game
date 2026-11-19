@@ -29,7 +29,35 @@
       "curve": { "enum": ["steady", "backloaded", "decaying", "risky"], "description": "Payoff curve" },
       "fx": {
         "type": "object",
-        "description": "Effects at full payoff: prod, demand, quality, inputCost, wageCost, salesEff, capacity, attrition, hirePool, rdEff (%); brand, regionBrand, culture, skill, rep, esg, loyalty (points/quarter); morale (level); tech (one-off points); income (fraction of upfront per quarter); intel (0..1)"
+        "description": "Effects at full payoff: prod, demand, inputCost, wageCost, salesEff, capacity, attrition, hirePool, rdEff (%), and tax, rent, overhead, capexCost (% change); brand, regionBrand, culture, skill, rep, esg, loyalty (points/quarter); quality (points); morale (level); tech (one-off points); income (fraction of upfront per quarter); intel (0..1)",
+        "properties": {
+          "prod": { "type": "number" },
+          "demand": { "type": "number" },
+          "quality": { "type": "number" },
+          "inputCost": { "type": "number" },
+          "wageCost": { "type": "number" },
+          "salesEff": { "type": "number" },
+          "capacity": { "type": "number" },
+          "attrition": { "type": "number" },
+          "hirePool": { "type": "number" },
+          "rdEff": { "type": "number" },
+          "brand": { "type": "number" },
+          "regionBrand": { "type": "number" },
+          "culture": { "type": "number" },
+          "morale": { "type": "number" },
+          "skill": { "type": "number" },
+          "rep": { "type": "number" },
+          "esg": { "type": "number" },
+          "tech": { "type": "number" },
+          "income": { "type": "number" },
+          "intel": { "type": "number" },
+          "loyalty": { "type": "number" },
+          "tax": { "type": "number" },
+          "rent": { "type": "number" },
+          "overhead": { "type": "number" },
+          "capexCost": { "type": "number" }
+        },
+        "additionalProperties": false
       },
       "stages": {
         "type": "array",

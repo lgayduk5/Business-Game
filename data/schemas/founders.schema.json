@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Founders",
+  "description": "data/founders.json — the founder backgrounds offered in the new-game wizard (FounderDef in engine/src/types.ts)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "enum": ["engineer", "sales", "finance", "operator", "serial", "scientist", "heir", "consultant"],
+        "description": "Stable identifier (FounderId)"
+      },
+      "name": { "type": "string", "description": "Display name" },
+      "blurb": { "type": "string", "description": "One line of character" },
+      "perks": {
+        "type": "array",
+        "items": { "type": "string" },
+        "minItems": 1,
+        "description": "What the wizard lists; keep it in step with the numbers below"
+      },
+      "cash": { "type": "number", "description": "Multiplier on starting cash" },
+      "equity": { "type": "number", "description": "Founder ownership at start; the rest is held by early backers", "minimum": 0, "maximum": 1 },
+      "tech": { "type": "number", "description": "Technology points at start" },
+      "culture": { "type": "number", "description": "Culture points at start" },
+      "brand": { "type": "number", "description": "Brand points at start" },
+      "opsProd": { "type": "number", "description": "Multiplier on operations productivity" },
+      "salesEff": { "type": "number", "description": "Multiplier on sales effectiveness" },
+      "rdEff": { "type": "number", "description": "Multiplier on R&D effectiveness" },
+      "loanSpread": { "type": "number", "description": "Percentage points added to loan spreads (negative = cheaper)" },
+      "valuation": { "type": "number", "description": "Multiplier on private valuations" },
+      "ind": {
+        "type": "object",
+        "description": "Extra technology in specific industries",
+        "properties": {
+          "saas": { "type": "number" },
+          "retail": { "type": "number" },
+          "mfg": { "type": "number" },
+          "logistics": { "type": "number" },
+          "energy": { "type": "number" },
+          "consulting": { "type": "number" },
+          "biotech": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required": ["id", "name", "blurb", "perks", "cash", "equity", "tech", "culture", "brand", "opsProd", "salesEff", "rdEff", "loanSpread", "valuation"],
+    "additionalProperties": false
+  }
+}

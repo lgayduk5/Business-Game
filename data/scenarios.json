@@ -71,7 +71,7 @@
     "difficulty": "normal",
     "turns": 16,
     "seed": "phase3",
-    "goal": { "kind": "valuation", "value": 50000000, "text": "Reach a $50M valuation within 16 quarters." },
+    "goal": { "kind": "valuation", "value": 50000000, "text": "Reach a $50M valuation, in today’s money, within 16 quarters." },
     "setup": "phase3"
   },
   {

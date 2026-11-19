@@ -606,7 +606,7 @@
     "opts": [
       {
         "label": "Discount to fill the bench",
-        "hint": "Win work at 20% off.",
+        "hint": "Win work at 5% off.",
         "out": [{ "text": "The bench empties at lower rates.", "fx": [["special", "priceDown", 5], ["demand", 10, 2, "all"]] }]
       },
       {

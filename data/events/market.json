@@ -16,7 +16,7 @@
       {
         "label": "Offer a multi-year deal at 8% off",
         "hint": "Trade price for commitment.",
-        "out": [{ "text": "Three years, 8% off. Both sides can live with it.", "fx": [["demand", -1, 8, "office"], ["flag", "lockin", 8]] }]
+        "out": [{ "text": "Two years, 8% off. Both sides can live with it.", "fx": [["demand", -1, 8, "office"], ["flag", "lockin", 8]] }]
       },
       {
         "label": "Refuse",
@@ -380,7 +380,7 @@
         "out": [
           {
             "w": 0.65,
-            "text": "They sign a three-year deal and tell their peers.",
+            "text": "They sign a two-year deal and tell their peers.",
             "fx": [["cost", 0.06, "rd"], ["demand", 14, 8, "region"], ["brand", 2]]
           },
           { "w": 0.35, "text": "Their procurement team stalls for a year, then picks a rival anyway.", "fx": [["cost", 0.06, "rd"]] }
@@ -518,7 +518,7 @@
         "hint": "Keep the volume.",
         "out": [{ "text": "Margins on the contract go to almost nothing.", "fx": [["special", "priceDown", 3]] }]
       },
-      { "label": "Refuse", "hint": "Lose the contract.", "out": [{ "text": "A third of your volume disappears.", "fx": [["share", -20, "office"]] }] }
+      { "label": "Refuse", "hint": "Lose the contract.", "out": [{ "text": "A fifth of your volume disappears.", "fx": [["share", -20, "office"]] }] }
     ],
     "lesson": "Customer concentration hands pricing power to the customer."
   },

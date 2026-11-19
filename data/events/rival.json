@@ -19,11 +19,11 @@
         "out": [{ "text": "You sell on quality while they sell on price.", "fx": [["cost", 0.05, "sm"], ["demand", 8, 4, "office"]] }]
       },
       {
-        "label": "Hit their home market",
-        "hint": "Open a second front where it hurts them.",
+        "label": "Go after their accounts",
+        "hint": "A campaign aimed at their customers in {city}. They will take it personally.",
         "out": [
           {
-            "text": "You undercut them on their own turf. They notice.",
+            "text": "You pick off some of their customers in {city}. They notice.",
             "fx": [["cost", 0.04, "sm"], ["rivalShare", -6], ["special", "grievance"], ["hostility", 1.5]]
           }
         ]
@@ -48,13 +48,13 @@
     "id": "rival_retaliation",
     "cat": "rival",
     "title": "{rival} hits back",
-    "text": "You went after {rival}. Now they have come for you: prices slashed in {city}, your home market, and a sales team with your customer list.",
+    "text": "You went after {rival}. Now they have come for you: prices slashed in {city} and a sales team with your customer list.",
     "w": 0,
     "bind": ["rival"],
     "opts": [
       {
         "label": "Stand firm",
-        "hint": "Defend the home market on service.",
+        "hint": "Defend {city} on service.",
         "out": [{ "text": "You dig in.", "fx": [["cost", 0.04, "sm"], ["demand", 6, 4, "office"]] }]
       },
       {
@@ -353,7 +353,7 @@
       {
         "label": "Hire their best people",
         "hint": "Experienced staff, no recruiter fees.",
-        "out": [{ "text": "A dozen join you.", "fx": [["cost", 0.03, "ga"], ["special", "addOps", 6], ["special", "addSales", 2], ["skill", 1, "office"]] }]
+        "out": [{ "text": "Eight join you.", "fx": [["cost", 0.03, "ga"], ["special", "addOps", 6], ["special", "addSales", 2], ["skill", 1, "office"]] }]
       },
       {
         "label": "Go after their customers",

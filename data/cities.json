@@ -280,7 +280,7 @@
       "risk": 0.5,
       "ind": { "saas": 0.5, "retail": 1.1, "mfg": 0.7, "logistics": 1.2, "energy": 1.6, "consulting": 0.4, "biotech": 0.2 },
       "tal": {},
-      "blurb": "Growing faster than anywhere else, from a low base, with power cuts."
+      "blurb": "Growing faster than almost anywhere else, from a low base, with power cuts."
     },
     {
       "id": "dxb",

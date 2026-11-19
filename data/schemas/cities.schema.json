@@ -5,7 +5,20 @@
   "type": "object",
   "required": ["regions", "cities"],
   "properties": {
-    "regions": { "type": "object", "description": "Region id → {name, short, blurb}" },
+    "regions": {
+      "type": "object",
+      "description": "Region id → {name, short, blurb}",
+      "properties": {
+        "nae": { "$ref": "#/$defs/region" },
+        "naw": { "$ref": "#/$defs/region" },
+        "latam": { "$ref": "#/$defs/region" },
+        "europe": { "$ref": "#/$defs/region" },
+        "mea": { "$ref": "#/$defs/region" },
+        "apac": { "$ref": "#/$defs/region" }
+      },
+      "additionalProperties": false,
+      "required": ["nae", "naw", "latam", "europe", "mea", "apac"]
+    },
     "cities": {
       "type": "array",
       "items": {
@@ -42,13 +55,55 @@
             "required": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"],
             "additionalProperties": false
           },
-          "tal": { "type": "object", "description": "Talent specialisation multipliers by industry" },
+          "tal": {
+            "type": "object",
+            "description": "Talent specialisation multipliers by industry",
+            "properties": {
+              "saas": { "type": "number" },
+              "retail": { "type": "number" },
+              "mfg": { "type": "number" },
+              "logistics": { "type": "number" },
+              "energy": { "type": "number" },
+              "consulting": { "type": "number" },
+              "biotech": { "type": "number" }
+            },
+            "additionalProperties": false
+          },
           "blurb": { "type": "string", "description": "" }
         },
-        "required": ["id", "name", "region", "x", "y", "pop", "income", "wage", "rent", "reg", "tax", "talent", "talentQ", "growth", "risk", "ind", "country"],
+        "required": [
+          "id",
+          "name",
+          "region",
+          "x",
+          "y",
+          "pop",
+          "income",
+          "wage",
+          "rent",
+          "reg",
+          "tax",
+          "talent",
+          "talentQ",
+          "growth",
+          "risk",
+          "ind",
+          "country",
+          "tal",
+          "blurb"
+        ],
         "additionalProperties": false
       },
       "description": ""
+    }
+  },
+  "$defs": {
+    "region": {
+      "type": "object",
+      "properties": { "name": { "type": "string" }, "short": { "type": "string" }, "blurb": { "type": "string" } },
+      "required": ["name", "short", "blurb"],
+      "additionalProperties": false,
+      "description": "A region: its name, a short label for tight spaces, and a one-line blurb"
     }
   }
 }

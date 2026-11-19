@@ -9,9 +9,12 @@
       "id": { "type": "string", "description": "Unique id" },
       "cat": { "enum": ["macro", "market", "operational", "regulatory", "opportunity", "stress", "rival"], "description": "" },
       "title": { "type": "string", "description": "" },
-      "text": { "type": "string", "description": "Body. Templates: {city} {office} {rival} {person} {ind} {region} {company}" },
+      "text": {
+        "type": "string",
+        "description": "Body. Templates: {city} {office} {region} {rival} {rivalCeo} {person} {role} {ind} {loan} {amount} {company}"
+      },
       "w": { "type": "number", "description": "Draw weight; 0 = only via chain or AI" },
-      "cond": { "type": "object", "description": "Conditions; all must hold. See Cond in engine/src/types.ts." },
+      "cond": { "$ref": "#/$defs/cond" },
       "bind": {
         "type": "array",
         "items": { "enum": ["office", "rival", "person", "loan", "region"], "description": "" },
@@ -26,7 +29,7 @@
           "properties": {
             "label": { "type": "string", "description": "Button text" },
             "hint": { "type": "string", "description": "The trade-off, shown before choosing" },
-            "req": { "type": "object", "description": "Conditions; all must hold. See Cond in engine/src/types.ts." },
+            "req": { "$ref": "#/$defs/req" },
             "out": {
               "type": "array",
               "items": {
@@ -46,14 +49,31 @@
                   },
                   "chain": {
                     "type": "array",
-                    "items": { "type": "array", "minItems": 2, "maxItems": 3 },
+                    "items": {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 3,
+                      "prefixItems": [
+                        { "type": "string", "description": "Event id" },
+                        { "type": "number", "description": "Delay in quarters" },
+                        { "type": "number", "description": "Probability" }
+                      ]
+                    },
                     "description": "Follow-up events: [id, delay in quarters, probability?]"
                   },
                   "boost": {
                     "type": "array",
                     "minItems": 3,
                     "maxItems": 3,
-                    "description": "[stat, threshold, weight multiplier] — a stat check that tilts the odds"
+                    "description": "[stat, threshold, weight multiplier] — a stat check that tilts the odds",
+                    "prefixItems": [
+                      {
+                        "enum": ["flag", "exec", "culture", "rep", "brand", "esg", "tech", "intel", "morale", "relation"],
+                        "description": "Stat tested (see boosted in engine/src/events.ts)"
+                      },
+                      {},
+                      { "type": "number", "description": "Weight multiplier" }
+                    ]
                   },
                   "tone": { "enum": ["good", "bad", "info"], "description": "News colour for this outcome; by default it follows luck" }
                 },
@@ -75,5 +95,122 @@
     },
     "required": ["id", "cat", "title", "text", "opts", "lesson"],
     "additionalProperties": false
+  },
+  "$defs": {
+    "cond": {
+      "type": "object",
+      "description": "Conditions; all must hold (Cond in engine/src/types.ts, read by evalCond in engine/src/events.ts). A key the engine does not know would be ignored, so it is an error.",
+      "properties": {
+        "minTurn": { "type": "number", "description": "Quarters played, at least" },
+        "maxTurn": { "type": "number", "description": "Quarters played, at most" },
+        "ind": {
+          "type": "array",
+          "items": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"] },
+          "description": "In one of these industries"
+        },
+        "notInd": {
+          "type": "array",
+          "items": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"] },
+          "description": "Primary industry not one of these"
+        },
+        "minRev": { "type": "number", "description": "Quarterly revenue, $K, at least" },
+        "maxRev": { "type": "number", "description": "Quarterly revenue, $K, at most" },
+        "minHead": { "type": "number", "description": "Headcount, at least" },
+        "maxHead": { "type": "number", "description": "Headcount, at most" },
+        "minOffices": { "type": "number", "description": "Offices, at least" },
+        "minRegions": { "type": "number", "description": "Regions, at least" },
+        "isPublic": { "type": "boolean", "description": "Listed (true) or private (false)" },
+        "hasDebt": { "type": "boolean", "description": "Owes more than $1K" },
+        "noDebt": { "type": "boolean", "description": "Owes no more than $1K" },
+        "minCashQ": { "type": "number", "description": "Cash as quarters of costs, at least" },
+        "maxCashQ": { "type": "number", "description": "Cash as quarters of costs, at most" },
+        "flag": { "type": "string", "description": "Flag set" },
+        "notFlag": { "type": "string", "description": "Flag not set" },
+        "macro": { "enum": ["recession", "boom", "highRates", "lowRates", "highInfl", "bear", "bull"], "description": "Economy is in this state" },
+        "notMacro": { "enum": ["recession", "boom"], "description": "Economy is not in this phase" },
+        "minCulture": { "type": "number", "description": "" },
+        "maxCulture": { "type": "number", "description": "" },
+        "minRep": { "type": "number", "description": "" },
+        "maxRep": { "type": "number", "description": "" },
+        "minEsg": { "type": "number", "description": "" },
+        "maxMorale": { "type": "number", "description": "Some office at or below this morale" },
+        "exec": { "enum": ["GM", "CFO", "CTO", "COO", "CMO", "CHRO"], "description": "Has this executive" },
+        "noExec": { "enum": ["GM", "CFO", "CTO", "COO", "CMO", "CHRO"], "description": "Lacks this executive" },
+        "hasRival": { "type": "boolean", "description": "The bound rival exists" },
+        "hostile": { "type": "number", "description": "Bound rival hostility, at least" },
+        "friendly": { "type": "number", "description": "Bound rival relation, at least" },
+        "inventory": { "type": "boolean", "description": "An industry that carries inventory" },
+        "capital": { "type": "boolean", "description": "An asset-heavy industry" },
+        "minShare": { "type": "number", "description": "Best office share, at least" },
+        "founderBelow": { "type": "number", "description": "Founder stake below" },
+        "profit": { "type": "boolean", "description": "Last quarter profitable" },
+        "loss": { "type": "boolean", "description": "Last quarter loss-making" },
+        "minTech": { "type": "number", "description": "" },
+        "minBrand": { "type": "number", "description": "" },
+        "investors": { "type": "boolean", "description": "Has outside shareholders" },
+        "invest": { "type": "string", "description": "Investment id that is active" },
+        "minAR": { "type": "number", "description": "Receivables as quarters of revenue, at least" },
+        "keyLeftWithin": { "type": "number", "description": "A key person left within this many quarters" }
+      },
+      "additionalProperties": false
+    },
+    "req": {
+      "type": "object",
+      "description": "Option requirements: the same conditions, plus cashS",
+      "properties": {
+        "minTurn": { "type": "number", "description": "Quarters played, at least" },
+        "maxTurn": { "type": "number", "description": "Quarters played, at most" },
+        "ind": {
+          "type": "array",
+          "items": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"] },
+          "description": "In one of these industries"
+        },
+        "notInd": {
+          "type": "array",
+          "items": { "enum": ["saas", "retail", "mfg", "logistics", "energy", "consulting", "biotech"] },
+          "description": "Primary industry not one of these"
+        },
+        "minRev": { "type": "number", "description": "Quarterly revenue, $K, at least" },
+        "maxRev": { "type": "number", "description": "Quarterly revenue, $K, at most" },
+        "minHead": { "type": "number", "description": "Headcount, at least" },
+        "maxHead": { "type": "number", "description": "Headcount, at most" },
+        "minOffices": { "type": "number", "description": "Offices, at least" },
+        "minRegions": { "type": "number", "description": "Regions, at least" },
+        "isPublic": { "type": "boolean", "description": "Listed (true) or private (false)" },
+        "hasDebt": { "type": "boolean", "description": "Owes more than $1K" },
+        "noDebt": { "type": "boolean", "description": "Owes no more than $1K" },
+        "minCashQ": { "type": "number", "description": "Cash as quarters of costs, at least" },
+        "maxCashQ": { "type": "number", "description": "Cash as quarters of costs, at most" },
+        "flag": { "type": "string", "description": "Flag set" },
+        "notFlag": { "type": "string", "description": "Flag not set" },
+        "macro": { "enum": ["recession", "boom", "highRates", "lowRates", "highInfl", "bear", "bull"], "description": "Economy is in this state" },
+        "notMacro": { "enum": ["recession", "boom"], "description": "Economy is not in this phase" },
+        "minCulture": { "type": "number", "description": "" },
+        "maxCulture": { "type": "number", "description": "" },
+        "minRep": { "type": "number", "description": "" },
+        "maxRep": { "type": "number", "description": "" },
+        "minEsg": { "type": "number", "description": "" },
+        "maxMorale": { "type": "number", "description": "Some office at or below this morale" },
+        "exec": { "enum": ["GM", "CFO", "CTO", "COO", "CMO", "CHRO"], "description": "Has this executive" },
+        "noExec": { "enum": ["GM", "CFO", "CTO", "COO", "CMO", "CHRO"], "description": "Lacks this executive" },
+        "hasRival": { "type": "boolean", "description": "The bound rival exists" },
+        "hostile": { "type": "number", "description": "Bound rival hostility, at least" },
+        "friendly": { "type": "number", "description": "Bound rival relation, at least" },
+        "inventory": { "type": "boolean", "description": "An industry that carries inventory" },
+        "capital": { "type": "boolean", "description": "An asset-heavy industry" },
+        "minShare": { "type": "number", "description": "Best office share, at least" },
+        "founderBelow": { "type": "number", "description": "Founder stake below" },
+        "profit": { "type": "boolean", "description": "Last quarter profitable" },
+        "loss": { "type": "boolean", "description": "Last quarter loss-making" },
+        "minTech": { "type": "number", "description": "" },
+        "minBrand": { "type": "number", "description": "" },
+        "investors": { "type": "boolean", "description": "Has outside shareholders" },
+        "invest": { "type": "string", "description": "Investment id that is active" },
+        "minAR": { "type": "number", "description": "Receivables as quarters of revenue, at least" },
+        "keyLeftWithin": { "type": "number", "description": "A key person left within this many quarters" },
+        "cashS": { "type": "number", "description": "Cash of at least this many × S" }
+      },
+      "additionalProperties": false
+    }
   }
 }
