@@ -7,7 +7,7 @@ import { POLICY, POLICIES } from './policyData';
 import { localPrice, marketUnits } from './market';
 import { news } from './mods';
 import type { ActionResult, GameState, IndustryId } from './types';
-import { clamp, money, pct } from './util';
+import { clamp, money, pct, turnLabel } from './util';
 
 const ok = (msg: string): ActionResult => ({ ok: true, msg });
 const no = (msg: string): ActionResult => ({ ok: false, msg });
@@ -70,7 +70,7 @@ export function guidanceTarget(g: GameState, level: keyof typeof GUIDANCE): numb
 export function setGuidance(g: GameState, level: keyof typeof GUIDANCE): ActionResult {
   const c = g.company;
   if (!c.cap.isPublic) return no('Only a listed company gives guidance.');
-  if (c.guidance && c.guidance.due > g.turn) return no(`You have guided for the year to ${money(c.guidance.target)}. The market will judge it at the end of the year.`);
+  if (c.guidance && c.guidance.due >= g.turn) return no(`You have guided for the year to ${money(c.guidance.target)}. The market will judge it at the end of the year.`);
   const target = guidanceTarget(g, level);
   c.guidance = { level, from: B.ttm(c, (q) => q.pnl.revenue), target, due: g.turn + 4 };
   return ok(`Guidance published: about ${money(target)} of revenue over the next four quarters.`);
@@ -96,15 +96,20 @@ export function setOptionPay(g: GameState, share: number): ActionResult {
   g.company.optionPay = share;
   return ok(share ? `${pct(share)} of salaries will be paid in stock options: less cash out, more shares in issue, people who stay longer.` : 'Salaries are paid in cash again.');
 }
+/** The least a company is valued at for pricing options: what an equity round never goes below, in today's money. */
+const OPTION_FLOOR = 400_000;
 /** Issue the options granted this quarter as new shares held by the employee pool. */
 export function grantOptions(g: GameState, value: number) {
   const cap = g.company.cap;
-  if (value <= 0 || g.company.valuation <= 0) return;
-  const n = value / (g.company.valuation / cap.shares);
+  if (value <= 0) return;
+  // Priced at the company's value, with a floor: near zero a quarter's grant handed employees the company many times
+  // over, and at exactly zero it issued nothing for pay already booked. One quarter's grant is at most a fifth of the company.
+  const price = Math.max(g.company.valuation, OPTION_FLOOR * g.macro.cpi, 4 * value) / cap.shares;
+  const n = value / price;
   cap.shares += n;
   const pool = cap.holders.find((h) => h.round === 'Options');
   if (pool) pool.shares += n;
-  else cap.holders.push({ name: 'Employee option pool', shares: n, round: 'Options', price: g.company.valuation / (cap.shares - n) });
+  else cap.holders.push({ name: 'Employee option pool', shares: n, round: 'Options', price });
 }
 
 // ── locking input prices with forward contracts
@@ -113,7 +118,7 @@ export function grantOptions(g: GameState, value: number) {
 export function lockInputs(g: GameState, quarters: number): ActionResult {
   const c = g.company;
   if (quarters !== 4 && quarters !== 8) return no('Contracts run for four or eight quarters.');
-  if (c.hedge && c.hedge.until > g.turn) return no(`Your inputs are locked until ${quarters} quarters from when you signed.`);
+  if (c.hedge && c.hedge.until > g.turn) return no(`Your inputs are already locked until ${turnLabel(c.hedge.until)}.`);
   const materials = c.quarters[c.quarters.length - 1]?.pnl.cogs ?? 0;
   const fee = materials * (quarters === 8 ? 0.012 : 0.008);
   const m = g.macro;

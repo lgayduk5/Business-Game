@@ -25,7 +25,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 
 - [x] 1. Core turn loop & determinism — `engine/src/turn.ts`, `util.ts` (RNG), `forecast.ts`, `history.ts` (`types.ts` as reference)
 - [x] 2. Accounting & finance — `books.ts`, `finance.ts` (loans, covenants, rating, equity, IPO), `exit.ts`
-- [ ] 3. Market, macro & modifiers — `market.ts`, `macro.ts`, `mechanics.ts`, `mods.ts`, `policyData.ts`
+- [x] 3. Market, macro & modifiers — `market.ts`, `macro.ts`, `mechanics.ts`, `mods.ts`, `policyData.ts`
 - [ ] 4. People / HR — `people.ts`
 - [ ] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
 - [ ] 6. Investments & M&A — `invest.ts`, `mna.ts`
@@ -96,3 +96,29 @@ Checks: lint clean · typecheck clean · 188/188 tests · `sim:ci` passes, no re
 - [Low] An IPO or take-private at zero value would go through at $0 (not seen in play). `takeLoan`/`drawRevolver`/`repayLoan`/`raiseEquity` accept NaN amounts (the UI never sends one).
 
 Checks: lint clean · typecheck clean · 193/193 tests · `playtest --quick` 528 games, no problems · `sim:ci` passes, no red flags.
+
+### 3. Market, macro & modifiers — done
+
+**Fixed** (regression tests: `tests/audit-market.test.ts`)
+- `mechanics.ts:102` `grantOptions` — options were priced at the last valuation with no floor. Near zero value,
+  employees got the company many times over: up to 98× the shares in one quarter (mfg, valuation $1,211); 464%
+  in a quarter in consulting. At exactly $0, nothing was issued for pay already booked as stock comp (321 of 18,768 probe
+  grants). The price is now `max(valuation, $400K×CPI, 4×grant)`, so one grant is at most a fifth of the company.
+  Normal grants are unchanged (median dilution about 0.55%). (Closes system 2 flag.)
+- `mechanics.ts:73` `setGuidance` — new guidance could replace the old one in the very quarter it was due, so a
+  missed promise was never judged (the UI hides the button; the engine API allowed it). `>` → `>=`.
+- `mechanics.ts:121` `lockInputs` — the refusal said "locked until N quarters from when you signed", using the
+  *new* term asked for; it now names the real end quarter.
+
+**Flags (not fixed)**
+- [Low] `turn.ts:285` — `stepGuidance` runs after `revalue`: the news says "the shares rose/fell" but the price
+  doesn't move that quarter, and the next revalue undoes 30% of the effect.
+- [Low] `actions.ts` `openOffice` — you can open your own store in a city that already has your franchise and both
+  run (`canFranchise` blocks the reverse order). → system 5
+- [Low] `market.ts:181,193` — in grid industries, attraction targets aren't scaled by `room`, so shares could
+  in theory sum above 1. Never seen: the max sum was 0.85.
+- [Low] Valuations under $1M are still diluted heavily (up to 25% a quarter, compounding), with no warning on the policies screen.
+- Checked and sound: share sums ≤ 1 (max 0.73 seen), demand never ≤ 0 or NaN, elasticity signs, price clamps,
+  macro stays in bounds over 2,000 quarters, modifier expiry, all six policies match their text, each per-quarter step runs once.
+
+Checks: lint clean · typecheck clean · 197/197 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems.
