@@ -59,7 +59,10 @@ try {
       .map((dl) => [...dl.childNodes].filter((n) => n.nodeType === 1 || n.textContent.trim()))
       .filter((cells) => cells.length !== 2).map((cells) => cells.map((n) => n.textContent.trim().slice(0, 30))));
     if (stray.length) errors.push(`${name}: a difficulty-card row has stray grid cells: ${JSON.stringify(stray.slice(0, 2))}`);
-    await shot('04a-setup-bars'); await tap('[data-a=wzNext]');
+    await shot('04a-setup-bars');
+    // a name typed and then one press of Next goes on (the name's re-render used to swallow that click)
+    await page.locator('#coname').fill('Smoke & Co'); await tap('[data-a=wzNext]');
+    if (!(await page.locator('.recap').count())) { errors.push(`${name}: Next after typing a company name did not go on (one press)`); await tap('[data-a=wzNext]'); }
     await shot('04b-recap'); await tap('[data-a=wzNext]');
     await page.waitForSelector('.shell');
     await shot('05-hq-start');

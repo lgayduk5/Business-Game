@@ -7,7 +7,7 @@ import {
 import { esc } from '../kit';
 import { on, render, toast, ui, type Tab } from '../store';
 import { modals, tabGate } from '../shell';
-import { afterTurn, overExtras } from './modals';
+import { afterTurn, menuExtras, overExtras } from './modals';
 import { lengthExtras, recapExtras, setupExtras, startHooks, titleExtras } from './title';
 import { hqExtras } from './hq';
 import { enter } from './files';
@@ -48,26 +48,47 @@ function begin(g: GameState) {
 
 const DAILY_NAMES = ['Daybreak & Co', 'First Light', 'Morning Star', 'Sunrise Holdings', 'Dawn Patrol', 'Early Bird', 'New Day Group'];
 let codeIn = '';
+// One go a day: the daily started on this device is remembered, and starting it again opens that game instead
+const DAILY = 'gc:daily';
+function dailyGame(date: string): string {
+  try {
+    const d = JSON.parse(localStorage.getItem(DAILY) ?? '{}') as { date?: string; id?: string };
+    return d.date === date && d.id ? d.id : '';
+  } catch {
+    return '';
+  }
+}
 titleExtras.push(() => `<button class="btn" data-a="campaign">Learn the ropes: five chapters</button><button class="btn" data-a="daily">Daily challenge</button><button class="btn" data-a="scenarios">Scenario challenges</button>`);
 modals.daily = () => {
   const date = localDate();
   const d = dailySetup(date);
   const f = FOUNDERS.find((x) => x.id === d.founder)!;
   const read = codeIn ? readScoreCode(codeIn) : null;
+  const played = dailyGame(date);
+  const save = played ? ui.saves.find((s) => s.gameId === played) : undefined;
   return `<div class="spread"><h2>Daily challenge</h2><button class="btn sm" data-a="close">Close</button></div>
     <p class="muted">${esc(date)}. Everyone who plays today gets the same world and the same luck. Ten years on Normal, Ironman: one go, then a grade and a score code to share.</p>
     <div class="kv" style="margin:12px 0"><div>Industry</div><div><b>${INDUSTRIES[d.industry].icon} ${esc(INDUSTRIES[d.industry].name)}</b></div>
       <div>Starting city</div><div><b>${esc(CITY[d.city].name)}</b></div><div>Founder</div><div><b>${esc(f.name)}</b></div></div>
-    <div class="row end"><button class="btn go" data-a="dailyStart">Start today's company</button></div>
+    <div class="row end">${!played ? `<button class="btn go" data-a="dailyStart" data-v="${esc(date)}">Start today's company</button>`
+      : save ? `<button class="btn go" data-a="loadSlot" data-slot="${esc(save.slot)}">Open today's company</button>` : '<p class="small muted">You have had today\'s go on this device.</p>'}</div>
     <div class="field" style="margin-top:18px"><label for="codein">Check a friend's score code</label><input id="codein" type="text" maxlength="40" value="${esc(codeIn)}" data-c="codeIn" autocomplete="off" placeholder="GC-…">
       <div class="help">${!codeIn ? 'Codes look like GC-261118-B72-12.4M-K3QX.' : !read ? 'That is not a score code.' : read.ok ? `${esc(read.date)}: grade <b>${read.grade}</b>, ${read.score} of 100, founder's stake worth ${esc(read.founderValue)}.` : 'The check letters do not match: the code was mistyped or changed.'}</div></div>`;
 };
 on('daily', () => { codeIn = ''; ui.modal = { kind: 'daily' }; render(); });
 on('codeIn', (d) => { codeIn = d.value ?? ''; render(); });
-on('dailyStart', () => {
-  const date = localDate();
+on('dailyStart', (d) => {
+  // the date on the screen: past midnight, localDate() is already the next day's (different) challenge
+  const date = d.v || localDate();
+  if (dailyGame(date)) return render();
   try {
-    begin(newGame(dailyOpts(date, DAILY_NAMES[Number(date.slice(-2)) % DAILY_NAMES.length])));
+    const g = newGame(dailyOpts(date, DAILY_NAMES[Number(date.slice(-2)) % DAILY_NAMES.length]));
+    try {
+      localStorage.setItem(DAILY, JSON.stringify({ date, id: g.id }));
+    } catch {
+      /* storage turned off: the one-go rule cannot be kept on this device */
+    }
+    begin(g);
   } catch (e) {
     toast(String((e as Error).message), true);
   }
@@ -80,6 +101,12 @@ on('copyCode', (d) => {
   } catch {
     toast('Select the code and copy it by hand.');
   }
+});
+
+// a daily kept going after it ended: the end screen is gone, so the menu keeps the code it ended with
+menuExtras.push((g) => {
+  const code = g?.continued ? scoreCode(g) : '';
+  return code ? `<p class="small" style="margin:0">Your score code: <b class="serif" style="user-select:all">${esc(code)}</b> <button class="btn sm" data-a="copyCode" data-v="${esc(code)}">Copy</button></p>` : '';
 });
 
 // ── rewind: the start of each of the last four quarters is kept, and the end screen can go back to one
@@ -117,7 +144,7 @@ on('rewind', async (d) => {
   }
 });
 
-// ── medals for scenarios and chapters: bronze for finishing, silver for the bonus, gold for Brutal
+// ── medals for scenarios and chapters: a star for finishing, one for the bonus and one for Brutal (bronze, silver, gold)
 
 const MEDAL = ['', 'Bronze', 'Silver', 'Gold'];
 function medals(): Record<string, number> {
@@ -162,9 +189,11 @@ overExtras.push((g) => {
     const stars = scenarioStars(g);
     const next = s.chapter ? CHAPTERS.find((x) => x.chapter === s.chapter! + 1) : undefined;
     out.push(`<div class="note"><b>${stars ? `${MEDAL[stars]} medal` : 'No medal this time'}</b>
-      <p class="small">Bronze for finishing. Silver: ${esc(bonusText(s.goal.kind, s.turns))}${s.chapter ? '' : ' Gold: finish the Brutal version.'}</p>
+      <p class="small">Bronze for finishing. Silver: ${esc(bonusText(s.goal.kind, s.turns))}${s.chapter ? '' : ' Or finish the Brutal version. Gold: both.'}</p>
       ${stars && next ? `<div class="row end"><button class="btn go sm" data-a="chapter" data-id="${next.id}">Next: chapter ${next.chapter}, ${esc(next.name)}</button></div>` : ''}</div>`);
   }
+  // a finished game loaded from a save (the page was closed at the end screen): its rewind points are still kept
+  if (g.status !== 'playing' && canRewind(g) && pointsFor !== g.id) void refreshPoints(g).then(() => points.length && ui.g === g && ui.modal?.kind === 'over' && render());
   if (g.status !== 'playing' && canRewind(g) && pointsFor === g.id && points.length) {
     out.push(`<div class="sheet" style="margin:12px 0"><h3 style="margin-top:0">Replay the last year</h3>
       <p class="small muted">Go back to the start of one of the last ${points.length} quarters and choose differently. The game is deterministic: only what you change will change.</p>
@@ -186,13 +215,13 @@ const scenarioCard = (s: ScenarioDef, m: Record<string, number>, locked = false)
 modals.scenarios = () => {
   const m = medals();
   return `<div class="spread"><h2>Scenario challenges</h2><button class="btn sm" data-a="close">Close</button></div>
-    <p class="muted">A prepared situation, one goal, and a deadline. Bronze for finishing, silver for the bonus, gold for the Brutal version.</p>
+    <p class="muted">A prepared situation, one goal, and a deadline. Bronze for finishing, silver for the bonus or for finishing the Brutal version, gold for the bonus on Brutal.</p>
     <div class="choices" style="grid-template-columns:1fr">${CHALLENGES.map((s) => scenarioCard(s, m)).join('')}</div>`;
 };
 modals.scenarioBrief = (_g, d) => {
   const s = CHALLENGES.find((x) => x.id === d.id)!;
   return `<h2>${esc(s.name)}</h2><p class="serif" style="font-size:1.08rem;line-height:1.5">${esc(s.brief)}</p>
-    <div class="note"><b>Goal</b><p>${esc(s.goal.text)}</p><p class="small muted">Silver: ${esc(bonusText(s.goal.kind, s.turns))} Gold: finish the Brutal version, where everything is harder.</p></div>
+    <div class="note"><b>Goal</b><p>${esc(s.goal.text)}</p><p class="small muted">Silver: ${esc(bonusText(s.goal.kind, s.turns))} Or finish the Brutal version, where everything is harder. Gold: both.</p></div>
     <div class="row end"><button class="btn" data-a="scenarios">Back</button><button class="btn" data-a="startScenario" data-id="${s.id}" data-v="brutal">Brutal version</button><button class="btn go" data-a="startScenario" data-id="${s.id}">Take the challenge</button></div>`;
 };
 on('scenarios', () => { ui.modal = { kind: 'scenarios' }; render(); });

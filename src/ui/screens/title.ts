@@ -105,7 +105,8 @@ export function wizard(): string {
       <div class="sheet"><div class="kv recap">${rows.map(([k, v, step]) => `<div><button class="linkish" data-a="wzGo" data-v="${step}">${esc(k)}</button></div><div>${v}</div>`).join('')}</div></div>
       <div class="note"><b>You start with ${money(cash)} in cash</b><p>${ind.start.ops + ind.start.sales + ind.start.rnd + ind.start.admin} people in ${esc(CITY[w.city].name)}${ind.start.debt ? `, ${money(ind.start.debt * 1000)} of debt` : ''}, an established customer base, and ${D.rivals} rivals.</p></div>`;
   }
-  const ready = [!!w.industry, !!w.city, !!w.founder, w.name.trim().length > 0, true][w.step];
+  // the name is checked on Next: typing does not re-render (see wzName), so a button disabled here would stay disabled
+  const ready = [!!w.industry, !!w.city, !!w.founder, true, true][w.step];
   return `<div class="wizard"><div class="steps">${STEPS.map((_, i) => `<i class="${i <= w.step ? 'on' : ''}"></i>`).join('')}</div>${body}
     <div class="bar"><button class="btn" data-a="wzBack">${w.step === 0 ? 'Cancel' : 'Back'}</button>
     <button class="btn go" data-a="wzNext" ${ready ? '' : 'disabled'}>${w.step === STEPS.length - 1 ? 'Start the company' : 'Next'}</button></div></div>`;
@@ -127,7 +128,9 @@ on('wzBars', () => {
   ui.wizard!.bars = !ui.wizard!.bars;
   render();
 });
-on('wzName', (d) => { ui.wizard!.name = d.value ?? ''; render(); });
+// No re-render: the name is stored when the field loses focus, which is on pressing Next, and a render then replaced
+// the button under the pointer and swallowed the click (Next had to be pressed twice after typing a name).
+on('wzName', (d) => { ui.wizard!.name = d.value ?? ''; });
 on('wzSeed', (d) => { ui.wizard!.seed = (d.value ?? '').trim() || 'seed'; });
 on('wzBack', () => {
   const w = ui.wizard!;
@@ -142,6 +145,7 @@ on('wzGo', (d) => {
 });
 on('wzNext', () => {
   const w = ui.wizard!;
+  if (w.step === 3 && !w.name.trim()) return toast('Give the company a name first.', true);
   if (w.step < STEPS.length - 1) {
     w.step++;
     return render(false);

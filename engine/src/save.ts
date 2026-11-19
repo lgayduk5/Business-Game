@@ -4,7 +4,8 @@
 // older save, bump SAVE_VERSION and add a step to MIGRATIONS that turns a version N state into N + 1.
 // Steps run in order, so a save from any older version is brought all the way forward. Additions that
 // only need a default value go in fillDefaults(), which runs after the steps on every load.
-import { CITY } from './content';
+import { CITY, INDUSTRIES } from './content';
+import { DIFF } from './difficulty';
 import type { GameState } from './types';
 
 export const SAVE_FORMAT = 'going-concern-save';
@@ -27,7 +28,25 @@ export function fromSaveFile(text: string): GameState {
   const f = data as Partial<SaveFile>;
   if (!f || f.format !== SAVE_FORMAT || typeof f.state !== 'object' || !f.state) throw new Error('That file is not a Going Concern save.');
   if ((f.v ?? 0) > SAVE_VERSION || ((f.state as GameState).v ?? 0) > SAVE_VERSION) throw new Error('This save comes from a newer version of the game. Update the app and try again.');
-  return migrate(f.state as GameState);
+  // a damaged or hand-edited file used to show the player a raw TypeError, or load and then fail at the first quarter
+  if (!playable(f.state as GameState)) throw new Error(DAMAGED);
+  try {
+    return migrate(f.state as GameState);
+  } catch {
+    throw new Error(DAMAGED);
+  }
+}
+
+const DAMAGED = 'That save file is damaged: parts of the game are missing or unreadable, so it cannot be loaded.';
+/** The parts of a game that every screen and every quarter read, of the right kind. */
+function playable(g: GameState): boolean {
+  const obj = (x: unknown) => typeof x === 'object' && x !== null && !Array.isArray(x);
+  const num = (x: unknown) => typeof x === 'number' && Number.isFinite(x);
+  const c = g.company;
+  return typeof g.id === 'string' && typeof g.seed === 'string' && num(g.rng) && num(g.turn) && num(g.maxTurns) && !!DIFF[g.difficulty]
+    && obj(g.settings) && obj(g.macro) && Array.isArray(g.rivals) && obj(c) && typeof c.name === 'string' && !!CITY[c.home] && !!INDUSTRIES[c.primary]
+    && obj(c.books) && obj(c.cap) && Array.isArray(c.quarters) && Array.isArray(c.loans) && Array.isArray(c.people) && Array.isArray(c.investments)
+    && Array.isArray(c.offices) && c.offices.every((o) => obj(o) && !!CITY[o.city] && !!INDUSTRIES[o.ind]);
 }
 
 type Step = (g: GameState) => void;

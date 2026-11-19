@@ -36,7 +36,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
 - [x] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
 - [x] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
-- [ ] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
+- [x] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
 - [ ] 15. Tooling, build & PWA — `vite.config.ts`, `index.html`, `public/manifest.webmanifest`, `scripts/*`, `engine/src/bots.ts`, CI
 - [ ] Final: regenerate balance reports, full verification (lint, typecheck, test, sim:ci, sim:check, build)
 
@@ -424,3 +424,29 @@ Checks: lint clean · typecheck clean · 282/282 tests · build OK · smoke pass
 - [Low] Action buttons stay visible after game over; clicking one just shows "The game is over."
 
 Checks: lint clean · typecheck clean · 292/292 tests · build OK · smoke passes (re-run by coordinator) · Playwright sweep of 19 states and about 13,000 tooltips: no NaN, undefined, double escapes or console errors.
+
+### 14. UI meta screens — done
+
+**Fixed** (regression tests: `tests/audit-ui-meta.test.ts`, 8 tests, all failing on the old code; plus a smoke check)
+- `title.ts:131,148` — after typing a company name, **the first click on Next did nothing** (the form re-rendered under the pointer),
+  and with the name cleared, Next stayed greyed out while typing. Name edits no longer re-render, and a blank name shows a toast. A new smoke check fails on the old code.
+- `modes.ts:80` — a Daily dialog left open past midnight (tested in Auckland) showed one company but started the next day's. Start now uses the date on screen.
+- `modes.ts:51,72` — the Daily card promises "Ironman: one go", but starting again made a fresh copy. The day's game is now remembered on the
+  device and the button becomes "Open today's company". (Closes system 10 flag.)
+- `engine/src/modes.ts:63`, `modes.ts:107` — after *Keep playing*, a Daily's score code was hidden for good. It now keeps the frozen code and shows it in the menu. (Closes system 9 flag.)
+- `modes.ts:192,218,224` — medal text claimed Brutal alone gives gold. It now matches the engine: Brutal or the bonus gives silver, both give gold. (Closes system 9 flag.)
+- `modes.ts:196` — a finished game reopened from a save lost its "Replay the last year" buttons.
+- `files.ts:102` — Delete removed a save in one tap; it now asks first.
+- `engine/src/save.ts:32-50` — damaged imports showed raw TypeError text, or opened a blank screen and **wrote a broken autosave**
+  (9 cases tried in the browser). Key fields are now checked, with a plain-language error. (Closes system 10 flag.)
+
+**Flags (not fixed)**
+- [Low] `advisor.ts:192` — the review can say "Weaker operations: EBITDA margin up from 3% to 9%" (contradictory wording).
+- [Low] `storage/saves.ts` `meta` — slot labels for finished games are a quarter late ("Y1 Q3" for a game that ended at Y1 Q2).
+- [Low] A continued Daily that later goes bankrupt replaces its code with F0 (engine).
+- [Low] Design: a Surprise-me seed can't be typed back in; a friend has to copy the recap.
+- [Low] Tutorial steps tick when an action is *tried*, even if refused; "−" on hiring counts.
+- [Low] The Daily code box and glossary search re-render on change, so the next click is lost (same pattern as the title fix).
+- [Low] Medals and the one-go record are lost if browser storage is off.
+
+Checks: lint clean · typecheck clean · 300/300 tests · build OK · smoke passes (phone, desktop, offline), re-run by coordinator.

@@ -59,7 +59,8 @@ const short = (x: number) => {
 
 /** e.g. GC-261118-B72-12.4M-K3QX: the date, the grade and score out of 100, what the founder's stake is worth, and four check letters. Daily games only. */
 export function scoreCode(g: GameState): string {
-  if (!g.rules.daily || g.status === 'playing') return '';
+  // a game kept going after it ended keeps the code it ended with (it was hidden until the game ended again)
+  if (!g.rules.daily || (g.status === 'playing' && !g.continued)) return '';
   // as the game stood when it ended: nothing done afterwards changes the code
   const fg = gameGrade(g);
   const broke = g.outcome?.how === 'bankrupt';

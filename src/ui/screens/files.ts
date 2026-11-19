@@ -98,9 +98,16 @@ on('loadSlot', async (d) => {
   enter(g);
   toast(`Loaded ${g.company.name}, ${turnLabel(g.turn)}.`);
 });
-on('delSlot', async (d) => {
-  await deleteSave(d.slot!);
+// one tap deleted a game for good, without asking (an Ironman game's only save among them)
+on('delSlot', (d) => {
+  const s = ui.saves.find((x) => x.slot === d.slot);
+  ui.modal = { kind: 'confirm', data: { title: `Delete ${s ? s.name : 'this save'}?`, text: `${s ? `The ${s.slot.startsWith('auto:') ? 'autosave' : 'save'} at ${s.label}` : 'It'} is removed from this device for good.`, yes: 'Delete', act: 'doDelSlot', arg: d.slot } };
+  render();
+});
+on('doDelSlot', async (d) => {
+  await deleteSave(d.arg!);
   await refreshSaves();
+  ui.modal = { kind: 'load' };
   render();
 });
 on('saveMenu', async () => {
