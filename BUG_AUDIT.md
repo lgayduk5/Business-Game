@@ -31,7 +31,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 6. Investments & M&A — `invest.ts`, `mna.ts`
 - [x] 7. Events — `events.ts`, `data/events/*.json`
 - [x] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
-- [ ] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
+- [x] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
 - [ ] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
 - [ ] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
 - [ ] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
@@ -279,3 +279,31 @@ Checks: lint clean · typecheck clean · 229/229 tests · `sim:ci` passes, no re
 - [Low] `data/events/rival.json` `rival_retaliation` says "your home market", but it may now name another city. → system 11
 
 Checks: lint clean · typecheck clean · 238/238 tests · `sim:ci` passes, no red flags (re-run by coordinator) · `playtest --quick` 528 games, no problems · about 140 probe games: no NaN, duplicate ids, shares over 1, unbalanced books, or offices left on dead rivals.
+
+### 9. Victory, modes, scenarios & advisor — done
+
+**Fixed** (regression tests: `tests/audit-victory.test.ts`, 10 tests)
+- `victory.ts:~234,253`, `types.ts:892`, `modes.ts:62`, `exit.ts:18`, `events.ts:680`, `modals.ts:82` — **the grade and
+  Daily score code were recomputed from live state after the game ended.** The full `FinalGrade` is now stored in
+  `outcome.final` at every ending (`checkEnd`, take-private, event endings), and the end screen and `scoreCode` read it
+  via `gameGrade()`. Older saves fall back to computing it. (Coordinator grep: no UI path still computes it live.)
+- `finance.ts` (7 actions), `mechanics.ts` (6, including `openFranchise`, which put $124K in cash) — still ran after the
+  end (a buyback moved C39 → C46). They now refuse; continued games are unaffected. With systems 5, 6 and 8, every player action is now guarded.
+- `newgame.ts:56` `startStakeValue` (also `scenarios.ts:209`) — energy in Lagos could start with a stake worth $0 to a few
+  hundred thousand dollars, giving growth multiples like ×18,000,000 and turning a B64 into a win (should be about C46). The
+  baseline now has a floor of ⅓ of book equity. Across 57,120 starts the floor applies **only** to energy in Lagos (402
+  starts); ⅓ was chosen so no other start changes. (Closes system 5 flag.)
+- `victory.ts:269` — a scenario the player kept going after was judged on the challenge again: it ended a quarter later and could flip to "Challenge failed". (Closes system 1 flag.)
+
+**Flags (not fixed)**
+- [High] `finance.ts:241` `pipelineValue` — every staged project is valued at chance × 40 × cost (a platform is worth about 23× its
+  whole cost, a moonshot about 7×). Starting 6 in the last quarter of a Sprint: consulting C48 (a loss) → A70, retail
+  C57 → A84, for about $0.2–1.4M. Mid-game this can trigger **Titan** (consulting $238M → $940M). The value also vanishes
+  when the project succeeds. `docs/decisions.md` #46 covers drugs only. **Design decision needed** (raised by systems 6 and 9).
+- [Low] Medal text says "gold for the Brutal version", but gold needs Brutal *plus* the bonus; Brutal without the bonus gives silver (`modes.ts:101` vs `src/ui/screens/modes.ts`). → system 14
+- [Low] `victory.ts:213` — the comment says 4× the typical rival is full marks; the code needs about 5.7×.
+- [Low] Keeping a Daily going hides its score code until the game ends again.
+- [Low] `rivals.ts` `sellCompany` — the Daily code values the stake at valuation, not at the sale price.
+- [Low] Phase III shows "$50M" while the bar is inflation-adjusted; the `rate_shock` deadline branch is dead code.
+
+Checks: lint clean · typecheck clean · 248/248 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems · 44-game fuzz of advisor/grade/scenario text: no NaN or crashes.

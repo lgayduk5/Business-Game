@@ -10,6 +10,7 @@ import { companyHeadcount, cutPlan, exec, headcount, personLeaves } from './peop
 import type { Cond, EventCtx, EventDef, EventOption, Fx, GameState, Office, Outcome, PendingEvent, RegionId, Role, Scope } from './types';
 import { ROLES } from './types';
 import { chance, clamp, money, nextUid, rand, stochRound, weighted } from './util';
+import { settleOutcome } from './victory';
 
 const lastQ = (g: GameState) => g.company.quarters[g.company.quarters.length - 1];
 /** The yardstick for event money: roughly one quarter of revenue, with a floor for young companies. */
@@ -676,6 +677,7 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   if (g.status !== 'playing') { // that choice ended the game (a sale, a takeover), a kept-going one included
     g.continued = false;
     g.queue = [];
+    settleOutcome(g);
   }
   g.attribution.luck += luck;
   if (Math.abs(luck) > 0.04 * scaleS(g)) g.attribution.notes.push({ turn: g.turn, kind: 'luck', text: `${title}: ${text}`, value: luck });

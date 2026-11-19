@@ -6,7 +6,7 @@ import { DIFF, SPRINT_BARS, SPRINT_OFF } from './difficulty';
 import { namedShares } from './market';
 import { news } from './mods';
 import { checkScenario } from './scenarios';
-import type { Difficulty, GameState, IndustryId, VictoryId } from './types';
+import type { Difficulty, FinalGrade, GameState, IndustryId, VictoryId } from './types';
 import { clamp, money, pct } from './util';
 
 export interface VictoryStatus { id: VictoryId; name: string; desc: string; progress: number; detail: string; met: boolean; streak: number; need: number; enabled: boolean }
@@ -116,7 +116,6 @@ const WIN_TEXT: Record<VictoryId, (n: string) => string> = {
   lastStanding: (n) => `Every rival that stood against ${n} has failed or been bought. The field is yours.`,
 };
 
-export interface FinalGrade { grade: string; label: string; score: number; won: boolean; rank: number; companies: number; multiple: number; market: number; goal: number; rows: [string, string, number][] }
 /** A, B, C, D and F, as players expect from school (there is no E). */
 const GRADES: [number, string, string][] = [
   [75, 'A', 'an outstanding run'], [60, 'B', 'a strong finish'], [45, 'C', 'a solid company'], [25, 'D', 'survived, just'], [-1, 'F', 'little to show for it'],
@@ -147,7 +146,7 @@ export const SPRINT_MIN_REVENUE = 1.5;
  */
 const stakeGrew = (sprint: boolean, multiple: number, vsMarket: number) =>
   sprint ? multiple >= SPRINT_MIN_GROWTH || (multiple >= 0.5 && vsMarket >= 2) : multiple >= GRADE_MIN_GROWTH;
-/** Founder wealth at the start, in the game's opening money (for older saves, estimated from the opening valuation). */
+/** Founder wealth at the start, in the game's opening money (newgame.ts startStakeValue; for older saves, estimated from the opening valuation). */
 const startWealth = (g: GameState) => g.counters.startFounderValue ?? (g.counters.startValuation ?? 1) * 0.8;
 
 /**
@@ -224,11 +223,22 @@ export function finalGrade(g: GameState): FinalGrade {
   if (capped) [, grade, label] = bands.find(([, k]) => k === 'C')!;
   const x = (n: number) => (n >= 10 ? n.toFixed(0) : n.toFixed(1)) + '×';
   return {
-    grade, label, score, won: (grade === 'A' || grade === 'B'), rank, companies: alive.length + 1, multiple, goal, market,
+    grade, label, score, won: (grade === 'A' || grade === 'B'), rank, companies: alive.length + 1, multiple, goal, market, founderValue: c.valuation * founderStake(c),
     rows: [[`${byGrowth ? `Rank by growth (your business ${x(myGrowth)} in real terms)` : 'Rank by value'}: ${rank} of ${alive.length + 1}`, `${rankPts} of 40`, rankPts], [`Your stake grew ${x(multiple)} in real terms; the typical rival ${x(market)}`, `${wealthPts.toFixed(0)} of 35`, wealthPts],
       [`Closest goal reached ${pct(goal)}`, `${goalPts.toFixed(0)} of 25`, goalPts],
       ...(capped ? [[`Not enough growth for an A or B (${sprint ? 'stake 1.25× and revenue 1.5×' : 'stake 3× and revenue 2×'} in real terms)`, 'grade stops at C', 0] as [string, string, number]] : [])],
   };
+}
+
+/**
+ * The grade of a finished game, as it stood when the game ended. It is frozen in the outcome because it is worked out
+ * from the company's state (cash, shares, valuation), which must not keep moving the result after the end; saves from
+ * before it was frozen have none and work it out again.
+ */
+export const gameGrade = (g: GameState): FinalGrade => g.outcome?.final ?? finalGrade(g);
+/** Freeze the result of a game that has just ended (called wherever a game can end). */
+export function settleOutcome(g: GameState) {
+  if (g.status !== 'playing' && g.outcome && !g.outcome.final) g.outcome.final = finalGrade(g);
 }
 
 /** What a winning grade takes, in words, for the end screen. */
@@ -242,6 +252,10 @@ export function gradeRule(sprint: boolean): string {
 
 export function checkEnd(g: GameState) {
   if (g.status !== 'playing') return;
+  judge(g);
+  settleOutcome(g);
+}
+function judge(g: GameState) {
   const c = g.company;
   if (c.negCashTurns >= 2 && !g.settings.sandbox.noBankruptcy) {
     g.status = 'lost';
@@ -250,8 +264,9 @@ export function checkEnd(g: GameState) {
     news(g, `${c.name} has filed for bankruptcy.`, 'bad');
     return;
   }
-  // checked after the quarter is counted, so 'survive N quarters' means N completed quarters
-  if (g.mode === 'scenario' && checkScenario(g, g.turn + 1)) return;
+  // checked after the quarter is counted, so 'survive N quarters' means N completed quarters; not once the player
+  // kept going after completing it (the challenge is over: it would end the game again, or fail it, a quarter later)
+  if (g.mode === 'scenario' && !g.continued && checkScenario(g, g.turn + 1)) return;
   for (const v of victoryStatus(g)) {
     g.streaks[v.id] = v.met ? (g.streaks[v.id] ?? 0) + 1 : 0;
     if (v.enabled && v.met && g.streaks[v.id] >= v.need && !g.continued && g.mode !== 'scenario') {
@@ -271,7 +286,7 @@ export function checkEnd(g: GameState) {
       : (fg.rank === 1 ? `worth more than any rival` : `the ${nth} most valuable of ${fg.companies} companies`);
     g.status = fg.won ? 'won' : 'lost';
     g.outcome = {
-      kind: fg.won ? 'won' : 'lost', how: fg.won ? 'time' : 'outlasted', title: `Grade ${fg.grade}: ${fg.label}`, turn: g.turn, grade: fg.grade,
+      kind: fg.won ? 'won' : 'lost', how: fg.won ? 'time' : 'outlasted', title: `Grade ${fg.grade}: ${fg.label}`, turn: g.turn, grade: fg.grade, final: fg,
       text: `After ${years} year${years === 1 ? '' : 's'}, ${c.name} is ${where}. Your stake grew ${fg.multiple >= 10 ? fg.multiple.toFixed(0) : fg.multiple.toFixed(1)}× in real terms, and you own ${pct(founderStake(c), 0)} of the company.`,
     };
     news(g, `${years} years on: grade ${fg.grade}.`, fg.won ? 'good' : 'info');

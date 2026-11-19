@@ -888,7 +888,12 @@ export interface Outcome2 {
   text: string;
   turn: number;
   grade?: string; // A, B, C, D or F, for games that run to the end
+  /** The grade and score as they stood when the game ended, so nothing done afterwards can change them (absent in older saves). */
+  final?: FinalGrade;
 }
+
+/** How a finished game is judged (victory.ts finalGrade). */
+export interface FinalGrade { grade: string; label: string; score: number; won: boolean; rank: number; companies: number; multiple: number; market: number; goal: number; rows: [string, string, number][]; founderValue: number }
 
 export interface Settings {
   victories: Record<VictoryId, boolean>;

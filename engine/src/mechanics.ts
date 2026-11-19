@@ -11,6 +11,8 @@ import { clamp, money, pct, turnLabel } from './util';
 
 const ok = (msg: string): ActionResult => ({ ok: true, msg });
 const no = (msg: string): ActionResult => ({ ok: false, msg });
+/** Player actions refuse once the game has ended (a kept-going game still plays). */
+const over = (g: GameState) => (g.status === 'playing' || g.continued ? undefined : no('The game is over.'));
 const annualRevenue = (g: GameState) => B.ttm(g.company, (q) => q.pnl.revenue) / g.macro.cpi;
 
 // ── company policies: slots open as the company grows; one change a year
@@ -24,6 +26,8 @@ export function policySlots(g: GameState): number {
 export const policyWait = (g: GameState) => Math.max(0, (g.company.policyChanged ?? -99) + 4 - g.turn);
 
 export function adoptPolicy(g: GameState, id: string, replace?: string): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   const list = (c.policies ??= []);
   if (!POLICY[id]) return no('No such policy.');
@@ -40,6 +44,8 @@ export function adoptPolicy(g: GameState, id: string, replace?: string): ActionR
   return ok(`${POLICY[id].name} is now company policy.`);
 }
 export function dropPolicy(g: GameState, id: string): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   if (!c.policies?.includes(id)) return no('That policy is not in force.');
   if (policyWait(g) > 0) return no(`Policies can change once a year. Wait ${policyWait(g)} more quarter${policyWait(g) === 1 ? '' : 's'}.`);
@@ -68,6 +74,8 @@ export function guidanceTarget(g: GameState, level: keyof typeof GUIDANCE): numb
   return rev * (1 + Math.max(-0.1, trailingGrowth(g) + GUIDANCE[level].growth));
 }
 export function setGuidance(g: GameState, level: keyof typeof GUIDANCE): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   if (!c.cap.isPublic) return no('Only a listed company gives guidance.');
   if (c.guidance && c.guidance.due >= g.turn) return no(`You have guided for the year to ${money(c.guidance.target)}. The market will judge it at the end of the year.`);
@@ -92,6 +100,8 @@ export function stepGuidance(g: GameState) {
 
 export const OPTION_LEVELS = [0, 0.1, 0.2];
 export function setOptionPay(g: GameState, share: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   if (!OPTION_LEVELS.includes(share)) return no('Choose none, 10% or 20%.');
   g.company.optionPay = share;
   return ok(share ? `${pct(share)} of salaries will be paid in stock options: less cash out, more shares in issue, people who stay longer.` : 'Salaries are paid in cash again.');
@@ -116,6 +126,8 @@ export function grantOptions(g: GameState, value: number) {
 
 /** Lock today's commodity, energy and cloud prices for four or eight quarters, for a fee each quarter. */
 export function lockInputs(g: GameState, quarters: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   if (quarters !== 4 && quarters !== 8) return no('Contracts run for four or eight quarters.');
   if (c.hedge && c.hedge.until > g.turn) return no(`Your inputs are already locked until ${turnLabel(c.hedge.until)}.`);
@@ -151,6 +163,8 @@ export function canFranchise(g: GameState, city: string, ind: IndustryId = 'reta
   return '';
 }
 export function openFranchise(g: GameState, city: string): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const why = canFranchise(g, city);
   if (why) return no(why);
   const c = g.company;

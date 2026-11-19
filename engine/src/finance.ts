@@ -159,7 +159,12 @@ export function refreshLoanOffers(g: GameState) {
   g.loanOffers = offers.filter((o) => o.max > 50_000);
 }
 
+/** Player actions refuse once the game has ended (a kept-going game still plays): the grade is judged on the company as it stood. */
+const over = (g: GameState): ActionResult | undefined => (g.status === 'playing' || g.continued ? undefined : { ok: false, msg: 'The game is over.' });
+
 export function takeLoan(g: GameState, offerId: string, amount: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   const o = g.loanOffers.find((x) => x.id === offerId);
   if (!o) return { ok: false, msg: 'That offer has expired.' };
@@ -180,6 +185,8 @@ export function takeLoan(g: GameState, offerId: string, amount: number): ActionR
 }
 
 export function drawRevolver(g: GameState, amount: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const l = g.company.loans.find((x) => x.kind === 'revolver');
   if (!l) return { ok: false, msg: 'No credit line.' };
   if (!Number.isFinite(amount)) return { ok: false, msg: 'That is not a valid amount.' };
@@ -191,6 +198,8 @@ export function drawRevolver(g: GameState, amount: number): ActionResult {
 }
 
 export function repayLoan(g: GameState, loanId: string, amount: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   const l = c.loans.find((x) => x.id === loanId);
   if (!l) return { ok: false, msg: 'Loan not found.' };
@@ -439,6 +448,8 @@ export function refreshEquityOffer(g: GameState) {
 }
 
 export function raiseEquity(g: GameState, pct: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   const cap = c.cap;
   const of = g.equityOffer;
@@ -484,6 +495,8 @@ export function ipoChecklist(g: GameState): { ok: boolean; items: { label: strin
 }
 
 export function startIPO(g: GameState): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   if (!ipoChecklist(g).ok) return { ok: false, msg: 'Not ready to list yet.' };
   c.cap.ipoStage = 1;
@@ -534,6 +547,8 @@ export function stepIPO(g: GameState) {
 }
 
 export function followOn(g: GameState, pct: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   const cap = c.cap;
   if (!cap.isPublic) return { ok: false, msg: 'Only listed companies can sell shares to the public.' };
@@ -570,6 +585,8 @@ export function retireShares(cap: CapTable, n: number): number {
 }
 
 export function buyBack(g: GameState, amount: number): ActionResult {
+  const ended = over(g);
+  if (ended) return ended;
   const c = g.company;
   const cap = c.cap;
   if (!cap.isPublic) return { ok: false, msg: 'Buybacks need a public market for your shares.' };

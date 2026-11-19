@@ -15,7 +15,7 @@ Object.assign(SPECIALS, {
     const fg = finalGrade(g);
     g.status = fg.won ? 'won' : 'lost';
     g.outcome = {
-      kind: fg.won ? 'won' : 'lost', how: 'exit', title: `Exit, grade ${fg.grade}: ${fg.label}`, turn: g.turn, grade: fg.grade,
+      kind: fg.won ? 'won' : 'lost', how: 'exit', title: `Exit, grade ${fg.grade}: ${fg.label}`, turn: g.turn, grade: fg.grade, final: fg,
       text: `A buyout fund has bought ${c.name} for ${money(price)}. Your ${Math.round(founderStake(c) * 100)}% came to ${money(price * founderStake(c))}. Selling is a fine way to finish; the grade says how good a finish it was.`,
     };
     news(g, `${c.name} has agreed to be taken private for ${money(price)}.`, 'good');

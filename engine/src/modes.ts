@@ -1,6 +1,6 @@
 // Ways to play (review wave 3): the daily challenge and its shareable score code, rewinding, and scenario stars.
 import { CITIES, FOUNDERS, IND_LIST, SCENARIOS } from './content';
-import { finalGrade } from './victory';
+import { gameGrade } from './victory';
 import { scenarioDef } from './scenarios';
 import type { Difficulty, FounderId, GameState, IndustryId, NewGameOpts } from './types';
 import { hashSeed, turnLabel } from './util';
@@ -58,11 +58,12 @@ const short = (x: number) => {
 /** e.g. GC-261118-B72-12.4M-K3QX: the date, the grade and score out of 100, what the founder's stake is worth, and four check letters. Daily games only. */
 export function scoreCode(g: GameState): string {
   if (!g.rules.daily || g.status === 'playing') return '';
-  const fg = finalGrade(g);
+  // as the game stood when it ended: nothing done afterwards changes the code
+  const fg = gameGrade(g);
   const broke = g.outcome?.how === 'bankrupt';
   const grade = broke ? 'F' : fg.grade;
   const score = broke ? 0 : Math.round(fg.score);
-  const body = `${g.rules.daily.slice(2).replace(/-/g, '')}-${grade}${score}-${short(broke ? 0 : g.company.valuation * founderStake(g.company))}`;
+  const body = `${g.rules.daily.slice(2).replace(/-/g, '')}-${grade}${score}-${short(broke ? 0 : fg.founderValue)}`;
   return `GC-${body}-${check(body)}`;
 }
 

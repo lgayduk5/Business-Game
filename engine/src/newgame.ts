@@ -1,5 +1,5 @@
 // World and company generation.
-import { emptyBooks, emptyPnL, emptyTags, ttm } from './books';
+import { emptyBooks, emptyPnL, emptyTags, equityOf, ttm } from './books';
 import { CITIES, CITY, FOUNDER, INDUSTRIES, NAMES, REGION_LIST } from './content';
 import { enterpriseValue, refreshEquityOffer, refreshLoanOffers, revalue, rivalEV } from './finance';
 import { newMacro } from './macro';
@@ -10,7 +10,7 @@ import { generateRivals } from './rivals';
 import { seedHistory } from './history';
 import { DIFF, SPRINT_OFF } from './difficulty';
 import { SAVE_VERSION } from './save';
-import type { ExecRole, GameState, IndustryId, NewGameOpts, Office, Person, RegionId, RegionPolicy, VictoryId } from './types';
+import type { Company, ExecRole, GameState, IndustryId, NewGameOpts, Office, Person, RegionId, RegionPolicy, VictoryId } from './types';
 import { clamp, hashSeed, nextUid, normal, pick, randInt } from './util';
 
 export function makePerson(g: GameState, role: ExecRole, office?: Office, quality = 0): Person {
@@ -45,6 +45,15 @@ export function recordStartEV(g: GameState) {
   g.counters.startEV = enterpriseValue(g.company) / g.macro.cpi;
   for (const r of g.rivals) g.counters[`rivalStartEV${r.id}`] = rivalEV(r) / g.macro.cpi;
 }
+
+/**
+ * What the founder's stake is worth at the start: the base the grade measures its growth from. Never less than a third
+ * of its book value, because a start the market values at almost nothing (energy in Lagos, where the founding project
+ * loan is close to what the business is worth, starts at $0 in some seeds) made ordinary growth a million-fold multiple
+ * and the grade's wealth points a free pass. Every other start is valued above a third of its book value, so nothing
+ * changes there.
+ */
+export const startStakeValue = (c: Company) => (c.cap.founder / c.cap.shares) * Math.max(c.valuation, equityOf(c.books) / 3);
 
 /** A Sprint game lasts ten years. */
 export const SPRINT_QUARTERS = 40;
@@ -119,7 +128,7 @@ export function newGame(opts: NewGameOpts): GameState {
   else seedHistory(g);
   g.counters.startValuation = c.valuation;
   g.counters.startRevenue = ttm(c, (q) => q.pnl.revenue);
-  g.counters.startFounderValue = c.valuation * (c.cap.founder / c.cap.shares);
+  g.counters.startFounderValue = startStakeValue(c);
   for (const r of g.rivals) g.counters[`rivalStart${r.id}`] = r.valuation;
   recordStartEV(g);
   g.counters.lastSentiment = g.macro.sentiment;

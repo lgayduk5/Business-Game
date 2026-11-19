@@ -7,7 +7,7 @@ import { marketUnits } from './market';
 import { founderStake, ipoChecklist } from './finance';
 import { startInvestment } from './invest';
 import { news } from './mods';
-import { newGame, recordStartEV } from './newgame';
+import { newGame, recordStartEV, startStakeValue } from './newgame';
 import { seedHistory } from './history';
 import type { GameState, NewGameOpts, ScenarioDef } from './types';
 import { money, pct } from './util';
@@ -206,7 +206,7 @@ export function startScenario(id: string, name: string, opts: { brutal?: boolean
   g.counters.scenarioEnd = s.turns;
   g.counters.startValuation = g.company.valuation;
   g.counters.startRevenue = B.ttm(g.company, (q) => q.pnl.revenue);
-  g.counters.startFounderValue = g.company.valuation * (g.company.cap.founder / g.company.cap.shares);
+  g.counters.startFounderValue = startStakeValue(g.company);
   for (const r of g.rivals) g.counters[`rivalStart${r.id}`] = r.valuation;
   recordStartEV(g);
   g.counters.scenarioStartValuation = g.company.valuation;
