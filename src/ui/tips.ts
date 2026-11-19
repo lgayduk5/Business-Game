@@ -10,7 +10,8 @@ const last = (g: GameState) => g.company.quarters[g.company.quarters.length - 1]
 export function runway(g: GameState): { quarters: number; burn: number } {
   const q = last(g);
   const burn = q ? -(q.cf.cfo + q.cf.capex) : 0;
-  return { burn, quarters: burn > 0 ? g.company.books.cash / burn : Infinity };
+  // no fewer than none: already overdrawn is "0.0 quarters of cash left", not "−0.9"
+  return { burn, quarters: burn > 0 ? Math.max(0, g.company.books.cash / burn) : Infinity };
 }
 
 export function cashTip(g: GameState): string {

@@ -34,7 +34,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 9. Victory, modes, scenarios & advisor — `victory.ts`, `modes.ts`, `scenarios.ts`, `winrates.ts`, `advisor.ts`
 - [x] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
 - [x] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
-- [ ] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
+- [x] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
 - [ ] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
 - [ ] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
 - [ ] 15. Tooling, build & PWA — `vite.config.ts`, `index.html`, `public/manifest.webmanifest`, `scripts/*`, `engine/src/bots.ts`, CI
@@ -372,3 +372,28 @@ Checks: lint clean · typecheck clean · 255/255 tests · `npm run build` passes
 - [Low] `exhire_ceo` says "out of your markets for a year", but the effect is a one-off −15% to the rival's share, hitting all its offices if you share no city.
 
 Checks: lint clean · typecheck clean · 279/279 tests · `sim:ci` passes, no red flags.
+
+### 12. UI core — done
+
+(The run was interrupted by a usage limit and resumed.)
+
+**Fixed** (regression tests: `tests/audit-ui-core.test.ts`; a browser check was added to `scripts/ui-smoke.mjs`)
+- `src/ui/store.ts:145` — **keyboard controls behind a dialog stayed live.** When the quarterly report opened, focus stayed on
+  *End quarter*, so pressing Enter or Space played another quarter underneath the report. Two quick Enters ran the turn twice,
+  doubling the autosave, rewind snapshots and sounds. Controls are now inert while a quarter resolves or behind an open
+  `.modal` (tooltip glossary links still work). Confirmed in Playwright (turn 1 → 2 with 2 worker posts before the fix; stays at 1 after). The new smoke check fails on the old code.
+- `store.ts:161` — moving a slider while a quarter was resolving showed "Price set to 106%…" toasts, then the change was lost when the result arrived. Input is now ignored while busy.
+- `src/ui/tips.ts:14` `runway` — with cash below zero, HQ said "-0.9 quarters of cash left." Clamped at 0.
+- `src/ui/kit.ts:135` `logo` — the monogram cut an emoji in half (broken glyph in the header for a name starting with an emoji).
+- Browser sweep: 3 industries plus a crafted save with an XSS payload in every name-like field, 36 screens, about 1,100 tooltips. **No
+  injection**, no NaN/undefined, no console errors. After game over, browsing shows no "The game is over." toasts. No `eval`/`new Function` anywhere.
+
+**Flags (not fixed)**
+- [Low] `hq.ts:62` — the seed is escaped twice, so a seed containing `&` or `'` shows as `&amp;`. → system 13
+- [Low] `files.ts` `saveNow` skips saving while busy, so reloading for an update or closing mid-quarter loses decisions made in the 0.7 s before *End quarter*.
+- [Low] Dialogs don't take keyboard focus (accessibility).
+- [Low] `kit.ts` `delta` points the wrong way for a negative base (only used for revenue today); `lineChart`/`spark` would write NaN into the SVG if the data had NaN (not seen).
+- [Low] `engine/src/util.ts` `money` shows "−$0" for tiny negatives and "$1000K" at rounding edges.
+- [Low] `update.ts` — the HTML is fetched network-first, so the "new version" prompt can appear after the page already loaded the new build.
+
+Checks: lint clean · typecheck clean · 282/282 tests · build OK · smoke passes (phone, desktop, offline), re-run by coordinator.

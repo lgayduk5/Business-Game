@@ -139,6 +139,10 @@ export function initEvents() {
     }
     hideTip();
     if (a && !(a as HTMLButtonElement).disabled) {
+      // While a quarter resolves, and behind an open dialog, nothing can be pressed. The mouse cannot reach those
+      // controls, but the keyboard can: focus stays on End quarter, so Enter played another quarter under the report.
+      const modal = document.querySelector('#app .modal');
+      if (ui.busy || (modal && !modal.contains(a) && !inTip)) return;
       const fn = handlers[a.dataset.a!];
       mark('act:' + a.dataset.a);
       if (a.dataset.a === 'tab') mark('tab:' + a.dataset.v);
@@ -154,6 +158,7 @@ export function initEvents() {
   document.addEventListener('change', (e) => {
     const t = e.target as HTMLInputElement;
     const name = t.dataset?.c;
+    if (ui.busy) return; // the quarter's result replaces the game, so a change made now would be silently lost
     if (name) mark('act:' + name);
     if (name && handlers[name]) afterHandler(handlers[name]({ ...t.dataset, value: t.value } as DOMStringMap, t));
   });

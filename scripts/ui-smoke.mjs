@@ -67,6 +67,13 @@ try {
       await tap('[data-a=endTurn]');
       await page.waitForSelector('.modal', { timeout: 15000 });
       if (i === 0) await shot('06-report');
+      // keyboard: End quarter keeps focus behind the report; Enter there must not play another quarter
+      if (i === 0) {
+        const turn = () => page.evaluate(() => window.__gc.ui.g.turn);
+        const t = await turn();
+        await page.locator('[data-a=endTurn]').focus(); await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+        if ((await turn()) !== t) errors.push(`${name}: Enter on End quarter behind the report played another quarter`);
+      }
       // work through whatever modals come up (report, then any events)
       for (let k = 0; k < 8 && (await page.locator('.modal').count()); k++) {
         const btn = page.locator('.modal [data-a=reportDone], .modal [data-a=choose], .modal [data-a=eventDone], .modal [data-a=close]').first();

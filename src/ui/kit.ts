@@ -131,7 +131,9 @@ function hash(str: string): number {
 export function logo(name: string, color: string, size = 28): string {
   const h = hash(name);
   const words = name.replace(/&/g, ' ').split(/\s+/).filter(Boolean);
-  const mono = (words.length > 1 ? words[0][0] + words[1][0] : name.slice(0, 2)).toUpperCase();
+  // by code point, so a name starting with an emoji does not split it into a broken half
+  const chars = (s: string) => Array.from(s);
+  const mono = (words.length > 1 ? chars(words[0])[0] + chars(words[1])[0] : chars(name).slice(0, 2).join('')).toUpperCase();
   const shapes = [
     '<circle cx="20" cy="20" r="17"/>',
     '<rect x="4" y="4" width="32" height="32" rx="3"/>',
