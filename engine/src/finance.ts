@@ -518,6 +518,7 @@ export function stepIPO(g: GameState) {
   cap.isPublic = true;
   cap.ipoTurn = g.turn;
   cap.ipoStage = 0;
+  cap.lastRoundTurn = g.turn; // the listing is an offering: a follow-on waits like any other
   cap.premium = clamp(discount * (1 + pop), 0.5, 1.8);
   cap.price = intrinsic * cap.premium;
   cap.lastPost = cap.price * cap.shares;
@@ -532,6 +533,7 @@ export function followOn(g: GameState, pct: number): ActionResult {
   const c = g.company;
   const cap = c.cap;
   if (!cap.isPublic) return { ok: false, msg: 'Only listed companies can sell shares to the public.' };
+  if (!(cap.price > 0)) return { ok: false, msg: 'Your shares trade at nothing: new ones would raise no money.' };
   if (g.turn - cap.lastRoundTurn < 2) return { ok: false, msg: 'Investors need a couple of quarters between offerings.' };
   pct = clamp(pct, 0.02, 0.2);
   const price = cap.price * 0.94;
@@ -566,6 +568,7 @@ export function buyBack(g: GameState, amount: number): ActionResult {
   const c = g.company;
   const cap = c.cap;
   if (!cap.isPublic) return { ok: false, msg: 'Buybacks need a public market for your shares.' };
+  if (!(cap.price > 0)) return { ok: false, msg: 'Your shares trade at nothing: there is no price to buy them back at.' };
   amount = Math.min(amount, c.books.cash * 0.8);
   const want = amount / (cap.price * 1.03);
   if (want <= 0 || amount < 10_000) return { ok: false, msg: 'Not enough cash for a buyback.' };

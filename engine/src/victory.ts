@@ -278,9 +278,12 @@ export function checkEnd(g: GameState) {
   }
 }
 
+/** Whether a won game can go on. Not after selling the company (a take-private exit): it is no longer yours to run. */
+export const canKeepPlaying = (g: GameState) => g.status === 'won' && g.outcome?.how !== 'exit';
+
 /** After a win the player may carry on: victories stop counting, bankruptcy still applies. */
 export function keepPlaying(g: GameState) {
-  if (g.status !== 'won') return;
+  if (!canKeepPlaying(g)) return;
   g.continued = true;
   g.status = 'playing';
 }

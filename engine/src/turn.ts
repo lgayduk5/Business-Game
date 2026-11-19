@@ -118,7 +118,9 @@ export function endTurn(g: GameState): void {
   const prevQ: Quarter | undefined = c.quarters[c.quarters.length - 1];
   const prevHead = prevQ?.headcount ?? companyHeadcount(c);
   const prevVal = c.valuation;
-  const cashStart = c.open.cash;
+  // from the cash shown in the last report: IPO proceeds and waiver fees land after the books close, so the opening
+  // balance sheet would count them again
+  const cashStart = g.report?.cash ?? c.open.cash;
 
   completeBuilds(g);
   stepMacro(g);

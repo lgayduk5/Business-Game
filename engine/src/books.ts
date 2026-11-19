@@ -38,7 +38,8 @@ export function collect(c: Company, amt: number) {
   cash(c, amt, 'op');
 }
 export function writeOffAR(c: Company, amt: number) {
-  amt = Math.min(amt, c.books.ar);
+  // nothing to write off when customers are owed a refund (receivables below zero): that refund must still be paid
+  amt = Math.max(0, Math.min(amt, c.books.ar));
   c.books.ar -= amt;
   c.pnl.other += amt;
   return amt;
