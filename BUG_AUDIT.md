@@ -38,7 +38,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
 - [x] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
 - [x] 15. Tooling, build & PWA — `vite.config.ts`, `index.html`, `public/manifest.webmanifest`, `scripts/*`, `engine/src/bots.ts`, CI
-- [ ] Final: regenerate balance reports, full verification (lint, typecheck, test, sim:ci, sim:check, build)
+- [x] Final: regenerate balance reports, full verification (lint, typecheck, test, sim:ci, sim:check, build)
 
 ## Findings
 
@@ -479,3 +479,60 @@ Checks: lint clean · typecheck clean · 300/300 tests · build OK · smoke pass
 - [Low] CI cancels in-progress runs on `main`, which can cancel a Pages deploy mid-way; `package.json` has no `engines` field.
 
 Checks: lint clean · typecheck clean · 305/305 tests · build clean, no warnings · smoke passes, including offline · `sim:ci` passes, no red flags (re-run by coordinator) · `playtest --quick` 528 games, no problems.
+
+## Final verification
+
+| Check | Baseline | After audit |
+|---|---|---|
+| `npm run lint` | clean | clean |
+| `npm run typecheck` | clean | clean |
+| `npm test` | 176 tests / 17 files | **305 tests / 32 files** (15 new `tests/audit-*.test.ts`) |
+| `npm run build` | ok | ok, no warnings |
+| `npm run smoke` (phone, desktop, offline) | ok | ok (+3 new checks; harness now kills its server and fails instead of skipping) |
+| `npm run sim:ci` | pass | pass, no red flags |
+| `npm run sim -- --sprint` → `docs/balance-sprint.md` | no red flags | regenerated, **no red flags** |
+| `npm run sim` → `docs/balance.md`, `data/winrates.json` | no red flags | regenerated, **3 red flags (see below)** |
+| `npm run sim:check` | pass | fingerprints match; **fails on the 3 red flags** |
+
+### Balance red flags after the fixes (needs a decision)
+
+All three were already near their thresholds in the baseline and cross them at one commit, `b4c2427` (Audit 8, rival-AI
+fixes). The coordinator confirmed this with honest + Raider runs at `6ffef6b` (no flags) and `b4c2427` (flags). The
+bid-cooldown change was ruled out (undoing it alone changes nothing). These are side effects of genuine bug fixes, so neither the fixes
+nor the thresholds were touched.
+
+| Flag | Baseline | Now | Threshold |
+|---|---|---|---|
+| Raider reaches *Last one standing* | 7% (honest 6%) | 8% (honest 6%) | > 1.25 × honest + 1 pt (≈ 8.5% baseline, ≈ 8% now) |
+| Raider reaches *Graded A or B* | 20% (honest 18%) | 23% (honest 17%) | ≈ 23.5% baseline, ≈ 22.3% now |
+| Retail ("tough") honest win rate | 79% | 81% | 35–80% |
+
+Options: (a) a small retune, e.g. make buying rivals out costlier or slower and nudge retail back under 80%, then regenerate;
+(b) bisect the system 8 commit to find which fix moved them and tune around it; (c) widen the thresholds (not recommended).
+
+## Prioritised open items (not fixed)
+
+**High: design decisions, exploitable today**
+1. `finance.ts:241` `pipelineValue` — staged projects add chance × 40 × cost to valuation the moment they start, for almost no spend. Starting
+   several in the final quarter turns a Sprint C48 into an A70, and mid-game can trigger Titan. (Systems 6, 9)
+2. Biotech licensing still prints money: start drugs, license them next quarter ($41M in 12 quarters on $193K/quarter revenue). The license value ignores spend. (System 6)
+3. The 3 balance red flags above: CI's `sim:check` fails until resolved.
+
+**Medium**
+4. `staffingHint` overstates staff after a hiring wave (mfg asks for 16 when 12 are needed). The fix is known but makes retail too easy; it needs a rebalance with it. (System 5)
+5. 13 event flags set but never read (lockin, localised, lean, controls, modern, resilient, privacy, bribed, certified, cloudLock, ppa,
+   university, cartel) plus the `dual_sourcing` investment: those options carry only their downside. (Systems 7, 11)
+6. Ironman integrity: a second tab can rewind, and closing the tab before the 700 ms autosave re-rolls an event outcome. (System 10)
+7. `rivals.ts:~720` `absorbIntoPlayer` — buying a rival into a fund-part-owned plant gives the fund 49% free (same bug fixed in `mna.ts`). (System 8)
+8. Acquired revenue counts as growth in valuation (2–3× spike after a deal), which can be timed for the end. (System 6)
+
+**Low (grouped; details in each system's section)**
+- Finance: IPO-quarter report cash differs from the balance sheet; fees count against EBITDA; IPO/take-private at $0 value; goodwill impairment a quarter late; acquired plant ignores inflation.
+- Rivals: the bid cash check ignores the 1% fee; `improveRelations`/`lobbyAgainst` have no cash check; rival buyouts beside a franchisee; a bought rival's cash vanishes; `endPact` leaves +3% demand; small AI information cheats.
+- People and mechanics: a resigned exec's seat waits for the yearly refresh; two key departures in one quarter; successor GM pay; guidance judged after revalue; option dilution under $1M has no warning; `scout` takes 2 quarters; `lockInputs` fee is $0 in Q1.
+- Events and content: inert boardPatience flags; customer_bust recovery not tied to the write-off; `exhire_ceo` text; `log_port_strike` never fires for North America-only companies; a duplicate follow-up is dropped silently; event staff cuts pay no severance.
+- Victory and advisor: comment says 4×, code needs 5.7×; the Daily code after a sale uses valuation; a continued Daily that goes bankrupt shows F0; dead `rate_shock` branch; "Weaker operations: margin up" wording.
+- UI: dialogs don't take focus; the Daily code box and glossary search lose the next click; action buttons stay visible after game over; poach/sue/lobby costs not shown; licensing UI only for biotech; tutorial ticks on refused actions; slot labels a quarter late; update prompt timing; `money()` shows "−$0"/"$1000K".
+- Storage: loading an old slot replaces its autosave; a 7th game deletes the oldest autosave (even Ironman's); no rewind points after reload; `listAll` reads full saves; medals lost without storage.
+- Tooling: playtest never goes public; iOS status-bar contrast; a sim worker that dies hangs the run; CI can cancel a Pages deploy; no `engines` field.
+- Engine robustness: unknown region/role/industry ids throw; `newGame` doesn't validate difficulty.
