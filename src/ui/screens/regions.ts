@@ -1,6 +1,6 @@
 // Regions: pricing, marketing, supply chain and partners for everything you run in a region.
 import {
-  CITIES, CITY, INDUSTRIES, PARTNER, REGIONS, REGION_LIST, endPartner, money, partnerCost, setSupply, signPartner,
+  CITIES, CITY, INDUSTRIES, PARTNER, REGIONS, REGION_LIST, endPartner, money, partnerCost, setSupply, signPartner, turnLabel,
   type GameState, type RegionId, type SupplyMode,
 } from '@engine';
 import { $, N, esc, explain, seg, slider, type Row } from '../kit';
@@ -37,7 +37,7 @@ function regions(g: GameState): string {
       ${materials ? `<h3>Supply chain</h3>${seg('supply', [['lean', 'Lean'], ['balanced', 'Balanced'], ['resilient', 'Resilient']], pol.supply, `data-region="${r}"`)}
         <p class="small muted">${{ lean: 'Single-sourced and just-in-time: inputs cost 6% less, quality is a touch lower, and every disruption hits harder.', balanced: 'A sensible mix of cost and safety.', resilient: 'Dual-sourced with buffer stock: inputs cost 5% more, quality is better and disruptions mostly pass you by.' }[pol.supply]}</p>` : ''}
       <h3>Local partner</h3>
-      ${hasPartner ? `<p>${esc(pol.partner!.name)} distributes for you until ${pol.partner!.until - g.turn + 1} quarters from now: +${pol.partner!.boost * 100}% presence for ${pol.partner!.fee * 100}% of sales. <button class="linkish" data-a="endPartner" data-region="${r}">End it</button></p>`
+      ${hasPartner ? `<p>${esc(pol.partner!.name)} distributes for you until ${turnLabel(pol.partner!.until)}: +${pol.partner!.boost * 100}% presence for ${pol.partner!.fee * 100}% of sales. <button class="linkish" data-a="endPartner" data-region="${r}">End it</button></p>`
         : `<p class="small muted">A local distributor gets you accepted faster: +${PARTNER.boost * 100}% presence for two years, for ${PARTNER.fee * 100}% of regional sales.</p><button class="btn sm" data-a="signPartner" data-region="${r}">Sign a partner for ${money(partnerCost(g))}</button>`}
       ${regionExtras.map((f) => f(g, r)).join('')}
     </div>`;

@@ -128,10 +128,10 @@ function plantView(g: GameState, o: Office): string {
   const pending = ui.sub['build:' + o.id] ? Number(ui.sub['build:' + o.id]) : step * 2;
   return `<div class="sheet"><h2>Plant and equipment</h2><div class="kv">
     <div>Capacity</div><div>${N(Math.round(o.cap).toLocaleString(), 'Plant capacity', 'Units the facility can turn out per quarter, if you have the staff to run it.', [['Book value', money(o.ppe - o.accDep)], ['Running cost per quarter', money(o.last?.facility ?? 0)]], ['capex', 'depreciation'])} units</div>
-    <div>Under construction</div><div>${o.building.length ? o.building.map((b) => `${Math.round(b.units).toLocaleString()} (ready in ${b.ready - g.turn} qtr)`).join(', ') : 'nothing'}</div></div>
+    <div>Under construction</div><div>${o.building.length ? o.building.map((b) => `${Math.round(b.units).toLocaleString()} (${b.ready > g.turn ? `ready in ${b.ready - g.turn} qtr` : 'online this quarter'})`).join(', ') : 'nothing'}</div></div>
     ${slider({ label: 'Build more', act: 'buildAmt', attrs: `data-office="${o.id}"`, min: step, max: step * 40, step, value: pending, fmt: 'x', help: `${money(expandCost(g, o, pending))} now, ready in ${def.buildQ} quarters. Then depreciated over ${def.deprQ / 4} years.` })}
     <div class="row"><button class="btn primary" data-a="build" data-office="${o.id}" data-units="${pending}">Build ${pending.toLocaleString()} units for ${money(expandCost(g, o, pending))}</button>
-    <button class="btn" data-a="buildFin" data-office="${o.id}" data-units="${pending}">${tip(`Finance ${Math.round(assetFinanceLTV(o.ind) * 100)}% against the asset`, explain(INDUSTRIES[o.ind].capPerUnit >= 10 ? 'Project finance' : 'Equipment finance', `Lenders fund ${Math.round(assetFinanceLTV(o.ind) * 100)}% of the build, secured on the new asset, at a fixed rate over ${INDUSTRIES[o.ind].capPerUnit >= 10 ? 20 : 7} years. You put in ${money(expandCost(g, o, pending) * (1 - assetFinanceLTV(o.ind)) * (1 - (o.minority ?? 0)))}${o.minority ? `; the fund that owns ${Math.round(o.minority * 100)}% of the plant puts in its share` : ''}. The loan carries a coverage covenant: EBITDA must stay above 1.2× interest.`, undefined, ['leverage', 'covenant']), 'plain')}</button>
+    <button class="btn" data-a="buildFin" data-office="${o.id}" data-units="${pending}">${tip(`Finance ${Math.round(assetFinanceLTV(o.ind) * 100)}% against the asset`, explain(INDUSTRIES[o.ind].capPerUnit >= 10 ? 'Project finance' : 'Equipment finance', `Lenders fund ${Math.round(assetFinanceLTV(o.ind) * 100)}% of the build, secured on the new asset, at a fixed rate over ${INDUSTRIES[o.ind].capPerUnit >= 10 ? 20 : 7} years. You put in ${money(expandCost(g, o, pending) * (1 - assetFinanceLTV(o.ind)) * (1 - (o.minority ?? 0)))}${o.minority ? `; the fund that owns ${Math.round(o.minority * 100)}% of the plant puts in its share` : ''}. You also pay a 1% arrangement fee on the loan. The loan carries a coverage covenant: EBITDA must stay above 1.2× interest.`, undefined, ['leverage', 'covenant']), 'plain')}</button>
     ${o.cap > step ? `<button class="btn sm danger" data-a="sellCap" data-office="${o.id}" data-units="${step}">Sell ${step} units</button>` : ''}</div>
     ${INDUSTRIES[o.ind].capPerUnit >= 10 ? recycleBlock(g, o) : ''}</div>`;
 }
@@ -142,7 +142,7 @@ function recycleBlock(g: GameState, o: Office): string {
   const why = canRecycle(g, o);
   const price = PLANT_STAKE * plantEquity(g, o);
   return `<div class="row" style="margin-top:10px;gap:8px;align-items:center"><button class="btn" data-a="recycle" data-office="${o.id}" ${why ? 'disabled' : ''}>${tip(`Sell ${Math.round(PLANT_STAKE * 100)}% to a fund${why ? '' : ` for ${money(price)}`}`, explain('Capital recycling', `Infrastructure funds pay well for running plants because they accept a lower return for steady cash. Selling ${Math.round(PLANT_STAKE * 100)}% of this one raises money to build the next. From then on the fund receives its share of what the plant earns after its loan is serviced, and the stake no longer counts towards your company's value.`,
-    [['A fund values the whole plant at', money(plantValue(g, o))], ['Less the loans secured on it', money(plantValue(g, o) - plantEquity(g, o))], [`Price for ${Math.round(PLANT_STAKE * 100)}%`, money(price), true]], ['valuation']), 'plain')}</button>${why ? `<span class="small muted">${esc(why)}</span>` : ''}</div>`;
+    [['A fund values the whole plant at', money(plantValue(g, o))], ['Less the loans secured on it', money(plantValue(g, o) - plantEquity(g, o))], [`Price for ${Math.round(PLANT_STAKE * 100)}%`, money(price)], ['You receive, after 2% fees', money(price * 0.98), true]], ['valuation']), 'plain')}</button>${why ? `<span class="small muted">${esc(why)}</span>` : ''}</div>`;
 }
 
 const roleText = (r: Role, name: string) =>
@@ -196,7 +196,7 @@ on('doLayoff', () => {
   act(fire(ui.g!, m.office, m.role, m.n), sfx.bad);
 });
 on('askClose', (d) => {
-  ui.modal = { kind: 'confirm', data: { title: 'Close this office?', text: 'Everyone is laid off with severance, the lease is broken at a cost of two quarters of rent, plant is sold at 40% of book value, and your customers here go to competitors.', yes: 'Close the office', act: 'doClose', arg: d.office } };
+  ui.modal = { kind: 'confirm', data: { title: 'Close this office?', text: 'Everyone is laid off with severance, the lease is broken at a cost of two quarters of rent and facility running costs, plant is sold at 40% of book value, any stock on hand is written off, and your customers here go to competitors. Reputation and culture take a small knock.', yes: 'Close the office', act: 'doClose', arg: d.office } };
   render();
 });
 on('doClose', (d) => {
@@ -216,7 +216,7 @@ modals.layoff = (g, m) => {
     <div class="kv" style="margin:14px 0"><div>Severance, paid now</div><div><b class="serif neg">${money(cost)}</b></div>
       <div>Saves per quarter</div><div><b class="serif">${money(m.n * marketWage(g!, o, role) * o.pay)}</b></div>
       <div>Morale of those who stay</div><div><b class="serif neg">−${(4 + 25 * frac).toFixed(0)} now, and a scar that fades over a year</b></div></div>
-    <p class="small muted">Layoffs also dent culture, and large ones dent your reputation with future hires.</p>
+    <p class="small muted">Layoffs also dent culture, and large ones dent your reputation with future hires. Any open positions for the role are closed.</p>
     <div class="row end"><button class="btn" data-a="close">Cancel</button><button class="btn danger" data-a="doLayoff">Lay off ${m.n}</button></div>`;
 };
 modals.confirm = (_g, m) => `<h2>${esc(m.title)}</h2><p>${esc(m.text)}</p><div class="row end"><button class="btn" data-a="close">Cancel</button><button class="btn danger" data-a="${m.act}" data-arg="${esc(m.arg ?? '')}">${esc(m.yes)}</button></div>`;

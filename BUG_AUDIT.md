@@ -35,7 +35,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 10. Save / load & persistence — `engine/src/save.ts`, `src/storage/saves.ts`, `src/worker.ts`
 - [x] 11. Content data & schemas — `content.ts`, `data/*.json`, `data/schemas/*`
 - [x] 12. UI core — `src/main.ts`, `src/ui/store.ts`, `shell.ts`, `kit.ts`, `tips.ts`, `update.ts`, `src/audio.ts`, `styles.css`
-- [ ] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
+- [x] 13. UI gameplay screens — `src/ui/screens/{hq,ops,regions,map,corp,capital,invest,team,policies,intel,rivals,events}.ts`
 - [ ] 14. UI meta screens — `src/ui/screens/{title,modes,tutorial,learn,files,modals}.ts`
 - [ ] 15. Tooling, build & PWA — `vite.config.ts`, `index.html`, `public/manifest.webmanifest`, `scripts/*`, `engine/src/bots.ts`, CI
 - [ ] Final: regenerate balance reports, full verification (lint, typecheck, test, sim:ci, sim:check, build)
@@ -397,3 +397,30 @@ Checks: lint clean · typecheck clean · 279/279 tests · `sim:ci` passes, no re
 - [Low] `update.ts` — the HTML is fetched network-first, so the "new version" prompt can appear after the page already loaded the new build.
 
 Checks: lint clean · typecheck clean · 282/282 tests · build OK · smoke passes (phone, desktop, offline), re-run by coordinator.
+
+### 13. UI gameplay screens — done
+
+**Fixed** (regression tests: `tests/audit-ui-screens.test.ts`, 10 tests, all failing on the old code)
+- `hq.ts:62` — the world seed was escaped twice (`x&y'z` showed as `x&amp;y&#39;z`). (Closes system 12 flag.)
+- `ops.ts:199` — the close-office confirm said "two quarters of rent". The engine also charges 2× facility costs ($110K of a $522K
+  exit cost in the repro), writes off stock, and cuts reputation and culture. The dialog now says all of it. (Closes system 5 flag.)
+- `rivals.ts:68` — the "Build the relationship" price ignored inflation: it showed $2.5K and charged $3.75K. Now uses `scaleS`.
+- `rivals.ts:33` — after buying a rival (or its bankruptcy), its page stayed open with Buy/Sue buttons, and every click said "No such rival."
+- `map.ts:89`, `invest.ts:92` — "Open"/"Buy" were offered in a city where a franchisee runs your stores (the engine refuses both).
+- `invest.ts:84` — "Offer open for 0 more quarters." in a deal's last quarter.
+- `invest.ts:57` — an investment still starting up showed an ongoing cost the engine doesn't charge yet, and said "1 quarters".
+- `ops.ts:131` — a plant in its last quarter of building showed "(ready in 0 qtr)".
+- `regions.ts:40` — a partner showed "until 8 quarters from now" when its last quarter is 7 away; it now shows the quarter label, like truces do.
+- `hq.ts:92`, `rivals.ts:98` — in a scenario, or a game kept going after a win, HQ showed "Closest goal" and Goals said "the first goal you
+  reach wins", which the engine never awards there.
+- Text only, checked against the engine: the asset-finance tooltip and the map's finance button now mention the 1% loan fee, the plant-sale
+  tooltip shows 98% after fees, the exec hiring fee (1.2× salary) is stated, and the layoff dialog says open positions are closed.
+
+**Flags (not fixed)**
+- [Low, design] Licensing is offered only for biotech though the engine licenses any staged project; the policies screen doesn't warn that option pay at a low valuation dilutes up to 20% a quarter.
+- [Low] `actions.ts` `scout` — results arrive 2 end-quarters later, not 1 as "Takes one quarter" says.
+- [Low] `mechanics.ts` `lockInputs` — before the first quarter closes, the fee is $0.
+- [Low] Poach, sue and lobby costs aren't shown, and `lobbyAgainst` has no cash check.
+- [Low] Action buttons stay visible after game over; clicking one just shows "The game is over."
+
+Checks: lint clean · typecheck clean · 292/292 tests · build OK · smoke passes (re-run by coordinator) · Playwright sweep of 19 states and about 13,000 tooltips: no NaN, undefined, double escapes or console errors.

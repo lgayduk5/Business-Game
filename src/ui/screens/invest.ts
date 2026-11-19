@@ -50,10 +50,12 @@ function running(g: GameState, list: ActiveInvestment[]): string {
     let status: string, per = def.ongoing * inv.upfront;
     if (inv.state === 'ramp' && def.stages) {
       const st = def.stages[inv.stage];
-      status = `${st.name}, ${inv.stageLeft} quarters left, ${pct(st.p)} to pass`;
+      status = `${st.name}, ${inv.stageLeft} quarter${inv.stageLeft === 1 ? '' : 's'} left, ${pct(st.p)} to pass`;
       per = (st.cost * inv.upfront) / stageQ(g, st);
-    } else if (inv.state === 'ramp') status = `Starting up, ${inv.stageLeft} quarters to go`;
-    else status = `Delivering ${pct(curveMult(def, inv))} of full effect`;
+    } else if (inv.state === 'ramp') {
+      status = `Starting up, ${inv.stageLeft} quarter${inv.stageLeft === 1 ? '' : 's'} to go`;
+      per = 0; // the running cost starts once it is up and running
+    } else status = `Delivering ${pct(curveMult(def, inv))} of full effect`;
     const lic = licenseValue(g, inv);
     return `<tr><td><b>${esc(def.name)}</b>${where ? `<br><span class="small muted">${esc(where)}</span>` : ''}</td><td class="small">${status}</td><td class="num">${money(per)}</td>
       <td class="nowrap">${lic > 0 && def.inds?.includes('biotech') ? `<button class="btn sm" data-a="license" data-uid="${inv.uid}">License out, ${money(lic)}</button> ` : ''}<button class="linkish small" data-a="cancelInv" data-uid="${inv.uid}">Stop</button></td></tr>`;
@@ -79,7 +81,7 @@ function deals(g: GameState): string {
   const cards = g.targets.map((t) => {
     const fit = Math.abs(c.culture - t.culture);
     return `<div class="sheet"><div class="spread"><h3 style="margin:0">${esc(t.name)}</h3><span class="chip">${esc(CITY[t.city].name)}</span></div>
-      <p class="small muted" style="margin:4px 0 8px">${INDUSTRIES[t.ind].name}. ${esc(t.blurb)} Offer open for ${t.expires - g.turn} more quarters.</p>
+      <p class="small muted" style="margin:4px 0 8px">${INDUSTRIES[t.ind].name}. ${esc(t.blurb)} ${t.expires > g.turn ? `Offer open for ${t.expires - g.turn} more quarter${t.expires - g.turn === 1 ? '' : 's'}.` : 'Last quarter to buy.'}</p>
       <div class="kv">
         <div>Revenue a quarter</div><div>${$(t.revenue, 'Target revenue', 'What the business sells each quarter today.', [['Local market share', pct(t.share, 2)], ['Staff', String(t.staff)]])}</div>
         <div>Operating margin</div><div><b class="serif">${pct(t.margin)}</b></div>
@@ -87,7 +89,7 @@ function deals(g: GameState): string {
         <div>Culture fit</div><div>${N(fit < 12 ? 'Close' : fit < 28 ? 'Some friction' : 'Clash', 'Culture fit', 'The bigger the gap between the two cultures and the bigger the target relative to you, the more your own culture suffers in integration.', [['Their culture', String(t.culture)], ['Yours', c.culture.toFixed(0)]], ['integration', 'culture'])}</div>
         <div>What you know</div><div>${t.diligenced ? (t.hidden > 0 ? '<span class="neg">Hidden liabilities found; price cut</span>' : '<span class="pos">Clean books</span>') + `, synergy ${t.synergy >= 0 ? '+' : ''}${t.synergy}%` : 'Only what the seller says'}</div>
       </div>
-      <div class="row" style="margin-top:10px"><button class="btn sm primary" data-a="acquire" data-id="${t.id}">Buy for ${money(t.price)}</button>
+      <div class="row" style="margin-top:10px">${c.franchises?.some((f) => f.city === t.city && f.ind === t.ind) ? '<span class="small muted">A franchisee runs your stores there, so you cannot buy here.</span>' : `<button class="btn sm primary" data-a="acquire" data-id="${t.id}">Buy for ${money(t.price)}</button>`}
       ${t.diligenced ? '' : `<button class="btn sm" data-a="ddTarget" data-id="${t.id}">Due diligence, ${money(targetDiligenceCost(t))}</button>`}</div></div>`;
   }).join('');
   return `<h1>Deals</h1><p class="muted">Buying a business is the fastest way into a city and the easiest way to overpay. Integration takes a year and dents productivity while it lasts.</p>

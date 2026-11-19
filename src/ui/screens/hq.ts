@@ -59,7 +59,7 @@ function hq(g: GameState): string {
   if (!q && !(g.settings.tutorial && g.mode !== 'scenario')) notes.push(`<div class="note"><b>Your first quarter.</b><p>Look over your office, set hiring and prices, then press <span class="hi">End quarter</span>. Tap any dotted number to see where it comes from.</p></div>`);
 
   const D = DIFF[g.difficulty];
-  const tag = `<span class="small muted gametag">${N(`${D.label}${g.mode === 'sandbox' ? ' sandbox' : ''} · seed ${esc(g.seed)}`, `${D.label} difficulty`, `${D.who} ${expectLine(g.company.primary, g.difficulty, !!g.rules?.sprint)}`, [...diffChanges(g.difficulty).map((t): Row => [t, '']), ['World seed', g.seed]])}</span>`;
+  const tag = `<span class="small muted gametag">${N(`${D.label}${g.mode === 'sandbox' ? ' sandbox' : ''} · seed ${g.seed}`, `${D.label} difficulty`, `${D.who} ${expectLine(g.company.primary, g.difficulty, !!g.rules?.sprint)}`, [...diffChanges(g.difficulty).map((t): Row => [t, '']), ['World seed', g.seed]])}</span>`;
   const position = `<div class="sheet"><div class="spread"><h2>Position</h2>${tag}</div><div class="kv">
     <div>Revenue <span class="sub">last quarter</span></div><div>${q ? $(q.pnl.revenue, 'Revenue', 'What customers were billed last quarter, summed across offices.', c.offices.map((o): Row => [o.name, money(o.last?.revenue ?? 0)]), ['revenue']) : '—'} ${q && pq ? delta(q.pnl.revenue, pq.pnl.revenue) : ''}</div>
     <div>Net income <span class="sub">last quarter</span></div><div>${q ? $(q.ni, 'Net income', 'What is left after every cost, interest and tax. Not the same as cash: see the cash-flow statement.', pnlRows(g), ['netIncome', 'ebitda']) : '—'}</div>
@@ -88,7 +88,8 @@ function hq(g: GameState): string {
       <td data-label="Limit">${l ? `<span class="chip ${l.bind === 'demand' ? '' : 'warn'}">${BIND_TEXT[l.bind][0].replace('Limited by ', '')}</span>` : ''}</td></tr>`;
     }).join('')}</tbody></table></div></div>`;
 
-  const best = victoryStatus(g).filter((v) => v.enabled).sort((a, b) => b.progress - a.progress)[0];
+  // a scenario is judged on its own goal, and a game kept going after a win no longer counts victories
+  const best = g.mode === 'scenario' || g.continued ? undefined : victoryStatus(g).filter((v) => v.enabled).sort((a, b) => b.progress - a.progress)[0];
   const start = starterGoal(g);
   const goal = start
     ? `<div class="sheet"><div class="spread"><h2>First goal</h2><button class="btn sm" data-a="sub" data-k="intel" data-v="goals">All goals</button></div>

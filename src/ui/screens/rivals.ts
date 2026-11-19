@@ -1,7 +1,7 @@
 // Rivals and goals: who you are up against, what they are doing to you, and how close you are to winning.
 import {
   CITY, INDUSTRIES, PERSONALITY, bidCash, bidForRival, bidOdds, bidPrice, improveRelations, lobbyAgainst, money, officeDetail, officeVisible, pct, poachTalent,
-  proposeAlliance, proposeTruce, rivalById, rivalKnown, SPRINT_OFF, sueRival, truceOdds, turnLabel, victoryStatus,
+  proposeAlliance, proposeTruce, rivalById, rivalKnown, scaleS, SPRINT_OFF, sueRival, truceOdds, turnLabel, victoryStatus,
   type CityDef, type GameState, type Rival,
   nemesis,
 } from '@engine';
@@ -29,7 +29,8 @@ function rivals(g: GameState): string {
   const known = g.rivals.filter((r) => r.alive && rivalKnown(g, r));
   const hidden = g.rivals.filter((r) => r.alive && !rivalKnown(g, r)).length;
   const gone = g.rivals.filter((r) => !r.alive);
-  const sel = rivalById(g, ui.sel.rival) ?? known[0];
+  const picked = rivalById(g, ui.sel.rival);
+  const sel = picked?.alive ? picked : known[0]; // one just bought or gone bust can no longer be dealt with
   return `<h1>Rivals</h1><p class="muted">They run on the same economics you do. Each has a temperament, a memory, and a sense of how much you are hurting them.</p>
     <div class="grid2"><div class="sheet"><div class="scrollx"><table class="ledger"><thead><tr><th>Company</th><th class="num">Offices</th><th class="num">Revenue a year</th><th class="num">Shared</th><th>Stance</th></tr></thead>
     <tbody>${known.map((r) => rivalRow(g, r)).join('')}</tbody></table></div>
@@ -64,7 +65,7 @@ function detail(g: GameState, r: Rival): string {
     ${markets ? `<h3>Where you meet</h3><div class="scrollx"><table class="ledger"><thead><tr><th>City</th><th class="num">Their share</th><th class="num">Yours</th><th class="num">Their price</th></tr></thead><tbody>${markets}</tbody></table></div>` : ''}
     <h3>Moves</h3>
     <div class="choices" style="grid-template-columns:1fr">
-      <button class="choice" data-a="dip" data-k="relations" data-id="${r.id}"><b>Build the relationship</b><span class="muted">Dinners and back-channels. Relations +8, hostility down a little. ${money(0.01 * Math.max(250_000, c.quarters[c.quarters.length - 1]?.pnl.revenue ?? 0))}.</span></button>
+      <button class="choice" data-a="dip" data-k="relations" data-id="${r.id}"><b>Build the relationship</b><span class="muted">Dinners and back-channels. Relations +8, hostility down a little. ${money(0.01 * scaleS(g))}.</span></button>
       ${r.pact ? '' : `<button class="choice" data-a="dip" data-k="truce" data-id="${r.id}"><b>Propose a truce</b><span class="muted">Two years without hostile moves on either side. They are ${odds(truceOdds(g, r))} to agree.</span></button>`}
       ${r.pact === 'alliance' ? '' : `<button class="choice" data-a="dip" data-k="alliance" data-id="${r.id}" ${r.relation < 20 ? 'disabled' : ''}><b>Propose an alliance</b><span class="muted">Three years of joint marketing (+3% pull everywhere). Needs relations of +20. Other rivals will not like it.</span></button>`}
       <button class="choice" data-a="dip" data-k="poach" data-id="${r.id}" ${r.pact ? 'disabled' : ''}><b>Poach their engineers</b><span class="muted">Signing bonuses for a few of their best. Often works; always remembered.</span></button>
@@ -94,7 +95,9 @@ hqExtras.push((g) => {
 
 function goals(g: GameState): string {
   const vs = victoryStatus(g);
-  return `<h1>Paths to victory</h1><p class="muted">The first goal you reach wins the game. After ${g.maxTurns / 4} years, the game ends with a grade from A to F.</p>
+  return `<h1>Paths to victory</h1><p class="muted">${g.mode === 'scenario' ? 'In a scenario only its own goal counts (see HQ). These paths are shown for reference and do not end the game.'
+    : g.continued ? 'You finished this game and kept playing: these paths no longer end it.'
+    : `The first goal you reach wins the game. After ${g.maxTurns / 4} years, the game ends with a grade from A to F.`}</p>
     <div class="grid2">${vs.map((v) => `<div class="sheet"><div class="spread"><h3 style="margin:0">${esc(v.name)}</h3>${v.met ? `<span class="chip good">${v.need > 1 ? `held ${v.streak} of ${v.need} quarters` : 'met'}</span>` : `<span class="small muted">${pct(v.progress)}</span>`}</div>
       <p class="small" style="margin:6px 0">${esc(v.desc)}</p>${meter(v.progress)}<p class="small muted" style="margin:6px 0 0">${esc(v.detail)}${v.enabled ? '' : g.rules?.sprint && (SPRINT_OFF as readonly string[]).includes(v.id) ? ' — not offered in a Sprint: ten years is too short' : ' — switched off in this game'}</p></div>`).join('')}</div>`;
 }
