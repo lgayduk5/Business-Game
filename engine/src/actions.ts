@@ -14,22 +14,30 @@ const ok = (msg: string): ActionResult => ({ ok: true, msg });
 const no = (msg: string): ActionResult => ({ ok: false, msg });
 export const officeById = (g: GameState, id: string): Office | undefined => g.company.offices.find((o) => o.id === id);
 const playing = (g: GameState) => g.status === 'playing' || g.continued;
+/** Refusal for an action taken after the game has ended (the results are judged on the company as it stood). */
+const over = (g: GameState) => (playing(g) ? undefined : no('The game is over.'));
+/** Refusal for an amount that is not a number (NaN or infinite), which would otherwise poison the books. */
+const badAmount = (x: number) => (Number.isFinite(x) ? undefined : no('That is not a valid amount.'));
 
 // ───────────── office tier ─────────────
 
 export function setReqs(g: GameState, officeId: string, role: Role, n: number): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
+  const why = over(g) ?? badAmount(n);
+  if (why) return why;
   o.staff[role].reqs = clamp(Math.round(n), 0, 5000);
   return ok(o.staff[role].reqs ? `${o.staff[role].reqs} open ${INDUSTRIES[o.ind].roles[role].toLowerCase()} positions. They fill as candidates are found.` : 'Hiring paused for that role.');
 }
 export function fire(g: GameState, officeId: string, role: Role, n: number): ActionResult {
   const o = officeById(g, officeId);
-  return o ? layoff(g, o, role, n) : no('No such office.');
+  return !o ? no('No such office.') : (over(g) ?? badAmount(n) ?? layoff(g, o, role, n));
 }
 export function setPay(g: GameState, officeId: string, pay: number): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
+  const why = over(g) ?? badAmount(pay);
+  if (why) return why;
   const before = o.pay;
   o.pay = clamp(Math.round(pay * 100) / 100, 0.7, 1.6);
   if (o.pay < before - 0.001) o.morale = clamp(o.morale - (before - o.pay) * 60, 0, 100); // pay cuts hurt at once
@@ -38,12 +46,16 @@ export function setPay(g: GameState, officeId: string, pay: number): ActionResul
 export function setTraining(g: GameState, officeId: string, level: number): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
+  const why = over(g) ?? badAmount(level);
+  if (why) return why;
   o.training = clamp(Math.round(level), 0, 3);
   return ok(o.training ? `Training budget set to ${o.training * 2}% of payroll.` : 'Training stopped.');
 }
 export function setBackfill(g: GameState, officeId: string, on: boolean): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
+  const why = over(g);
+  if (why) return why;
   o.autoBackfill = on;
   return ok(on ? 'People who leave will be replaced automatically.' : 'Leavers will not be replaced.');
 }
@@ -70,6 +82,8 @@ function assetLoan(g: GameState, o: Office, lent: number, buildQ: number) {
 export function expandCapacity(g: GameState, officeId: string, units: number, financed = false): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
+  const why = over(g) ?? badAmount(units);
+  if (why) return why;
   if (!isCapital(o.ind)) return no('This business has no plant to expand — capacity is people.');
   units = Math.max(0, Math.round(units));
   const cost = expandCost(g, o, units);
@@ -91,6 +105,8 @@ export function expandCapacity(g: GameState, officeId: string, units: number, fi
 export function sellCapacity(g: GameState, officeId: string, units: number): ActionResult {
   const o = officeById(g, officeId);
   if (!o || !isCapital(o.ind)) return no('Nothing to sell.');
+  const why = over(g) ?? badAmount(units);
+  if (why) return why;
   units = clamp(Math.round(units), 0, o.cap);
   if (units <= 0) return no('Nothing to sell.');
   const cip = o.building.reduce((s, b) => s + b.cost, 0);
@@ -120,7 +136,7 @@ export function canRecycle(g: GameState, o: Office): string {
 export function sellPlantStake(g: GameState, officeId: string): ActionResult {
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
-  const why = canRecycle(g, o);
+  const why = over(g)?.msg ?? canRecycle(g, o);
   if (why) return no(why);
   const price = PLANT_STAKE * plantEquity(g, o);
   B.issueEquity(g.company, price * 0.98); // a stake in a subsidiary: non-controlling interest, after fees
@@ -134,6 +150,8 @@ export function sellPlantStake(g: GameState, officeId: string): ActionResult {
 export const FACTOR_SHARE = 0.8;
 export const FACTOR_FEE = 0.015; // of the invoices sold, per quarter
 export function setFactoring(g: GameState, on: boolean): ActionResult {
+  const why = over(g);
+  if (why) return why;
   g.company.factoring = on;
   return ok(on ? `From next quarter a factor buys ${Math.round(FACTOR_SHARE * 100)}% of your invoices as you bill them, for ${(FACTOR_FEE * 100).toFixed(1)}% of their value.` : 'Factoring stopped. Receivables will build back up as customers pay on their usual terms.');
 }
@@ -141,15 +159,21 @@ export function setFactoring(g: GameState, on: boolean): ActionResult {
 // ───────────── region tier ─────────────
 
 export function setPrice(g: GameState, region: RegionId, ind: IndustryId, p: number): ActionResult {
+  const why = over(g) ?? badAmount(p);
+  if (why) return why;
   g.company.policy[region].price[ind] = clamp(Math.round(p * 100) / 100, 0.5, 1.8);
   return ok(`Price set to ${(g.company.policy[region].price[ind]! * 100).toFixed(0)}% of the market reference.`);
 }
 export function setMarketing(g: GameState, region: RegionId, amount: number): ActionResult {
+  const why = over(g) ?? badAmount(amount);
+  if (why) return why;
   g.company.policy[region].marketing = Math.max(0, Math.round(amount));
   return ok(`Marketing budget: ${money(g.company.policy[region].marketing)} a quarter.`);
 }
 export function setSupply(g: GameState, region: RegionId, mode: SupplyMode): ActionResult {
   const c = g.company;
+  const why = over(g);
+  if (why) return why;
   if (c.policy[region].supply === mode) return ok('No change.');
   const rev = c.offices.filter((o) => CITY[o.city].region === region).reduce((s, o) => s + (o.last?.revenue ?? 0), 0);
   B.expense(c, 'cogs', rev * 0.01, 'ap'); // requalifying suppliers
@@ -163,6 +187,8 @@ export function scoutCost(g: GameState, cityId: string): number {
   return 40_000 * g.macro.cpi * (CITY[cityId].region === CITY[g.company.home].region ? 1 : 2);
 }
 export function scout(g: GameState, cityId: string): ActionResult {
+  const why = over(g);
+  if (why) return why;
   if (!CITY[cityId]) return no('Unknown city.');
   if ((g.discovered[cityId] ?? 0) > 0) return no('You already know this market.');
   if (g.scouting.some((s) => s.city === cityId)) return no('A study is already under way.');
@@ -192,6 +218,8 @@ export function openOffice(g: GameState, cityId: string, ind: IndustryId, financ
   if ((g.discovered[cityId] ?? 0) < 1) return no('Commission a market study first.');
   if (!c.divisions.includes(ind)) return no('You do not operate in that industry yet.');
   if (c.offices.some((o) => o.city === cityId && o.ind === ind)) return no('You already have that office.');
+  // the reverse of canFranchise: one or the other in a city, never both selling to the same customers
+  if (c.franchises?.some((f) => f.city === cityId && f.ind === ind)) return no('A franchisee runs your stores there.');
   const cost = openOfficeCost(g, cityId, ind);
   const lent = financed && cost.capex > 0 ? openOfficeFinancing(g, cityId, ind) : 0;
   if (lent > 0 && c.negCashTurns > 0) return no('Lenders will not finance new assets while you are overdrawn.');
@@ -217,6 +245,8 @@ export function closeOffice(g: GameState, officeId: string): ActionResult {
   const c = g.company;
   const o = officeById(g, officeId);
   if (!o) return no('No such office.');
+  const why = over(g);
+  if (why) return why;
   if (c.offices.length <= 1) return no('You cannot close your last office.');
   let sev = 0;
   for (const r of ROLES) sev += severanceCost(g, o, r, o.staff[r].n);
@@ -239,6 +269,8 @@ export function divisionCost(g: GameState, ind: IndustryId): number {
 }
 export function launchDivision(g: GameState, ind: IndustryId): ActionResult {
   const c = g.company;
+  const why = over(g);
+  if (why) return why;
   if (c.divisions.includes(ind)) return no('You already operate in that industry.');
   const cost = divisionCost(g, ind);
   if (cost > c.books.cash) return no(`Launching a new division costs ${money(cost)}.`);
@@ -254,10 +286,14 @@ export function launchDivision(g: GameState, ind: IndustryId): ActionResult {
 // ───────────── corporate tier ─────────────
 
 export function setRdBudget(g: GameState, ind: IndustryId, amount: number): ActionResult {
+  const why = over(g) ?? badAmount(amount);
+  if (why) return why;
   g.company.rdBudget[ind] = Math.max(0, Math.round(amount));
   return ok(`R&D program budget: ${money(g.company.rdBudget[ind]!)} a quarter.`);
 }
 export function setDividend(g: GameState, amount: number): ActionResult {
+  const why = over(g) ?? badAmount(amount);
+  if (why) return why;
   const cap = g.company.cap;
   const before = cap.dividend;
   cap.dividend = Math.max(0, Math.round(amount));
@@ -268,6 +304,8 @@ export function setDividend(g: GameState, amount: number): ActionResult {
   return ok(cap.dividend ? `Dividend set to ${money(cap.dividend)} a quarter.` : 'No dividend.');
 }
 export function setAutoRevolver(g: GameState, on: boolean): ActionResult {
+  const why = over(g);
+  if (why) return why;
   g.company.autoRevolver = on;
   return ok(on ? 'The credit line will be drawn automatically if cash runs short.' : 'Automatic drawing is off.');
 }
@@ -286,6 +324,8 @@ export function refreshCandidates(g: GameState) {
 }
 export function hireExec(g: GameState, personId: string): ActionResult {
   const c = g.company;
+  const why = over(g);
+  if (why) return why;
   const p = g.candidates.find((x) => x.id === personId);
   if (!p) return no('That candidate has taken another job.');
   if (c.people.some((x) => x.role === p.role && !x.office)) return no(`You already have a ${p.role}.`);
@@ -300,6 +340,8 @@ export function hireExec(g: GameState, personId: string): ActionResult {
 }
 export function fireExec(g: GameState, personId: string): ActionResult {
   const c = g.company;
+  const why = over(g);
+  if (why) return why;
   const p = c.people.find((x) => x.id === personId);
   if (!p) return no('No such person.');
   B.expense(c, 'other', p.salary * g.macro.wageIdx * 2, 'cash');
@@ -321,6 +363,8 @@ export function fireExec(g: GameState, personId: string): ActionResult {
 /** Retention package: a cash bonus now buys loyalty and a lock-in period. */
 export function retain(g: GameState, personId: string): ActionResult {
   const c = g.company;
+  const why = over(g);
+  if (why) return why;
   const p = c.people.find((x) => x.id === personId);
   if (!p) return no('No such person.');
   const cost = p.salary * g.macro.wageIdx * 1.5;
@@ -354,6 +398,8 @@ export function partnerCost(g: GameState): number {
 /** Sign a local distribution partner: faster acceptance in the region in exchange for a cut of sales. */
 export function signPartner(g: GameState, region: RegionId): ActionResult {
   const c = g.company;
+  const why = over(g);
+  if (why) return why;
   const pol = c.policy[region];
   if (pol.partner && pol.partner.until >= g.turn) return no('You already have a partner in this region.');
   if (!c.offices.some((o) => CITY[o.city].region === region)) return no('Open an office in the region first.');
@@ -364,6 +410,8 @@ export function signPartner(g: GameState, region: RegionId): ActionResult {
   return ok(`Partner signed for two years: +${PARTNER.boost * 100}% presence in the region for ${PARTNER.fee * 100}% of sales.`);
 }
 export function endPartner(g: GameState, region: RegionId): ActionResult {
+  const why = over(g);
+  if (why) return why;
   const pol = g.company.policy[region];
   if (!pol.partner) return no('No partner to drop.');
   pol.partner = undefined;

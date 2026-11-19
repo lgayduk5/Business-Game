@@ -27,7 +27,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 2. Accounting & finance — `books.ts`, `finance.ts` (loans, covenants, rating, equity, IPO), `exit.ts`
 - [x] 3. Market, macro & modifiers — `market.ts`, `macro.ts`, `mechanics.ts`, `mods.ts`, `policyData.ts`
 - [x] 4. People / HR — `people.ts`
-- [ ] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
+- [x] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
 - [ ] 6. Investments & M&A — `invest.ts`, `mna.ts`
 - [ ] 7. Events — `events.ts`, `data/events/*.json`
 - [ ] 8. Rival AI & competitors — `rivals.ts`, `competitors.ts`, `feud.ts`
@@ -149,3 +149,36 @@ Checks: lint clean · typecheck clean · 197/197 tests · `sim:ci` passes, no re
 - [Low] `setReqs`/`setPay`/`fire` accept NaN (the UI never sends it). → system 5
 
 Checks: lint clean · typecheck clean · 202/202 tests · `sim:ci` passes, no red flags.
+
+### 5. Player actions & new-game setup — done
+
+**Fixed** (regression tests: `tests/audit-actions.test.ts`)
+- `actions.ts:18` (all actions) — only `openOffice` refused after the game had ended. The grade and the daily score code
+  are recomputed from live state, and enterprise value = frozen valuation − cash, so spending leftover cash after
+  a Daily ended (new divisions, plant) *raised* the score code: B65 → A70 in a real daily (2026-11-08). All actions in
+  `actions.ts` now refuse with "The game is over."; continued games are unaffected.
+- `actions.ts:20` (10 actions) + `finance.ts:166,185,197,446,542` — NaN/±Infinity amounts poisoned state
+  (`setMarketing`/`setRdBudget`/`setDividend` took Infinity; `expandCapacity`, `sellCapacity`, `fire`, `takeLoan`,
+  `drawRevolver`, `repayLoan`, `raiseEquity`, `followOn` took NaN). They now refuse. (Closes system 2 and 4 flags.)
+- `actions.ts:222` `openOffice` — you could open your own stores in a city where your franchisee already ran,
+  and both sold to the same customers. Now refused. (Closes system 3 flag.)
+- Probes: 12,768 new-game combinations plus 80 fuzzed games with no NaN, throws or unbalanced books; the same seed
+  gives the same game; difficulty is ordered.
+
+**Flags (not fixed)**
+- [High] `victory.ts:151,192` (root in `newgame.ts`) — energy in Lagos sometimes starts worth $0 (debt above
+  enterprise value; 1 in 60 seeds on Normal). The baseline floors at $1, so the grade reads "Your stake grew
+  2,580,891×": a free growth pass worth about 35 points. Needs a baseline design choice. → system 9
+- [High] The grade is still not frozen at game end: actions in other files still run afterwards and move it
+  (`buyBack` C39 → C46 with a simulated listing; `takeLoan`, `drawRevolver`, `raiseEquity`, `invest.ts`, `mna.ts`,
+  `rivals.ts`, `mechanics.ts`). Freeze the grade/score in `outcome`, or guard those too. → systems 6, 8, 9
+- [Med] `staffingHint` — **confirmed** bug, *not* fixed: it divides by last quarter's productivity, including a
+  new-hire slowdown that is already over (mfg asks for 16 ops when 12 are needed). The fix (divide out
+  `prodParts['New-hire ramp']`) makes `sim:ci` fail: retail's honest win rate goes from 85% to 96% (a "tough"
+  industry made too easy). Needs a rebalance with it, so it was reverted.
+- [Low] The 1% asset-loan fee is left out of `openOffice`/`expandCapacity` affordability checks and the "of your own" button.
+- [Low] `sellCapacity` leaves the plant's ramp cost in valuation for 4 quarters; closing a plant part-owned by a fund pays the fund nothing.
+- [Low] `ops.ts:199` — the close-office confirm says "two quarters of rent", but the engine also charges 2× facility costs. → system 13
+- [Low] Unknown region, role or industry ids throw instead of refusing; `newgame.ts:60` doesn't validate difficulty.
+
+Checks: lint clean · typecheck clean · 209/209 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems.

@@ -163,6 +163,7 @@ export function takeLoan(g: GameState, offerId: string, amount: number): ActionR
   const c = g.company;
   const o = g.loanOffers.find((x) => x.id === offerId);
   if (!o) return { ok: false, msg: 'That offer has expired.' };
+  if (!Number.isFinite(amount)) return { ok: false, msg: 'That is not a valid amount.' };
   amount = Math.min(amount, o.max);
   if (amount < 10_000) return { ok: false, msg: 'Amount too small.' };
   const drawn = o.kind === 'revolver' ? 0 : amount;
@@ -181,6 +182,7 @@ export function takeLoan(g: GameState, offerId: string, amount: number): ActionR
 export function drawRevolver(g: GameState, amount: number): ActionResult {
   const l = g.company.loans.find((x) => x.kind === 'revolver');
   if (!l) return { ok: false, msg: 'No credit line.' };
+  if (!Number.isFinite(amount)) return { ok: false, msg: 'That is not a valid amount.' };
   amount = Math.min(amount, l.limit - l.principal);
   if (amount <= 0) return { ok: false, msg: 'The line is fully drawn.' };
   l.principal += amount;
@@ -192,6 +194,7 @@ export function repayLoan(g: GameState, loanId: string, amount: number): ActionR
   const c = g.company;
   const l = c.loans.find((x) => x.id === loanId);
   if (!l) return { ok: false, msg: 'Loan not found.' };
+  if (!Number.isFinite(amount)) return { ok: false, msg: 'That is not a valid amount.' };
   amount = Math.min(amount, l.principal, Math.max(0, c.books.cash));
   if (amount <= 0) return { ok: false, msg: 'Nothing to repay, or no cash.' };
   const fee = l.kind === 'bond' ? amount * 0.02 : 0;
@@ -440,6 +443,7 @@ export function raiseEquity(g: GameState, pct: number): ActionResult {
   const cap = c.cap;
   const of = g.equityOffer;
   if (!of) return { ok: false, msg: 'No investors at the table this quarter.' };
+  if (!Number.isFinite(pct)) return { ok: false, msg: 'That is not a valid amount.' };
   pct = clamp(pct, 0.02, of.maxPct);
   const price = of.pre / cap.shares;
   const newShares = (cap.shares * pct) / (1 - pct);
@@ -535,6 +539,7 @@ export function followOn(g: GameState, pct: number): ActionResult {
   if (!cap.isPublic) return { ok: false, msg: 'Only listed companies can sell shares to the public.' };
   if (!(cap.price > 0)) return { ok: false, msg: 'Your shares trade at nothing: new ones would raise no money.' };
   if (g.turn - cap.lastRoundTurn < 2) return { ok: false, msg: 'Investors need a couple of quarters between offerings.' };
+  if (!Number.isFinite(pct)) return { ok: false, msg: 'That is not a valid amount.' };
   pct = clamp(pct, 0.02, 0.2);
   const price = cap.price * 0.94;
   const n = (cap.shares * pct) / (1 - pct);
