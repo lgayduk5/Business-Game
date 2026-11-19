@@ -275,20 +275,21 @@ export function setAutoRevolver(g: GameState, on: boolean): ActionResult {
 // ───────────── executives ─────────────
 
 export const EXEC_ROLES: ExecRole[] = ['CFO', 'CTO', 'COO', 'CMO', 'CHRO'];
+/** Two candidates for an open seat: one a little above the usual standard, one a little below. */
+function shortlist(g: GameState, role: ExecRole) {
+  for (let i = 0; i < 2; i++) g.candidates.push(makePerson(g, role, undefined, i === 0 ? 4 : -4));
+}
 export function refreshCandidates(g: GameState) {
   const taken = new Set(g.company.people.filter((p) => !p.office).map((p) => p.role));
   g.candidates = [];
-  for (const role of EXEC_ROLES) {
-    if (taken.has(role)) continue;
-    for (let i = 0; i < 2; i++) g.candidates.push(makePerson(g, role, undefined, i === 0 ? 4 : -4));
-  }
+  for (const role of EXEC_ROLES) if (!taken.has(role)) shortlist(g, role);
 }
 export function hireExec(g: GameState, personId: string): ActionResult {
   const c = g.company;
   const p = g.candidates.find((x) => x.id === personId);
   if (!p) return no('That candidate has taken another job.');
   if (c.people.some((x) => x.role === p.role && !x.office)) return no(`You already have a ${p.role}.`);
-  const fee = p.salary * 1.2;
+  const fee = p.salary * g.macro.wageIdx * 1.2; // salaries are stored in base-year money, like every other use of them
   if (fee > c.books.cash) return no(`The search fee and signing bonus come to ${money(fee)}.`);
   B.expense(c, 'ga', fee, 'cash');
   p.hired = g.turn;
@@ -313,6 +314,8 @@ export function fireExec(g: GameState, personId: string): ActionResult {
       return ok(`${p.name} was let go. ${gm.name} steps up as general manager.`);
     }
   }
+  // "Replace": the search starts at once, rather than at the next yearly refresh of the candidate list
+  if (!p.office && !g.candidates.some((x) => x.role === p.role)) shortlist(g, p.role);
   return ok(`${p.name} was let go with two quarters of pay.`);
 }
 /** Retention package: a cash bonus now buys loyalty and a lock-in period. */

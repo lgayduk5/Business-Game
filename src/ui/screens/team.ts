@@ -75,7 +75,7 @@ function people(g: GameState): string {
     </div>
     <div class="sheet wide"><h2>General managers</h2><div class="scrollx"><table class="ledger"><thead><tr><th>Manager</th><th class="num">Skill</th><th class="num">Loyalty</th><th class="num">Salary</th><th></th></tr></thead><tbody>
       ${gms.map((p) => { const o = c.offices.find((x) => x.id === p.office); return personRow(g, p, o ? CITY[o.city].name : ''); }).join('')}</tbody></table></div>
-      <p class="small muted">A general manager who leaves takes two quarters of productivity with them. Retention packages cost six months of salary and lock them in for two years.</p></div>
+      <p class="small muted">A general manager who leaves takes two quarters of productivity with them. Retention packages cost one and a half quarters of salary and lock them in for two years.</p></div>
     </div>`;
 }
 corpTabs.push(['rd', 'R&D'], ['people', 'People']);

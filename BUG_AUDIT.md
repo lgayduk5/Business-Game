@@ -26,7 +26,7 @@ Branch: `claude/game-bug-audit-l3nfom` · Started 2026-11-19
 - [x] 1. Core turn loop & determinism — `engine/src/turn.ts`, `util.ts` (RNG), `forecast.ts`, `history.ts` (`types.ts` as reference)
 - [x] 2. Accounting & finance — `books.ts`, `finance.ts` (loans, covenants, rating, equity, IPO), `exit.ts`
 - [x] 3. Market, macro & modifiers — `market.ts`, `macro.ts`, `mechanics.ts`, `mods.ts`, `policyData.ts`
-- [ ] 4. People / HR — `people.ts`
+- [x] 4. People / HR — `people.ts`
 - [ ] 5. Player actions & new-game setup — `actions.ts`, `newgame.ts`, `difficulty.ts`
 - [ ] 6. Investments & M&A — `invest.ts`, `mna.ts`
 - [ ] 7. Events — `events.ts`, `data/events/*.json`
@@ -122,3 +122,30 @@ Checks: lint clean · typecheck clean · 193/193 tests · `playtest --quick` 528
   macro stays in bounds over 2,000 quarters, modifier expiry, all six policies match their text, each per-quarter step runs once.
 
 Checks: lint clean · typecheck clean · 197/197 tests · `sim:ci` passes, no red flags · `playtest --quick` 528 games, no problems.
+
+### 4. People / HR — done
+
+**Fixed** (regression tests: `tests/audit-people.test.ts`, including an invariant test under random HR decisions)
+- `actions.ts:292` `hireExec` — the search fee was `1.2 × salary` in base-year money, while pay, severance,
+  retention and the on-screen salary all multiply by `macro.wageIdx`. Late in a game (wage index about 1.6–1.9) a hire cost
+  about 0.65 of a quarter's displayed pay instead of 1.2×. Now scaled like the rest.
+- `actions.ts:279,318` `fireExec` — *Replace* on an executive left the seat with no candidates until the yearly
+  refresh (`turn % 4`), so up to 3 quarters without e.g. a CFO, which can block an IPO. Two candidates are now
+  shortlisted at once. `refreshCandidates` makes the same RNG draws in the same order (new `shortlist()` helper).
+- `team.ts:78` — the text said retention costs "six months of salary"; the engine charges 1.5 quarters. Text fixed
+  (not the cost, to avoid a balance change).
+- Probes: 350 bot games plus 70 random-action games. Headcount always whole and never negative, skill and morale in
+  range, one GM per office, no duplicate executives, staffing hints non-negative, no NaN.
+
+**Flags (not fixed)**
+- [Med] `actions.ts` `staffingHint` — divides by last quarter's productivity, which includes the temporary
+  new-hire slowdown, so after a hiring wave it overstates ops needed by up to about 1.5× (151 of 4,950 office-quarters more than 25% over).
+- [Low] `turn.ts:334` — a seat left by an executive who *resigned* still waits for the yearly candidate refresh.
+- [Low] `people.ts:186` — when two key people leave in one quarter, the second leaves without the event card and
+  the GM productivity hit lasts 1 quarter, not the 2 the team screen promises.
+- [Low] `people.ts:183` — a successor GM inherits the predecessor's salary and trait despite about 12 points less skill.
+- [Low] `actions.ts:327`/`events.ts:329` — retention protects 9 quarterly resignation checks; the text says "two years" (8).
+- [Low] `rivals.ts:870` `boardCuts` — adds an ops/admin person where there were none, cuts nobody in roles of 5 or fewer, and pays no severance. → system 8
+- [Low] `setReqs`/`setPay`/`fire` accept NaN (the UI never sends it). → system 5
+
+Checks: lint clean · typecheck clean · 202/202 tests · `sim:ci` passes, no red flags.
