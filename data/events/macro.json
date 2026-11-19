@@ -249,7 +249,7 @@
       {
         "label": "Raise local prices",
         "hint": "Recover some of it from customers, 8% across the board.",
-        "out": [{ "text": "Local customers pay more. Some leave.", "fx": [["fx", -18], ["special", "priceUp", 8]] }]
+        "out": [{ "text": "Local customers pay more. Some leave.", "fx": [["fx", -18], ["special", "priceUp", -8]] }]
       },
       {
         "label": "Ride it out",

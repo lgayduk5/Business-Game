@@ -371,7 +371,7 @@ export function retain(g: GameState, personId: string): ActionResult {
   if (cost > c.books.cash) return no(`A retention package costs ${money(cost)}.`);
   B.expense(c, 'ga', cost, 'cash');
   p.loyalty = clamp(p.loyalty + 25, 0, 100);
-  p.retained = g.turn + 8;
+  p.retained = g.turn + 7; // inclusive: this quarter and the next seven, two years in all
   return ok(`${p.name} signed a two-year retention package for ${money(cost)}.`);
 }
 

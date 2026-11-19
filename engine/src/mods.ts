@@ -61,7 +61,7 @@ export function hasFlag(g: GameState, name: string): boolean {
   return g.company.investments.some((i) => i.state === 'active' && INV[i.def]?.flag === name);
 }
 export function setFlag(g: GameState, name: string, quarters?: number) {
-  g.flags[name] = quarters ? g.turn + quarters : 9999;
+  g.flags[name] = quarters ? g.turn + quarters - 1 : 9999; // inclusive, as in addMod: `quarters` quarters counting this one
 }
 
 export function news(g: GameState, text: string, tone: GameState['news'][number]['tone'] = 'info') {

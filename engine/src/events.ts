@@ -84,13 +84,16 @@ export function bindCtx(g: GameState, def: EventDef): EventCtx | null {
   let ctx: EventCtx = {};
   for (const kind of def.bind ?? []) {
     if (kind === 'office') {
-      const pool = co.offices.filter((o) => !def.cond?.ind || def.cond.ind.includes(o.ind));
-      const o = weighted(g, pool, (x) => 1 + headcount(x));
+      // the office must be one the card can be about: in its industry, and the unhappy (or dominant) one if it says so
+      const c = def.cond;
+      const pool = co.offices.filter((o) => (!c?.ind || c.ind.includes(o.ind)) && (c?.maxMorale === undefined || o.morale <= c.maxMorale) && (c?.minShare === undefined || o.share >= c.minShare));
+      // a card about a person and a place is about the place where that person works
+      const o = pool.find((x) => x.id === ctx.office) ?? weighted(g, pool, (x) => 1 + headcount(x));
       if (!o) return null;
       ctx = { ...ctx, ...officeCtx(o) };
     } else if (kind === 'region') {
       if (ctx.region) continue;
-      let regs = [...new Set(co.offices.map((o) => CITY[o.city].region))];
+      let regs = [...new Set(co.offices.filter((o) => !def.cond?.ind || def.cond.ind.includes(o.ind)).map((o) => CITY[o.city].region))];
       if (def.cat === 'macro') regs = regs.filter((r) => r !== 'nae' && r !== 'naw');
       if (!regs.length) return null;
       ctx.region = regs[Math.floor(rand(g) * regs.length)];
@@ -233,7 +236,7 @@ export const SPECIALS: Record<string, Special> = {
       if (ctx.region && arg < 0 && reg !== ctx.region) continue;
       for (const k of ctx.scoped && ctx.ind ? [ctx.ind] : co.divisions) co.policy[reg].price[k] = clamp((co.policy[reg].price[k] ?? 1) * (1 + Math.abs(arg) / 100), 0.5, 1.8);
     }
-    return `Prices raised ${Math.abs(arg)}%`;
+    return `Prices raised ${Math.abs(arg)}%${ctx.region && arg < 0 ? ` in ${REGIONS[ctx.region].short}` : ''}`;
   },
   priceDown: (g, ctx, arg) => {
     const co = g.company;
@@ -297,8 +300,8 @@ export const SPECIALS: Record<string, Special> = {
     for (const o of g.company.offices) o.staff.ops.reqs += Math.max(1, Math.round(o.staff.ops.n * 0.15));
     return 'Requisitions opened for 15% more operations staff';
   },
-  payUp: (g, _ctx, arg) => {
-    for (const o of g.company.offices) {
+  payUp: (g, ctx, arg) => {
+    for (const o of targets(g, 'all', ctx)) {
       o.pay = clamp(o.pay + arg / 100, 0.7, 1.6);
       o.morale = clamp(o.morale + arg * 0.6, 0, 100);
     }
@@ -326,7 +329,7 @@ export const SPECIALS: Record<string, Special> = {
   },
   retainPerson: (g, ctx) => {
     const p = g.company.people.find((x) => x.id === ctx.person);
-    if (p) p.retained = g.turn + 8;
+    if (p) p.retained = g.turn + 7; // inclusive: this quarter and the next seven
     return p ? `${p.name} is locked in for two years` : null;
   },
   factorAR: (g) => {
@@ -356,7 +359,7 @@ export const SPECIALS: Record<string, Special> = {
   buyback10: (g) => {
     const co = g.company;
     const amt = co.books.cash * 0.1;
-    if (!co.cap.isPublic || amt <= 0) return null;
+    if (!co.cap.isPublic || amt <= 0 || !(co.cap.price > 0)) return null; // no free shares at a $0 price (as finance.buyBack)
     const n = retireShares(co.cap, Math.min(amt / co.cap.price, outsideShares(co.cap) * 0.3));
     if (n <= 0) return null;
     B.buyback(co, n * co.cap.price);
@@ -397,6 +400,8 @@ export function applyFx(g: GameState, fx: Fx[], ctx: EventCtx): string[] {
   const out: string[] = [];
   const say = (s: string | null) => s && out.push(s);
   const rival = g.rivals.find((r) => r.id === ctx.rival);
+  // an event about one industry keeps its cost effects there (cloud credits should not cut a factory's material bill)
+  const scopedInd = ctx.scoped && ctx.ind ? { ind: ctx.ind } : {};
   for (const f of fx) {
     switch (f[0]) {
       case 'cash': B.windfall(co, f[1] * S); say(`${money(f[1] * S)} received`); break;
@@ -415,12 +420,12 @@ export function applyFx(g: GameState, fx: Fx[], ctx: EventCtx): string[] {
       case 'tech': { const k = ctx.ind && co.divisions.includes(ctx.ind) ? ctx.ind : co.primary; co.tech[k] = clamp((co.tech[k] ?? 0) + f[1], 5, 100); say(`Technology ${sg(f[1])}`); break; }
       case 'loyalty': { const p = co.people.find((x) => x.id === ctx.person); for (const x of p ? [p] : co.people) x.loyalty = clamp(x.loyalty + f[1], 0, 100); say(`Loyalty ${sg(f[1])}${p ? ` for ${p.name}` : ' among key people'}`); break; }
       case 'demand': addMod(g, { kind: 'demand', pct: f[1], quarters: f[2], src: 'event', ...modScope(f[3], ctx, co) }); say(`Customer pull ${sg(f[1], '%')}${where(g, f[3], ctx)} for ${f[2]} quarters`); break;
-      case 'market': addMod(g, { kind: 'market', pct: f[1], quarters: f[2], src: 'event', ...(f[3] === 'region' ? { region: ctx.region ?? CITY[co.home].region } : f[3] === 'ind' || ctx.scoped ? { ind: ctx.ind ?? co.primary } : {}) }); say(`Whole market ${sg(f[1], '%')} for ${f[2]} quarters`); break;
-      case 'wages': addMod(g, { kind: 'wages', pct: f[1], quarters: f[2], src: 'event' }); say(`Wage costs ${sg(f[1], '%')} for ${f[2]} quarters`); break;
-      case 'inputs': addMod(g, { kind: 'inputs', pct: hasFlag(g, 'hedged') && f[1] > 0 ? f[1] / 2 : f[1], quarters: f[2], src: 'event' }); say(`Input costs ${sg(hasFlag(g, 'hedged') && f[1] > 0 ? f[1] / 2 : f[1], '%')} for ${f[2]} quarters${hasFlag(g, 'hedged') && f[1] > 0 ? ' (hedges absorbed half)' : ''}`); break;
+      case 'market': addMod(g, { kind: 'market', pct: f[1], quarters: f[2], src: 'event', ...(f[3] === 'region' ? { region: ctx.region ?? CITY[co.home].region, ...(ctx.scoped ? { ind: ctx.ind } : {}) } : f[3] === 'ind' || ctx.scoped ? { ind: ctx.ind ?? co.primary } : {}) }); say(`Whole market ${sg(f[1], '%')} for ${f[2]} quarters`); break;
+      case 'wages': addMod(g, { kind: 'wages', pct: f[1], quarters: f[2], src: 'event', ...scopedInd }); say(`Wage costs ${sg(f[1], '%')} for ${f[2]} quarters`); break;
+      case 'inputs': addMod(g, { kind: 'inputs', pct: hasFlag(g, 'hedged') && f[1] > 0 ? f[1] / 2 : f[1], quarters: f[2], src: 'event', ...scopedInd }); say(`Input costs ${sg(hasFlag(g, 'hedged') && f[1] > 0 ? f[1] / 2 : f[1], '%')} for ${f[2]} quarters${hasFlag(g, 'hedged') && f[1] > 0 ? ' (hedges absorbed half)' : ''}`); break;
       case 'capacity': addMod(g, { kind: 'capacity', pct: f[1], quarters: f[2], src: 'event', ...modScope(f[3], ctx, co) }); say(`Capacity ${sg(f[1], '%')}${where(g, f[3], ctx)} for ${f[2]} quarters`); break;
       case 'prod': addMod(g, { kind: 'prod', pct: f[1], quarters: f[2], src: 'event', ...modScope(f[3], ctx, co) }); say(`Productivity ${sg(f[1], '%')}${where(g, f[3], ctx)} for ${f[2]} quarters`); break;
-      case 'attrition': addMod(g, { kind: 'attrition', pct: f[1], quarters: f[2], src: 'event' }); say(`Attrition ${sg(f[1], '%')} for ${f[2]} quarters`); break;
+      case 'attrition': addMod(g, { kind: 'attrition', pct: f[1], quarters: f[2], src: 'event', ...scopedInd }); say(`Attrition ${sg(f[1], '%')} for ${f[2]} quarters`); break;
       case 'valuation': addMod(g, { kind: 'valuation', pct: f[1], quarters: f[2], src: 'event' }); say(`Valuation ${sg(f[1], '%')} for ${f[2]} quarters`); break;
       case 'staff': {
         let d = 0;
@@ -439,7 +444,9 @@ export function applyFx(g: GameState, fx: Fx[], ctx: EventCtx): string[] {
       case 'rivalCash': if (rival) rival.cash += f[1] * rival.rev * 4; break;
       case 'rivalTech': for (const r of rival ? [rival] : g.rivals) for (const k of r.industries) r.tech[k] = clamp((r.tech[k] ?? 30) + f[1], 5, 100); say(`${rival ? rival.name : 'Rivals'} ${f[1] > 0 ? 'gained' : 'lost'} ground on technology`); break;
       case 'rivalBrand': if (rival) rival.brand = clamp(rival.brand + f[1], 0, 100); break;
-      case 'rivalShare': if (rival) for (const ro of rival.offices) if (!ctx.city || ro.city === ctx.city) ro.share = clamp(ro.share * (1 + f[1] / 100), 0, 0.9); break;
+      case 'rivalShare': // with no rival named, whichever rivals compete with you there ("they sign with a rival")
+        for (const r of rival ? [rival] : g.rivals.filter((x) => x.alive)) for (const ro of r.offices) if ((!ctx.city || ro.city === ctx.city) && (rival || !ctx.ind || ro.ind === ctx.ind)) ro.share = clamp(ro.share * (1 + f[1] / 100), 0, 0.9);
+        break;
       case 'gap': g.macro.shock.gap += f[1]; say(f[1] < 0 ? 'The economy weakens' : 'The economy strengthens'); break;
       case 'rate': g.macro.shock.rate += f[1]; say(`Central-bank rate ${sg(f[1], ' pts')}`); break;
       case 'infl': g.macro.shock.infl += f[1]; say(`Inflation ${sg(f[1], ' pts')}`); break;
@@ -575,7 +582,7 @@ const SPECIAL_MONEY: Record<string, (g: GameState, ctx: EventCtx, arg: number) =
     return { finance: rv ? rv.limit - rv.principal : 0 };
   },
   factorAR: (g) => ({ finance: 0.68 * g.company.books.ar }),
-  buyback10: (g) => ({ finance: g.company.cap.isPublic ? -0.1 * Math.max(0, g.company.books.cash) : 0 }),
+  buyback10: (g) => ({ finance: g.company.cap.isPublic && g.company.cap.price > 0 ? -0.1 * Math.max(0, g.company.books.cash) : 0 }),
 };
 
 /** Cash an outcome moves: spend (costs and windfalls) and finance (borrowing, repaying, selling shares). */
@@ -633,6 +640,14 @@ export function viewEvent(g: GameState, pe: PendingEvent): EventView {
   };
 }
 
+const ENTITIES: readonly string[] = ['office', 'city', 'region', 'rival', 'person', 'loan'];
+/** What a follow-up inherits from the card that led to it: the industry, and only the office, region, rival, person or
+ *  loan it is itself about. Otherwise closing an office would quietly cancel, say, a bribery probe that began there. */
+function chainCtx(ctx: EventCtx, id: string): EventCtx {
+  const keep = new Set<string>((EVENT[id]?.bind ?? []).flatMap((b) => (b === 'office' ? ['office', 'city', 'region'] : [b])));
+  return Object.fromEntries(Object.entries(ctx).filter(([k]) => keep.has(k) || !ENTITIES.includes(k))) as EventCtx;
+}
+
 export interface EventResult { title: string; choice: string; text: string; effects: string[]; lesson: string; luck: number; terms: string[] }
 export function resolveEvent(g: GameState, uid: number, optIdx: number): EventResult | null {
   const pe = g.queue.find((e) => e.uid === uid);
@@ -643,9 +658,10 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   const ws = opt.out.map((o) => boosted(g, pe.ctx, o));
   const tot = ws.reduce((a, b) => a + b, 0) || 1;
   let r = rand(g) * tot, pick = 0;
+  ws.forEach((w, i) => { if (w > 0) pick = i; }); // if rounding leaves a sliver: the last outcome that can happen
   for (let i = 0; i < ws.length; i++) {
     r -= ws[i];
-    if (r <= 0) { pick = i; break; }
+    if (ws[i] > 0 && r <= 0) { pick = i; break; } // a zero weight is never picked, even when the draw is exactly 0 (as weighted())
   }
   const out = opt.out[pick];
   const vals = opt.out.map((o) => outcomeValue(g, o));
@@ -654,7 +670,7 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   const title = fill(g, def.title, pe.ctx);
   const choice = fill(g, opt.label, pe.ctx);
   const effects = applyFx(g, out.fx ?? [], pe.ctx);
-  for (const [id, delay, p] of out.chain ?? []) if (chance(g, p ?? 1)) scheduleEvent(g, id, delay, pe.ctx);
+  for (const [id, delay, p] of out.chain ?? []) if (chance(g, p ?? 1)) scheduleEvent(g, id, delay, chainCtx(pe.ctx, id));
   g.queue = g.queue.filter((e) => e.uid !== uid);
   if (g.status !== 'playing') { // that choice ended the game (a sale, a takeover), a kept-going one included
     g.continued = false;
@@ -669,6 +685,7 @@ export function resolveEvent(g: GameState, uid: number, optIdx: number): EventRe
   // Colour the news by how it turned out against the odds (or the outcome's own tone), not by whether money was spent.
   const tone = out.tone ?? (luck > 0.005 * scaleS(g) ? 'good' : luck < -0.005 * scaleS(g) ? 'bad' : 'info');
   news(g, `${title}: ${text}`, tone);
+  pruneStale(g); // a card about the person who just left (or the rival just bought) no longer applies
   return { title, choice, text, effects, lesson: def.lesson, luck, terms: def.terms ?? [] };
 }
 

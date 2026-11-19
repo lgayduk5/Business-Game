@@ -480,7 +480,7 @@
     "title": "Dawn raid",
     "text": "Investigators arrived at seven this morning with a warrant covering all pricing communications for the last two years.",
     "w": 0,
-    "bind": [],
+    "bind": ["rival"],
     "opts": [
       {
         "label": "Confess first",
