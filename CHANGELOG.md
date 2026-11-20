@@ -1,5 +1,19 @@
 # Changelog
 
+## Music
+
+Design choices in decision 89; how it works in [docs/music.md](docs/music.md).
+
+- **A soundtrack,** synthesised live like the sound effects: no audio files, nothing extra to download, works offline.
+  - **Title theme** (*Opening Bell*): felt piano and strings, a struck bell at the top of each phrase.
+  - **At the desk** (*Paper Minimalism*): interlocking marimba lines over a bowed drone. It changes arrangement with the
+    game: brighter in a boom, sparser and minor in a slowdown or recession, a low ostinato and a ticking clock when
+    there are under two quarters of cash left.
+  - **Cues** for the quarter close (neutral, a record quarter, a loss), event cards, victory and insolvency.
+- **Event cards duck the music** and muffle it until the card is closed.
+- **A music switch** in the menu and on the title screen. *Turn sound off* silences music too. Music starts at the
+  first tap and pauses while the game is in the background.
+
 ## Third review: playtest across every mode and industry
 
 Design choices in decisions 80–88. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the

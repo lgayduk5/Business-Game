@@ -4,6 +4,9 @@ import { esc } from '../kit';
 import { on, render, runTurns, toast, ui } from '../store';
 import { modals } from '../shell';
 import { isMuted, setMuted, sfx } from '../../audio';
+import { cue } from '../../music';
+import { quarterCue } from '../../music/mood';
+import { musicButton } from '../soundtrack';
 
 export const afterTurn: ((g: GameState) => void | Promise<void>)[] = [];
 export const menuExtras: ((g: GameState | null) => string)[] = [];
@@ -26,10 +29,11 @@ async function advance(turns: number) {
   for (const h of afterTurn) await h(ui.g);
   const st = ui.g.status;
   if (st !== 'playing' && !ui.g.continued) {
-    st === 'won' ? sfx.win() : sfx.lose();
+    if (!cue(st === 'won' ? 'win' : 'lose')) st === 'won' ? sfx.win() : sfx.lose();
     ui.modal = { kind: 'over', data: { sticky: true } };
   } else {
     sfx.print();
+    cue(quarterCue(ui.g), 0.45); // after the printer
     ui.modal = { kind: 'report', data: { n: r.n, reason: turns > 1 ? r.reason : '' } };
   }
   render();
@@ -100,6 +104,7 @@ modals.menu = (g) => `<div class="spread"><h2>Menu</h2><button class="btn sm" da
     ${menuExtras.map((f) => f(g)).join('')}
     ${g ? `<button class="btn" data-a="toggleDelegate" title="Small cards: no crisis, no rival, nothing worth more than 4% of a quarter's sales. Your COO picks the safest option.">${g.settings.delegate ? 'Small decisions: your COO handles them' : 'Small decisions: you decide every one'}</button>` : ''}
     <button class="btn" data-a="mute">${isMuted() ? 'Turn sound on' : 'Turn sound off'}</button>
+    ${isMuted() ? '' : musicButton()}
     <button class="btn" data-a="howTo">How to play</button>
     <button class="btn danger" data-a="askQuit">Quit to title</button>
   </div>

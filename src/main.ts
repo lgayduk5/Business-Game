@@ -21,6 +21,7 @@ import './ui/screens/files';
 import './ui/screens/modes';
 import './ui/screens/tutorial';
 import './ui/screens/modals';
+import './ui/soundtrack';
 
 setView(() => (ui.screen === 'game' && ui.g ? shell(ui.g) : ui.screen === 'new' && ui.wizard ? wizard() : title()));
 initEvents();

@@ -7,7 +7,8 @@ try {
   /* storage unavailable */
 }
 
-function ac(): AudioContext | null {
+/** The shared context, created on first use (after a tap); null while sound is off. Music uses it too. */
+export function ac(): AudioContext | null {
   if (muted) return null;
   try {
     ctx ??= new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -91,6 +92,8 @@ export const sfx = {
   lose: () => [392, 330, 262, 196].forEach((f, i) => note(f, i * 0.22, 0.4, 'sawtooth', 0.06, 0.9)),
 };
 
+/** The context if one exists, without creating it or checking the mute. */
+export const audioContext = () => ctx;
 export const isMuted = () => muted;
 export function setMuted(m: boolean) {
   muted = m;

@@ -3,7 +3,8 @@ import { CITIES, CITY, DIFF, DIFFICULTIES, FOUNDERS, IND_LIST, INDUSTRIES, REGIO
 import { esc } from '../kit';
 import { on, render, toast, ui, type Wizard } from '../store';
 import { modalHost } from '../shell';
-import { sfx } from '../../audio';
+import { isMuted, sfx } from '../../audio';
+import { musicButton } from '../soundtrack';
 
 export const titleExtras: (() => string)[] = [];
 
@@ -17,7 +18,7 @@ export function title(): string {
       ${titleExtras.map((f) => f()).join('')}
       <button class="btn" data-a="howTo">How to play</button>
     </div>
-    <p class="small muted" style="margin-top:26px">A strategy game about finance, economics and management. Works offline; your saves stay on this device.</p>
+    <p class="small muted" style="margin-top:26px">A strategy game about finance, economics and management. Works offline; your saves stay on this device.${isMuted() ? '' : ` ${musicButton('linkish')}.`}</p>
   </div>${modalHost(null)}`;
 }
 

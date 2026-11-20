@@ -327,3 +327,14 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     the Expert tier stays defined for a future industry. The same change lifted retail, which had sat on the Tough
     ceiling since the second review, a point over it; local independents are a little stronger (fringe 14 → 15),
     which brings it back inside.
+
+## Music
+
+89. **Music is synthesised, like the sound effects, and follows the game.** Seven options were auditioned (four
+    desk loops, two title themes and a pack of cues); *Paper Minimalism* plays at the desk, *Opening Bell* on the
+    title screen, with the cue pack. They are Web Audio code rather than recordings, so the game stays a small
+    offline download and the desk track can rearrange itself with the game instead of crossfading between files.
+    Its mood takes cash first, on the CFO's under-two-quarters rule, then the business cycle; event cards duck it.
+    Cues replace the old win, lose and event-card sounds only while music is on, and crisis cards keep their alarm.
+    Music waits for the first tap (browsers require one), pauses in the background, and has its own switch beside
+    the sound switch. Details in [music.md](music.md).
