@@ -4,6 +4,7 @@ import { esc } from '../kit';
 import { afterRender, markHooks, on, render, ui } from '../store';
 import { hqExtras } from './hq';
 import { sfx } from '../../audio';
+import { musicOn } from '../../music';
 
 interface Step { title: string; text: string; done: (g: GameState) => boolean; go?: [action: string, label: string, attrs?: string] }
 const c = (g: GameState, k: string) => !!g.counters['tut:' + k];
@@ -43,7 +44,8 @@ on('tutOff', () => {
 });
 
 // A tick as each step is done, and a chime for the last one. Steps done before this session (a loaded
-// game) count silently; a step done by ending a quarter ticks after the report has printed.
+// game) count silently; a step done by ending a quarter ticks after the report has printed, and with music
+// on after the quarter's cue too (it starts at 0.62 s and resolves at about 1 s; see advance in modals.ts).
 let seen: { id: string; done: number } | null = null;
 function progress() {
   const g = ui.g;
@@ -51,7 +53,7 @@ function progress() {
   const done = STEPS.filter((s) => s.done(g)).length;
   const active = g.settings.tutorial && g.mode !== 'scenario' && g.turn < TUTORIAL_QUARTERS;
   if (active && seen?.id === g.id && done > seen.done) {
-    const delay = ui.modal?.kind === 'report' ? 0.75 : 0.09;
+    const delay = ui.modal?.kind === 'report' ? (musicOn() ? 1.2 : 0.75) : 0.09;
     if (done === STEPS.length) sfx.milestone(delay);
     else sfx.check(delay);
   }
