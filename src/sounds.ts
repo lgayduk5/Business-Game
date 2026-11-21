@@ -376,7 +376,7 @@ export const SOUNDS = {
   },
   // ── moments
   event: {
-    label: 'Desk bell', where: 'A decision card arrives.',
+    label: 'Desk bell', where: 'A decision card arrives. With music on, a music cue plays instead.',
     tier: 'moment', peak: 0.18, len: 0.8, gap: 300,
     draw: (o) => {
       strike(o, 0, A5, 1, 0.75, BELL, 0.001);
@@ -431,7 +431,7 @@ export const SOUNDS = {
   },
   // ── endings
   win: {
-    label: 'Victory', where: 'The game ends in a win.',
+    label: 'Victory', where: 'The game ends in a win. With music on, a music cue plays instead.',
     tier: 'finale', peak: 0.3, len: 2.3,
     draw: (o) => {
       [C5, E5, G5, C6].forEach((f, i) => strike(o, i * 0.1, f, 0.7 + i * 0.05, 0.5, WOOD, 0.003));
@@ -443,7 +443,7 @@ export const SOUNDS = {
     },
   },
   lose: {
-    label: 'Last notes', where: 'The game ends in a loss.',
+    label: 'Last notes', where: 'The game ends in a loss. With music on, a music cue plays instead.',
     tier: 'finale', peak: 0.25, len: 2.1,
     draw: (o) => {
       [[A4, 0.5, 0.8], [E4, 0.5, 0.8], [C4, 0.5, 0.85], [A3, 1.2, 1]].forEach(([f, d, g], i) => {
