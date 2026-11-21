@@ -47,6 +47,64 @@ Design choices in decisions 91–97.
   length, clean start and end, and the order of loudness; the browser smoke test checks that interactions
   play their sounds and that Off is silent.
 
+## Bug audit
+
+A review of every system, one at a time: engine, interface, saves and tooling. Each fix has a regression test (305
+tests, up from 176). What was found, how it was checked and what is still open are in [BUG_AUDIT.md](BUG_AUDIT.md).
+
+**Game rules and money**
+- **Games that did not end:** after *Keep playing*, bankruptcy, a sale or an ouster left the game running; a winning
+  sale of the company offered *Keep playing* on a company you no longer owned.
+- **The grade moved after the end.** The grade and the Daily score code were worked out from live state, so spending
+  leftover cash after a Daily ended raised its code (B65 → A70 in a real one). The grade is now frozen when the game
+  ends, and every action refuses once it is over.
+- **Shares for nothing at a $0 share price:** buybacks (and the buyback card) retired shares for $0, follow-ons sold
+  them for $0, and the stock half of a bid for a rival was issued at a cent a share (a founder fell from 100% to 0.6%).
+  These are refused, and such a bid is paid in cash. Option pay near zero value could issue the company many times over
+  in one quarter; a grant is now at most a fifth of it.
+- **Accounting:** a recession's bad-debt write-off booked refunds you owed as profit; franchise royalties went untaxed;
+  the input-lock fee could push cash negative without counting toward insolvency; an IPO did not start the wait before
+  a follow-on.
+- **Free money:** a drug could be started and licensed out in the same click, again and again; an infrastructure fund
+  got 49% of a business bought into its plant without paying; long games silently dropped running investments.
+- **Determinism:** opening the map drew random numbers, so looking at it changed the rest of the game.
+- **Energy in Lagos** could start with a stake worth next to nothing, so any growth graded as a win; the starting stake
+  now has a floor.
+
+**People, cards and rivals**
+- Hiring an executive ignored wage inflation in the search fee, and replacing one left the seat empty for up to three
+  quarters.
+- Cards named the wrong office (a walkout at morale 80) or a region with no office, leaked into other divisions (cloud
+  credits cut a factory's input costs), and stayed in the queue after another card made them moot. Retention, hedges,
+  truces and alliances lasted a quarter longer than their "two years" or "three years".
+- Card and scenario text that contradicted the effect now matches it. Five content files gained schemas, and a misspelt
+  card condition no longer lets the card fire for everyone.
+- Rivals: a poaching raid, suit or bid refused for lack of cash no longer starts its cooldown; the distress card names a
+  city the rival is in; a rival bought earlier in the quarter stops trading; a retail rival no longer retaliates by
+  opening a software office. The board's cost cuts at your company now cut one job in ten and pay severance.
+
+**Saves and screens**
+- **Saves:** a save counted as kept before it was written, so a full disk lost the game on reload without a word;
+  without IndexedDB, playing on rewrote the save you loaded; an engine error left the game stuck on "Closing the
+  books…"; decisions made just before quitting were not saved; a damaged import could write a broken autosave.
+- **Keyboard:** Enter on *End quarter* behind the report played another quarter. A slider moved while a quarter closed
+  announced a change that was then lost; such moves are now ignored.
+- **Screens:** the first click on Next after typing a company name did nothing; a Daily left open past midnight started
+  the next day's; the Daily's one go could be taken again; Delete removed a save without asking; dialog text that
+  disagreed with the engine (the cost of closing an office, of building relations, "0 more quarters") now agrees.
+
+**Tooling**
+- **Offline after an update:** the service worker could cache the previous build's page, so the installed game would not
+  start offline. It now fetches fresh copies.
+- The balance harness let a reduced run overwrite the committed reports, ordered rows by core count, passed with
+  `--seeds 0`, and fingerprinted differently on Windows; the smoke test left its server running and skipped checks
+  silently.
+
+**Balance**
+- The fixes left three red flags in the balance report. The Raider probe's two went with the merges that followed;
+  retail's is resolved above (decision 99). Open items, including two exploits that need a design decision (staged
+  projects valued the moment they start, and licensing them), are listed at the end of BUG_AUDIT.md.
+
 ## Third review: playtest across every mode and industry
 
 Design choices in decisions 80–90. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the
