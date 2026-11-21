@@ -117,6 +117,8 @@ export function sellCapacity(g: GameState, officeId: string, units: number): Act
   const proceeds = (gross - acc) * 0.5;
   B.dispose(g.company, gross, acc, proceeds, o);
   o.cap -= units;
+  // what is sold leaves the new-plant records too, pro rata like its book value, so it is no longer carried at cost
+  for (const r of o.ramp ?? []) r.cost *= 1 - frac;
   return ok(`Sold capacity for ${money(proceeds)} — half its book value. Fire sales are expensive.`);
 }
 

@@ -3,8 +3,8 @@
 // trailing-year accounts did to a new plant caused it; each is pinned here, for the player and for rivals.
 import { describe, expect, it } from 'vitest';
 import {
-  CITIES, FOUNDERS, LIKE_FOR_LIKE_Q, books, endTurn, growthOf, likeForLike, newGame, newPlant, openOffice, openOfficeCost, openOfficeFinancing, rivalGrowth,
-  rivalValuation, type GameState, type IndustryId,
+  CITIES, FOUNDERS, LIKE_FOR_LIKE_Q, SPECIALS, books, endTurn, growthOf, likeForLike, newGame, newPlant, openOffice, openOfficeCost, openOfficeFinancing, rampCarry,
+  rivalGrowth, rivalValuation, sellCapacity, type GameState, type IndustryId, type NewPlant, type Rival,
 } from '../engine/src/index';
 import { BOTS, botTurn } from '../engine/src/bots';
 import { opts, play } from './helpers';
@@ -114,5 +114,65 @@ describe('rivals', () => {
     const v = rivalValuation(g, r);
     expect(v.parts.growth).toBeCloseTo(growthOf(likeForLike(r.revTTM, r.ramp ?? [])), 9);
     expect(v.parts.growth).toBeLessThan(rivalGrowth(r));
+  });
+});
+
+describe('new plant goes with the office', () => {
+  const carried = (g: GameState, ps: readonly NewPlant[]) => ps.reduce((s, x) => s + x.cost * rampCarry(g, x), 0);
+  const has = (r: Rival, at: string | undefined) => r.offices.some((ro) => `${ro.city}:${ro.ind}` === at);
+  for (const ind of ['energy', 'retail'] as IndustryId[]) {
+    it(`${ind}: a rival's plant in an office it gives up is no longer carried at cost`, () => {
+      const g = newGame(opts({ industry: ind, city: cityFor(ind), seed: 'plant-office' }));
+      const r = g.rivals.find((x) => x.alive && x.industries[0] === ind)!;
+      let p: NewPlant | undefined;
+      for (let i = 0; i < 40 && !p; i++) {
+        r.cash = 5e8;
+        endTurn(g);
+        // every record of a rival's new plant, expansions included, names the office it is in
+        expect((r.ramp ?? []).every((x) => x.at)).toBe(true);
+        p = r.offices.length >= 2 ? (r.ramp ?? []).find((x) => rampCarry(g, x) > 0 && has(r, x.at)) : undefined;
+      }
+      expect(p).toBeDefined();
+      const cip = rivalValuation(g, r).parts.cip;
+      const gone = carried(g, r.ramp!.filter((x) => x.at === p!.at));
+      SPECIALS.rivalExit(g, { rival: r.id, city: p!.at!.split(':')[0] }, 0);
+      expect(has(r, p!.at)).toBe(false);
+      // it carried that plant at cost after the office had gone
+      expect(gone).toBeGreaterThan(0);
+      expect(rivalValuation(g, r).parts.cip).toBeCloseTo(cip - gone, 0);
+      endTurn(g);
+      expect((r.ramp ?? []).some((x) => x.at === p!.at)).toBe(false);
+    });
+  }
+  it('a grid rival that withdraws and comes back keeps one record of the office, so its sales leave growth once', () => {
+    let back = '';
+    for (let s = 0; s < 60 && !back; s++) {
+      const g = newGame(opts({ industry: 'energy', city: cityFor('energy'), seed: 'plant-office' + s }));
+      const r = g.rivals.find((x) => x.alive && x.industries[0] === 'energy')!;
+      const left = new Map<string, number>();
+      for (let i = 0; i < 80 && !back && r.alive; i++) {
+        r.cash = 5e8;
+        endTurn(g);
+        const lfl = (r.ramp ?? []).filter((x) => x.rev).map((x) => x.at);
+        expect(new Set(lfl).size).toBe(lfl.length);
+        for (const [at, t] of left) if (g.turn - t < LIKE_FOR_LIKE_Q && has(r, at) && lfl.includes(at)) back = at;
+        // withdraw from a new plant once it has a couple of quarters of sales
+        const p = (r.ramp ?? []).find((x) => x.rev && x.rev.length >= 2 && !left.has(x.at!));
+        if (p && r.offices.length >= 2) {
+          SPECIALS.rivalExit(g, { rival: r.id, city: p.at!.split(':')[0] }, 0);
+          left.set(p.at!, g.turn);
+        }
+      }
+      if (back) expect(rivalValuation(g, r).parts.growth).toBeCloseTo(growthOf(likeForLike(r.revTTM, (r.ramp ?? []).filter((x) => has(r, x.at)))), 9);
+    }
+    expect(back).not.toBe('');
+  });
+  it('selling some of your own new plant stops carrying that part at cost', () => {
+    const { b, o } = twins('energy', 'sell-new');
+    const before = carried(b, o.ramp!);
+    expect(before).toBeGreaterThan(0);
+    const units = Math.round(o.cap / 4), left = 1 - units / o.cap;
+    expect(sellCapacity(b, o.id, units).ok).toBe(true);
+    expect(carried(b, o.ramp!) / before).toBeCloseTo(left, 9);
   });
 });
