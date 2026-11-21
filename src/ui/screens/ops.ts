@@ -160,11 +160,11 @@ on('reqs', (d) => {
   const g = ui.g!;
   const o = officeById(g, d.office!)!;
   const role = d.role as Role;
-  act(setReqs(g, o.id, role, o.staff[role].reqs + Number(d.d)), sfx.tick);
+  act(setReqs(g, o.id, role, o.staff[role].reqs + Number(d.d)), () => sfx.step(Number(d.d) > 0));
 });
 on('pay', (d) => void act(setPay(ui.g!, d.office!, Number(d.value))));
-on('training', (d) => void act(setTraining(ui.g!, d.office!, Number(d.v))));
-on('backfill', (d) => void act(setBackfill(ui.g!, d.office!, d.v === '1')));
+on('training', (d) => void act(setTraining(ui.g!, d.office!, Number(d.v)), sfx.toggle));
+on('backfill', (d) => void act(setBackfill(ui.g!, d.office!, d.v === '1'), () => sfx.toggle(d.v === '1')));
 on('price', (d) => void act(setPrice(ui.g!, d.region as RegionId, d.ind as IndustryId, Number(d.value))));
 on('marketing', (d) => void act(setMarketing(ui.g!, d.region as RegionId, Number(d.value))));
 on('buildAmt', (d) => {
@@ -173,8 +173,8 @@ on('buildAmt', (d) => {
 });
 on('build', (d) => void act(expandCapacity(ui.g!, d.office!, Number(d.units)), sfx.build));
 on('buildFin', (d) => void act(expandCapacity(ui.g!, d.office!, Number(d.units), true), sfx.build));
-on('sellCap', (d) => void act(sellCapacity(ui.g!, d.office!, Number(d.units))));
-on('recycle', (d) => void act(sellPlantStake(ui.g!, d.office!)));
+on('sellCap', (d) => void act(sellCapacity(ui.g!, d.office!, Number(d.units)), sfx.cash));
+on('recycle', (d) => void act(sellPlantStake(ui.g!, d.office!), sfx.cash));
 on('askLayoff', (d) => {
   ui.modal = { kind: 'layoff', data: { office: d.office, role: d.role, n: 1 } };
   render();
@@ -182,18 +182,22 @@ on('askLayoff', (d) => {
 on('layoffN', (d) => {
   const m = ui.modal!.data;
   const o = officeById(ui.g!, m.office)!;
-  m.n = Math.max(1, Math.min(o.staff[m.role as Role].n, m.n + Number(d.d)));
+  const n = Math.max(1, Math.min(o.staff[m.role as Role].n, m.n + Number(d.d)));
+  if (n !== m.n) sfx.step(n > m.n);
+  m.n = n;
   render();
 });
 on('layoffAll', () => {
   const m = ui.modal!.data;
-  m.n = officeById(ui.g!, m.office)!.staff[m.role as Role].n;
+  const all = officeById(ui.g!, m.office)!.staff[m.role as Role].n;
+  if (all !== m.n) sfx.step(true);
+  m.n = all;
   render();
 });
 on('doLayoff', () => {
   const m = ui.modal!.data;
   ui.modal = null;
-  act(fire(ui.g!, m.office, m.role, m.n), sfx.bad);
+  act(fire(ui.g!, m.office, m.role, m.n), sfx.somber);
 });
 on('askClose', (d) => {
   ui.modal = { kind: 'confirm', data: { title: 'Close this office?', text: 'Everyone is laid off with severance, the lease is broken at a cost of two quarters of rent and facility running costs, plant is sold at 40% of book value, any stock on hand is written off, and your customers here go to competitors. Reputation and culture take a small knock.', yes: 'Close the office', act: 'doClose', arg: d.office } };
@@ -202,7 +206,7 @@ on('askClose', (d) => {
 on('doClose', (d) => {
   ui.modal = null;
   ui.sub.ops = 'list';
-  act(closeOffice(ui.g!, d.arg!), sfx.bad);
+  act(closeOffice(ui.g!, d.arg!), sfx.somber);
 });
 
 modals.layoff = (g, m) => {

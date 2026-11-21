@@ -132,6 +132,23 @@ try {
     await tap('[data-a=menu]'); await tap('[data-a=askQuit]'); await tap('.modal [data-a=quit]');
     await tap('[data-a=scenarios]'); await shot('14-scenarios'); await tap('[data-a=scenario]'); await tap('[data-a=startScenario]');
     await page.waitForSelector('.shell'); await shot('15-scenario-hq');
+    // sound: each kind of interaction plays its own sound, and Sound: Off is silent
+    const sound = async (label, fn, want) => {
+      await page.evaluate(() => { window.__gc.heard.length = 0; });
+      await fn(); await page.waitForTimeout(150);
+      const got = await page.evaluate(() => window.__gc.heard.slice());
+      const ok = want === null ? !got.length : [want].flat().some((w) => got.includes(w));
+      if (!ok) errors.push(`${name}: ${label} played ${got.join(', ') || 'nothing'}, expected ${want === null ? 'silence' : [want].flat().join(' or ')}`);
+    };
+    await sound('a tab', () => tap('.tabs [data-v=ops]'), 'page');
+    await sound('opening the menu', () => tap('[data-a=menu]'), 'tap');
+    await sound('choosing Sound: Off', () => tap('.modal [data-a=soundLevel][data-v=off]'), null);
+    await page.keyboard.press('Escape');
+    await sound('a tab with the sound off', () => tap('.tabs [data-v=hq]'), null);
+    await tap('[data-a=menu]'); await tap('.modal [data-a=soundLevel][data-v=normal]'); await tap('.modal [data-a=sounds]'); await shot('16-sound-test');
+    await sound('the sound test', () => tap('.modal [data-a=sfxTry][data-id=cash]'), 'cash');
+    await page.keyboard.press('Escape');
+    await sound('ending a quarter', async () => { await tap('[data-a=endTurn]'); await page.waitForSelector('.modal', { timeout: 15000 }); }, ['report', 'event', 'crisis']);
     await ctx.close();
   }
   // ── PWA: manifest is installable, every path is relative, and the game runs with the network off

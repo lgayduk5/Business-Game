@@ -83,8 +83,8 @@ corpViews.rd = rd;
 corpViews.people = people;
 
 on('rdBudget', (d) => void act(setRdBudget(ui.g!, d.ind as IndustryId, Number(d.value))));
-on('hireExec', (d) => void act(hireExec(ui.g!, d.id!), sfx.good));
-on('retain', (d) => void act(retain(ui.g!, d.id!), sfx.tick));
+on('hireExec', (d) => void act(hireExec(ui.g!, d.id!), sfx.deal));
+on('retain', (d) => void act(retain(ui.g!, d.id!), sfx.spend));
 on('askFire', (d) => {
   const p = ui.g!.company.people.find((x) => x.id === d.id);
   if (!p) return;
@@ -93,7 +93,7 @@ on('askFire', (d) => {
 });
 on('doFire', (d) => {
   ui.modal = null;
-  act(fireExec(ui.g!, d.arg!));
+  act(fireExec(ui.g!, d.arg!), sfx.somber);
 });
 on('askDivision', (d) => {
   const k = d.ind as IndustryId;
@@ -102,5 +102,5 @@ on('askDivision', (d) => {
 });
 on('doDivision', (d) => {
   ui.modal = null;
-  act(launchDivision(ui.g!, d.arg as IndustryId), sfx.good);
+  act(launchDivision(ui.g!, d.arg as IndustryId), sfx.milestone);
 });

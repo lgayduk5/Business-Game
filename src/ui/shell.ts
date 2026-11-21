@@ -52,7 +52,7 @@ export function modalHost(g: GameState | null): string {
 
 on('tab', (d) => {
   ui.tab = d.v as Tab;
-  sfx.tab();
+  sfx.page();
   render(false);
 });
 on('close', () => {
@@ -64,12 +64,14 @@ on('sub', (d) => {
   const tab = d.k as Tab;
   if (ui.tab !== tab && ['hq', 'map', 'ops', 'corp', 'intel'].includes(tab)) {
     ui.tab = tab;
+    sfx.page();
     return render(false);
   }
+  sfx.tap();
   render();
 });
 
 on('chartLine', (d) => {
-  toggleLine(d.k!);
+  sfx.toggle(toggleLine(d.k!));
   render();
 });

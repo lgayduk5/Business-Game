@@ -8,6 +8,7 @@ import { esc, seg } from '../kit';
 import { act, on, ui } from '../store';
 import { corpTabs, corpViews } from './corp';
 import { cityExtras } from './map';
+import { sfx } from '../../audio';
 
 function policies(g: GameState): string {
   const c = g.company;
@@ -52,11 +53,11 @@ function policies(g: GameState): string {
 
 corpTabs.push(['policies', 'Policies']);
 corpViews.policies = policies;
-on('adoptPolicy', (d) => void act(adoptPolicy(ui.g!, d.id!, d.r)));
-on('dropPolicy', (d) => void act(dropPolicy(ui.g!, d.id!)));
-on('optionPay', (d) => void act(setOptionPay(ui.g!, Number(d.v))));
-on('lockInputs', (d) => void act(lockInputs(ui.g!, Number(d.v))));
-on('guidance', (d) => void act(setGuidance(ui.g!, d.v as keyof typeof GUIDANCE)));
+on('adoptPolicy', (d) => void act(adoptPolicy(ui.g!, d.id!, d.r), sfx.stamp));
+on('dropPolicy', (d) => void act(dropPolicy(ui.g!, d.id!), () => sfx.toggle(false)));
+on('optionPay', (d) => void act(setOptionPay(ui.g!, Number(d.v)), sfx.toggle));
+on('lockInputs', (d) => void act(lockInputs(ui.g!, Number(d.v)), sfx.toggle));
+on('guidance', (d) => void act(setGuidance(ui.g!, d.v as keyof typeof GUIDANCE), sfx.toggle));
 
 // Franchising, from a city on the map (retail).
 cityExtras.push((g: GameState, ct: CityDef) => {
@@ -69,4 +70,4 @@ cityExtras.push((g: GameState, ct: CityDef) => {
   return `<h3>Franchise</h3><p class="small">A partner opens and runs stores under your brand: no plant or staff of your own, a ${money(FRANCHISE_FEE * g.macro.cpi)} fee up front and ${pct(ROYALTY)} of their sales. You give up most of the margin, and their mistakes are your brand's.</p>
     ${why ? `<p class="small muted">${esc(why)}</p>` : `<button class="btn sm" data-a="franchise" data-id="${ct.id}">Franchise in ${esc(CITY[ct.id].name)}</button>`}`;
 });
-on('franchise', (d) => void act(openFranchise(ui.g!, d.id!)));
+on('franchise', (d) => void act(openFranchise(ui.g!, d.id!), sfx.deal));

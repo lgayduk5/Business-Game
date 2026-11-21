@@ -3,6 +3,7 @@ import { equityOf, money, totalAssets, totalLiabilities, turnLabel, type GameSta
 import { acct, esc, explain, seg, tip } from '../kit';
 import { on, render, ui } from '../store';
 import { screens } from '../shell';
+import { sfx } from '../../audio';
 
 export const corpTabs: [string, string][] = [['statements', 'Statements']];
 export const corpViews: Record<string, (g: GameState) => string> = {};
@@ -113,9 +114,11 @@ on('corpGroup', (d) => {
   const group = d.v!;
   const first = tabsIn(group)[0]?.[0];
   ui.sub.corp = ui.sub['corp:' + group] ?? first ?? ui.sub.corp;
+  sfx.tap();
   render(false);
 });
 on('stmt', (d) => {
   ui.sel.stmt = d.v;
+  sfx.tap();
   render();
 });

@@ -1,8 +1,9 @@
 // First-game tutorial: a checklist on HQ that ticks itself off as the player does each thing.
 import type { GameState } from '@engine';
 import { esc } from '../kit';
-import { on, render, ui } from '../store';
+import { afterRender, markHooks, on, render, ui } from '../store';
 import { hqExtras } from './hq';
+import { sfx } from '../../audio';
 
 interface Step { title: string; text: string; done: (g: GameState) => boolean; go?: [action: string, label: string, attrs?: string] }
 const c = (g: GameState, k: string) => !!g.counters['tut:' + k];
@@ -37,5 +38,24 @@ hqExtras.unshift((g) => {
 });
 on('tutOff', () => {
   ui.g!.settings.tutorial = false;
+  sfx.toggle(false);
   render();
 });
+
+// A tick as each step is done, and a chime for the last one. Steps done before this session (a loaded
+// game) count silently; a step done by ending a quarter ticks after the report has printed.
+let seen: { id: string; done: number } | null = null;
+function progress() {
+  const g = ui.g;
+  if (!g || ui.screen !== 'game') return;
+  const done = STEPS.filter((s) => s.done(g)).length;
+  const active = g.settings.tutorial && g.mode !== 'scenario' && g.turn < TUTORIAL_QUARTERS;
+  if (active && seen?.id === g.id && done > seen.done) {
+    const delay = ui.modal?.kind === 'report' ? 0.75 : 0.09;
+    if (done === STEPS.length) sfx.milestone(delay);
+    else sfx.check(delay);
+  }
+  seen = { id: g.id, done };
+}
+markHooks.push(() => queueMicrotask(progress));
+afterRender(progress);

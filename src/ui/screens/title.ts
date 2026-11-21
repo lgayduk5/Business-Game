@@ -4,6 +4,7 @@ import { esc } from '../kit';
 import { on, render, toast, ui, type Wizard } from '../store';
 import { modalHost } from '../shell';
 import { sfx } from '../../audio';
+import { soundLabel } from './sound';
 
 export const titleExtras: (() => string)[] = [];
 
@@ -18,6 +19,7 @@ export function title(): string {
       <button class="btn" data-a="howTo">How to play</button>
     </div>
     <p class="small muted" style="margin-top:26px">A strategy game about finance, economics and management. Works offline; your saves stay on this device.</p>
+    <p class="small muted"><button class="linkish small" data-a="sounds">Sound: ${soundLabel()}</button></p>
   </div>${modalHost(null)}`;
 }
 
@@ -117,15 +119,17 @@ on('newGame', () => {
   // a first company (no saves on this device) starts as a ten-year Sprint: a whole game in an evening or two
   ui.wizard = { step: 0, industry: IND_LIST.length === 1 ? IND_LIST[0].id : '', city: '', founder: 'engineer', difficulty: 'normal', name: COMPANY_NAMES[Math.floor(Math.random() * COMPANY_NAMES.length)], seed: Math.random().toString(36).slice(2, 8), mode: 'standard', sprint: !ui.saves.length };
   ui.screen = 'new';
+  sfx.page();
   render(false);
 });
 on('wz', (d) => {
   (ui.wizard as any)[d.k!] = d.v;
-  sfx.tick();
+  sfx.toggle();
   render();
 });
 on('wzBars', () => {
   ui.wizard!.bars = !ui.wizard!.bars;
+  sfx.toggle(ui.wizard!.bars);
   render();
 });
 // No re-render: the name is stored when the field loses focus, which is on pressing Next, and a render then replaced
@@ -136,11 +140,13 @@ on('wzBack', () => {
   const w = ui.wizard!;
   if (w.step === 0) ui.screen = 'title';
   else w.step--;
+  sfx.page();
   render(false);
 });
 export const startHooks: (() => void)[] = [];
 on('wzGo', (d) => {
   ui.wizard!.step = Number(d.v);
+  sfx.page();
   render(false);
 });
 on('wzNext', () => {
@@ -148,6 +154,7 @@ on('wzNext', () => {
   if (w.step === 3 && !w.name.trim()) return toast('Give the company a name first.', true);
   if (w.step < STEPS.length - 1) {
     w.step++;
+    sfx.page();
     return render(false);
   }
   try {
@@ -161,6 +168,6 @@ on('wzNext', () => {
   ui.sel = {};
   ui.modal = null;
   for (const h of startHooks) h();
-  sfx.good();
+  sfx.milestone();
   render(false);
 });

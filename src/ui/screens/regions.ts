@@ -49,8 +49,8 @@ function regions(g: GameState): string {
 opsTabs.push(['regions', 'Regions']);
 opsViews.regions = regions;
 
-on('supply', (d) => void act(setSupply(ui.g!, d.region as RegionId, d.v as SupplyMode)));
-on('signPartner', (d) => void act(signPartner(ui.g!, d.region as RegionId), sfx.good));
-on('endPartner', (d) => void act(endPartner(ui.g!, d.region as RegionId)));
+on('supply', (d) => void act(setSupply(ui.g!, d.region as RegionId, d.v as SupplyMode), sfx.toggle));
+on('signPartner', (d) => void act(signPartner(ui.g!, d.region as RegionId), sfx.deal));
+on('endPartner', (d) => void act(endPartner(ui.g!, d.region as RegionId), sfx.somber));
 
 // (price and marketing handlers are registered in ops.ts)

@@ -10,7 +10,7 @@ realistic enough that playing it teaches finance, economics and management.
 ```
 /engine   deterministic simulation. Pure TypeScript, no DOM, no I/O. Its own package.
 /data     all content as JSON: industries, cities, investments, events, founders, rivals…
-/src      the UI (plain DOM + CSS), audio, storage, and the web worker that runs turns
+/src      the UI (plain DOM + CSS), sound synthesised from code, storage, and the web worker that runs turns
 /tests    headless unit tests (Vitest) and data validation
 /scripts  icon generator, JSON formatter, AI-vs-AI balance harness
 /docs     this document, decision log, balance report, wrapper notes

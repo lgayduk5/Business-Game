@@ -42,6 +42,9 @@ strategy, your execution and luck — and what to try next time.
 Small decisions can be left to your COO (on by default; change it in the menu), and
 each office shows a forecast of next quarter if nothing changes.
 
+**Sound** is light and can be set to *Off*, *Soft* or *Normal* in the menu (or from the title
+screen). *Menu → Sound → Hear every sound* plays each one and says where it is used.
+
 **Other ways to play:** *Learn the ropes* (five short chapters, each opening one layer of
 the game), *Scenario challenges* (seven prepared situations with one goal and a
 deadline, each with bronze, silver and gold medals and a Brutal version), the *Daily
@@ -62,6 +65,7 @@ npm run sim        # AI-vs-AI balance harness → docs/balance.md and data/winra
 npm run sim:check  # fails if those are stale or list a red flag (CI runs this)
 npm run build      # static production build in dist/ (relative paths, works from any sub-path)
 npm run preview    # serve the production build locally
+npm run sounds     # render every sound effect to shots/sounds/*.wav to listen to
 ```
 
 `npm run smoke` drives the built game in Chrome at phone and desktop sizes and saves
@@ -69,6 +73,27 @@ screenshots to `shots/` (needs Playwright and Chrome installed on the machine).
 `npm run playtest` plays about a thousand games in every industry, difficulty and mode — the
 bots and a player who takes random actions — and fails if the books stop balancing, a number
 goes bad, a card points at something that is gone, or any text shows a blank or "undefined".
+
+## Sound
+
+Every sound is synthesised by the game from code (`src/sounds.ts`) as it plays: there are no audio
+files, samples or third-party sounds in the project, so nothing needs licensing. The palette is the
+desk the game is drawn as (paper, pencil, rubber stamp, cash drawer, coins, mallet, desk bell, a
+dot-matrix printer), and pitched sounds share one scale so they never clash. How loud and long a sound
+may be depends on how often it can happen: navigating is barely there, money, building, decisions and
+people each get a short sound of their own, and only cards, milestones and the end of a game are louder.
+The reasoning is in [decisions 91–97](docs/decisions.md).
+
+To check the sounds:
+
+- **In the game:** *Menu → Sound → Hear every sound* (or *Sound* on the title screen) lists every sound
+  with where it plays; tap one to hear it, and try *Soft* and *Normal*. Then play a few quarters.
+- **Outside the game:** `npm run sounds` writes each sound to `shots/sounds/<name>.wav`, plus `all.wav`
+  (every sound in turn, quietest first), and prints each one's length and level.
+- **Automatically:** `npm test` renders every sound and checks its level, length, a click-free start and
+  end, and that each tier is louder than the one before; `npm run smoke` checks in Chrome that tabs,
+  dialogs and quarters play their sounds and that *Off* is silent. In the browser console,
+  `__gc.heard` lists the sounds played most recently.
 
 ## Install it as an app
 
@@ -94,7 +119,7 @@ Actions**. All paths are relative, so the game works at `https://<user>.github.i
 | --- | --- |
 | `engine/` | Deterministic, seeded simulation engine. Pure TypeScript, no DOM, its own package. |
 | `data/` | All content as JSON — industries, cities, events, investments, scenarios, glossary — with schemas in `data/schemas/`. |
-| `src/` | The UI (plain DOM), Web Audio sound, IndexedDB saves, and the web worker that runs turns. |
+| `src/` | The UI (plain DOM), sound synthesised from code (`sounds.ts`, played by `audio.ts`), IndexedDB saves, and the web worker that runs turns. |
 | `tests/` | Headless tests: statements tie out, determinism, content schemas, every event option, scenarios, saves. |
 | `scripts/` | Icon generator, balance harness, invariant playtest, browser smoke test, JSON formatter. |
 | `docs/` | [Design](docs/design.md), [decision log](docs/decisions.md), [balance report](docs/balance.md), [content guide](docs/content-guide.md), [native-wrapper notes](docs/native-wrappers.md). |

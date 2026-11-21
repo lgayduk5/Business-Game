@@ -1,102 +1,200 @@
-// Sound effects synthesised with the Web Audio API — no audio files.
-let ctx: AudioContext | null = null;
-let muted = false;
-try {
-  muted = localStorage.getItem('gc-muted') === '1';
-} catch {
-  /* storage unavailable */
-}
+// Plays the game's sounds (designed in src/sounds.ts) through the Web Audio API.
+//
+// Each sound is rendered once from code into a buffer and replayed from there. Everything goes through
+// the player's volume (Menu → Sound: Off, Soft or Normal) and a soft limiter. The context is woken on the
+// first tap and suspended when the game is hidden or has been quiet for a while, to save battery on a phone.
+import { DETENT_NOTES, LEVELS, SOUNDS, renderSound, type Level, type SoundDef, type SoundId } from './sounds';
 
-function ac(): AudioContext | null {
-  if (muted) return null;
+const KEY = 'gc-sound';
+function readLevel(): Level {
   try {
-    ctx ??= new (window.AudioContext || (window as any).webkitAudioContext)();
-    if (ctx.state === 'suspended') void ctx.resume();
-    return ctx;
+    const v = localStorage.getItem(KEY);
+    if (v === 'off' || v === 'soft' || v === 'normal') return v;
+    if (localStorage.getItem('gc-muted') === '1') return 'off'; // the earlier on/off switch
   } catch {
-    return null;
+    /* storage unavailable */
   }
+  return 'normal';
+}
+let level: Level = readLevel();
+
+let ctx: AudioContext | null = null;
+let master: GainNode | null = null;
+const buffers = new Map<string, AudioBuffer>();
+const lastPlayed = new Map<SoundId, number>();
+const MAX_VOICES = 8;
+const IDLE_MS = 20_000;
+let voices = 0;
+let idleTimer = 0;
+/** The most recent sounds, newest last (exposed to automated checks as __gc.heard). */
+export const heard: SoundId[] = [];
+
+/** Transparent below half scale, then rounds off: stacked sounds can never clip harshly. */
+function softLimit(a: AudioContext): WaveShaperNode {
+  const n = 2049, curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1, m = Math.abs(x);
+    curve[i] = m <= 0.5 ? x : Math.sign(x) * (0.5 + 0.5 * Math.tanh((m - 0.5) / 0.5));
+  }
+  const ws = a.createWaveShaper();
+  ws.curve = curve;
+  return ws;
 }
 
-/** One enveloped oscillator note. */
-function note(freq: number, start: number, dur: number, type: OscillatorType = 'triangle', gain = 0.12, slide = 0) {
-  const a = ac();
-  if (!a) return;
-  const t = a.currentTime + start;
-  const o = a.createOscillator();
-  const g = a.createGain();
-  o.type = type;
-  o.frequency.setValueAtTime(freq, t);
-  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(gain, t + 0.012);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(a.destination);
-  o.start(t);
-  o.stop(t + dur + 0.02);
+function context(): AudioContext | null {
+  if (level === 'off' || typeof window === 'undefined') return null;
+  if (!ctx) {
+    const AC: typeof AudioContext | undefined = window.AudioContext ?? (window as any).webkitAudioContext;
+    if (!AC) return null;
+    try {
+      // Safari: an ambient session mixes with the player's own music or podcast instead of stopping it,
+      // and the ringer switch silences it, as it does other games' sound effects.
+      const session = (navigator as any).audioSession;
+      if (session && 'type' in session) session.type = 'ambient';
+      ctx = new AC({ latencyHint: 'interactive' });
+      master = ctx.createGain();
+      master.gain.value = LEVELS[level];
+      master.connect(softLimit(ctx)).connect(ctx.destination);
+    } catch {
+      ctx = master = null;
+      return null;
+    }
+  }
+  return ctx;
 }
-/** A short burst of filtered noise: paper, clicks, printer. */
-function noise(start: number, dur: number, freq: number, gain = 0.08) {
-  const a = ac();
-  if (!a) return;
-  const len = Math.floor(a.sampleRate * dur);
-  const buf = a.createBuffer(1, len, a.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+
+function wake() {
+  window.clearTimeout(idleTimer);
+  if (ctx?.state === 'suspended' && !document.hidden) void ctx.resume().catch(() => undefined);
+}
+function sleepWhenIdle() {
+  window.clearTimeout(idleTimer);
+  idleTimer = window.setTimeout(() => {
+    if (ctx?.state === 'running' && voices === 0) void ctx.suspend().catch(() => undefined);
+  }, IDLE_MS);
+}
+
+function buffer(a: AudioContext, id: SoundId, take: number, param: number): AudioBuffer {
+  const key = `${id}:${take}:${param}`;
+  let b = buffers.get(key);
+  if (!b) {
+    const data = renderSound(id, a.sampleRate, 1 + take * 7919, param);
+    b = a.createBuffer(1, data.length, a.sampleRate);
+    b.getChannelData(0).set(data);
+    buffers.set(key, b);
+  }
+  return b;
+}
+
+interface PlayOpts { delay?: number; param?: number; force?: boolean }
+function play(id: SoundId, o: PlayOpts = {}) {
+  const a = context();
+  if (!a || !master || document.hidden) return;
+  const def: SoundDef = SOUNDS[id];
+  const now = performance.now();
+  if (!o.force && now - (lastPlayed.get(id) ?? -Infinity) < (def.gap ?? 45)) return;
+  if (voices >= MAX_VOICES) return;
+  lastPlayed.set(id, now);
+  wake();
   const src = a.createBufferSource();
-  src.buffer = buf;
-  const f = a.createBiquadFilter();
-  f.type = 'bandpass';
-  f.frequency.value = freq;
-  const g = a.createGain();
-  g.gain.value = gain;
-  src.connect(f).connect(g).connect(a.destination);
-  src.start(a.currentTime + start);
+  src.buffer = buffer(a, id, Math.floor(Math.random() * (def.takes ?? 1)), o.param ?? 0);
+  if (def.vary) src.playbackRate.value = 1 + (Math.random() * 2 - 1) * def.vary;
+  src.connect(master);
+  voices++;
+  src.onended = () => {
+    voices--;
+    src.disconnect();
+    sleepWhenIdle();
+  };
+  const delay = typeof o.delay === 'number' && o.delay > 0 ? o.delay : 0;
+  src.start(a.currentTime + delay);
+  heard.push(id);
+  if (heard.length > 40) heard.shift();
 }
 
+// Sliders: a notch each time the value crosses a step of the scale, starting from where it was drawn.
+const notch = new WeakMap<HTMLInputElement, number>();
+function notchOf(el: HTMLInputElement, v: number): number {
+  const lo = Number(el.min || 0), hi = Number(el.max || 100);
+  const f = hi > lo ? (v - lo) / (hi - lo) : 0;
+  return Math.round(Math.max(0, Math.min(1, f)) * (DETENT_NOTES.length - 1));
+}
+
+const say = (id: SoundId) => (delay?: number) => play(id, { delay });
+/**
+ * What the game plays, by meaning rather than by sound. Which action plays which, and why, is listed
+ * with each sound in src/sounds.ts and in the game under Menu → Sound → Hear every sound.
+ */
 export const sfx = {
-  tick: () => note(880, 0, 0.05, 'square', 0.04),
-  tab: () => noise(0, 0.05, 2400, 0.05),
-  /** Dot-matrix printer: the quarterly report feeding out. */
-  print: () => {
-    for (let i = 0; i < 9; i++) noise(i * 0.045, 0.035, 1800 + (i % 3) * 500, 0.06);
+  page: say('page'),
+  tap: say('tap'),
+  research: say('research'),
+  check: say('check'),
+  dice: say('dice'),
+  deny: say('deny'),
+  cash: say('cash'),
+  spend: say('spend'),
+  build: say('build'),
+  stamp: say('stamp'),
+  deal: say('deal'),
+  somber: say('somber'),
+  report: say('report'),
+  lucky: say('lucky'),
+  unlucky: say('unlucky'),
+  rewind: say('rewind'),
+  event: say('event'),
+  crisis: say('crisis'),
+  warning: say('warning'),
+  milestone: say('milestone'),
+  ipo: say('ipo'),
+  acquire: say('acquire'),
+  win: say('win'),
+  lose: say('lose'),
+  /** A switch or a choice in a row of buttons; `on` false for turning something off. */
+  toggle: (on = true) => play(on ? 'toggleOn' : 'toggleOff'),
+  /** A + or − stepper. */
+  step: (up: boolean) => play(up ? 'stepUp' : 'stepDown'),
+  /** Called as a slider moves. */
+  slide: (el: HTMLInputElement) => {
+    const before = notch.get(el) ?? notchOf(el, Number(el.defaultValue));
+    const now = notchOf(el, Number(el.value));
+    notch.set(el, now);
+    if (now !== before) play('detent', { param: now });
   },
-  /** Cash register: money in. */
-  cash: () => {
-    note(1318, 0, 0.09, 'square', 0.05);
-    note(1760, 0.08, 0.22, 'triangle', 0.1);
-  },
-  good: () => {
-    note(523, 0, 0.12);
-    note(659, 0.1, 0.12);
-    note(784, 0.2, 0.22);
-  },
-  bad: () => {
-    note(330, 0, 0.18, 'sawtooth', 0.07, 0.7);
-    note(220, 0.16, 0.3, 'sawtooth', 0.07, 0.7);
-  },
-  alert: () => {
-    note(740, 0, 0.1, 'square', 0.05);
-    note(740, 0.16, 0.1, 'square', 0.05);
-  },
-  build: () => {
-    noise(0, 0.08, 500, 0.12);
-    note(196, 0.02, 0.2, 'triangle', 0.1);
-  },
-  event: () => {
-    note(587, 0, 0.14, 'triangle', 0.09);
-    note(440, 0.13, 0.2, 'triangle', 0.09);
-  },
-  win: () => [523, 659, 784, 1047, 1319].forEach((f, i) => note(f, i * 0.13, i === 4 ? 0.7 : 0.16, 'triangle', 0.11)),
-  lose: () => [392, 330, 262, 196].forEach((f, i) => note(f, i * 0.22, 0.4, 'sawtooth', 0.06, 0.9)),
 };
 
-export const isMuted = () => muted;
-export function setMuted(m: boolean) {
-  muted = m;
+/** Plays a sound on request (the sound test), ignoring the repeat guard. */
+export function preview(id: SoundId, param = 0, delay = 0) {
+  play(id, { param, delay, force: true });
+}
+
+export const soundLevel = (): Level => level;
+export function setSoundLevel(l: Level) {
+  level = l;
   try {
-    localStorage.setItem('gc-muted', m ? '1' : '0');
+    localStorage.setItem(KEY, l);
+    localStorage.removeItem('gc-muted');
   } catch {
     /* ignore */
   }
+  if (ctx && master) {
+    master.gain.setTargetAtTime(LEVELS[l], ctx.currentTime, 0.02);
+    if (l === 'off') sleepWhenIdle();
+  }
+}
+
+/**
+ * Browsers start audio only from a tap or a key. Waking the context on every press means a sound that
+ * comes a moment later (the report, after the quarter is worked out) still plays, on iOS too.
+ */
+export function initAudio() {
+  const unlock = () => {
+    if (level === 'off' || !context()) return;
+    wake();
+    if (voices === 0) sleepWhenIdle();
+  };
+  for (const ev of ['pointerdown', 'keydown', 'touchend'] as const) window.addEventListener(ev, unlock, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && ctx?.state === 'running') void ctx.suspend().catch(() => undefined);
+  });
 }

@@ -34,14 +34,14 @@ recapExtras.push(() => {
 });
 on('wzFlag', (d) => {
   (ui.wizard as unknown as Record<string, boolean>)[d.k!] = d.v === '1';
-  sfx.tick();
+  sfx.toggle(d.v === '1');
   render();
 });
 
 function begin(g: GameState) {
   enter(g);
   for (const h of startHooks) h();
-  sfx.good();
+  sfx.milestone();
 }
 
 // ── the daily challenge
@@ -95,7 +95,10 @@ on('dailyStart', (d) => {
 });
 on('copyCode', (d) => {
   const code = d.v ?? '';
-  const done = () => toast('Score code copied.');
+  const done = () => {
+    sfx.tap();
+    toast('Score code copied.');
+  };
   try {
     void navigator.clipboard.writeText(code).then(done, () => toast('Select the code and copy it by hand.'));
   } catch {
@@ -136,7 +139,7 @@ on('rewind', async (d) => {
     ui.modal = null;
     await snapshot(back, REWIND_QUARTERS);
     await refreshPoints(back);
-    sfx.tick();
+    sfx.rewind();
     render(false);
     toast(`Back to the start of ${turnLabel(back.turn)}. The dice fall the same way unless you choose differently.`);
   } catch (e) {
