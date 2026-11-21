@@ -485,6 +485,21 @@ export interface OfficeResult {
   unitCost: number;
 }
 
+/**
+ * Plant finished or opened in the last year or two. It is carried partly at cost until a year of its sales is in the
+ * accounts (decision 85). A new office in a grid industry also records its sales, which stay out of growth until they
+ * are like-for-like (decision 89).
+ */
+export interface NewPlant {
+  cost: number;
+  /** First quarter it could sell. */
+  done: number;
+  /** New grid offices only: the office's sales each quarter from `done`, until it has two full years of them. */
+  rev?: number[];
+  /** Rivals only: the office it belongs to, as "city:industry". */
+  at?: string;
+}
+
 export interface Office {
   id: string;
   city: string;
@@ -498,8 +513,8 @@ export interface Office {
   training: number; // 0..3
   cap: number; // facility capacity, units/quarter
   building: { units: number; ready: number; cost: number }[];
-  /** Plant finished in the last year: valued partly at cost until a full year of its sales is in the accounts. */
-  ramp?: { cost: number; done: number }[];
+  /** Plant finished or opened recently: valued partly at cost until a full year of its sales is in the accounts. */
+  ramp?: NewPlant[];
   ppe: number; // gross
   accDep: number;
   share: number;
@@ -657,6 +672,8 @@ export interface Quarter {
   ni: number;
   headcount: number;
   byInd: Partial<Record<IndustryId, { rev: number; contrib: number }>>;
+  /** Cost of opening offices and plant this quarter (setup, project-finance fees, running costs before the first sale): in EBITDA, but valuation looks through it. */
+  opening?: number;
   check: { bs: number; cash: number }; // tie-out differences (should be ~0)
 }
 
@@ -704,6 +721,8 @@ export interface Company {
   intel: number;
   quarters: Quarter[]; // most recent last, capped
   pnl: PnL; // accumulating for the current quarter
+  /** Opening costs accumulating for the current quarter (see Quarter.opening). */
+  opening?: number;
   cfTags: { op: number; inv: number; fin: number; capex: number; acq: number; disp: number; sec: number; debtIn: number; debtOut: number; eqIn: number; buyback: number; div: number; noncash: number };
   valuation: number;
   valParts: Record<string, number>;
@@ -787,8 +806,8 @@ export interface Rival {
   aid?: number;
   /** What has passed between it and you, newest last. */
   feud?: { turn: number; who: 'you' | 'them'; text: string }[];
-  /** Plant bought in the last year, valued partly at cost until its sales are in the accounts (as for the player). */
-  ramp?: { cost: number; done: number }[];
+  /** Plant bought recently, valued partly at cost until its sales are in the accounts (as for the player). */
+  ramp?: NewPlant[];
 }
 
 export interface Macro {

@@ -2,7 +2,7 @@
 
 ## Third review: playtest across every mode and industry
 
-Design choices in decisions 80–88. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the
+Design choices in decisions 80–90. Found by a new invariant playtest (`npm run playtest`): about 1,000 games of the
 bots and a random-action player in every industry, difficulty and mode, checked after every action and quarter.
 
 **Bugs**
@@ -28,10 +28,17 @@ bots and a random-action player in every industry, difficulty and mode, checked 
 - **Valuation fell to zero for most of a year** after an energy company built a plant on borrowed money: the loan
   counted at once, the plant only once a year of its sales was in the accounts, so investing near the end of a game
   lowered your grade. New plant now counts at cost until then, for rivals as for you.
+- **Valuation fell 80% the quarter a plant opened, then quadrupled a year later** (honest energy games, Easy
+  included): what it cost to open sat in the trailing year and cut the multiple on the whole business, its year at
+  cost began before it could sell, and a new grid plant's sales were read as growth. Valuation now looks through
+  opening costs, carries new plant at full cost until its first sale, and measures growth like-for-like, for rivals
+  as for you (decision 89). What still moves 4× in a quarter is real: trial results, losses under debt, and the thin
+  equity of a heavily borrowed energy company (decision 90).
 
 **Balance**
 - **Energy is now labelled Tough** (it was Expert): without the end-game penalty on investing, honest strategies win
   about three energy games in four. Retail's local independents are a little stronger, keeping it inside the Tough band.
+  With growth measured like-for-like energy wins 74% (Sprint 70%); nothing else moves more than two points.
 
 **Teaching text**
 - The CFO's "cash against profit" note described every driver in one direction ("+$36K from more inventory on the

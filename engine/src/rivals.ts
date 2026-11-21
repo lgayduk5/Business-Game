@@ -3,7 +3,7 @@
 import * as B from './books';
 import { CITIES, CITY, EVENT, INDUSTRIES, PERSONALITY, PERSONALITIES, RIVAL_CEOS, RIVAL_COLORS, RIVAL_NAMES, hasInventory, isCapital } from './content';
 import { queueEvent, scaleS, scheduleEvent, SPECIALS } from './events';
-import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, noteAcquisition, noteRivalExit, privateValue, rampCarry, scoreCredit, valueCompany, type LocalProfit } from './finance';
+import { countryTax, debtCapacity, dilute, equityAppetite, founderStake, growthOf, likeForLike, newPlant, noteAcquisition, noteRivalExit, plantStillNew, privateValue, rampCarry, scoreCredit, valueCompany, type LocalProfit } from './finance';
 import { fxOf, inputIndex } from './macro';
 import { localPrice, market, marketUnits } from './market';
 import { addMod, hasFlag, news } from './mods';
@@ -124,6 +124,7 @@ export interface RivalQuarter {
   staff: number;
   local: Map<string, LocalProfit>;
   mix: Partial<Record<IndustryId, number>>;
+  byOffice: Record<string, number>; // revenue by office ("city:industry")
 }
 
 /** One quarter of a rival's accounts at today's prices and shares. Changes nothing. */
@@ -135,6 +136,7 @@ export function rivalQuarter(g: GameState, r: Rival): RivalQuarter {
   let rev = 0, opex = 0, da = 0, staff = 0, ar = 0, inv = 0, ap = 0, deferred = 0;
   const local = new Map<string, LocalProfit>();
   const mix: Partial<Record<IndustryId, number>> = {};
+  const byOffice: Record<string, number> = {};
   for (const ro of r.offices) {
     const def = INDUSTRIES[ro.ind];
     const city = CITY[ro.city];
@@ -154,6 +156,7 @@ export function rivalQuarter(g: GameState, r: Rival): RivalQuarter {
     const marketing = MKT_INTENSITY[ro.ind] * (pers.sales / 0.2) * d.rivalSales * orev;
     const cost = (materials + pay + hiring + rent + facility + marketing) * r.eff;
     const dep = ((ro.cap * def.capPerUnit * 1000 * m.cpi) / def.deprQ) * r.eff;
+    byOffice[officeKey(ro)] = orev;
     rev += orev;
     opex += cost;
     da += dep;
@@ -176,9 +179,10 @@ export function rivalQuarter(g: GameState, r: Rival): RivalQuarter {
   const ebitda = rev - opex - overhead - execs - rd;
   ap += ((overhead + rd) * INDUSTRIES[primary].dpo) / 90;
   const interest = (r.debt * (m.rate + r.spread)) / 400 - (Math.max(0, r.cash) * Math.max(0, m.rate - 1)) / 400;
-  return { rev, opex, overhead, execs, rd, ebitda, da, interest, pretax: ebitda - da - interest, ar, inv, ap, deferred, staff, local, mix };
+  return { rev, opex, overhead, execs, rd, ebitda, da, interest, pretax: ebitda - da - interest, ar, inv, ap, deferred, staff, local, mix, byOffice };
 }
 
+const officeKey = (ro: RivalOffice) => `${ro.city}:${ro.ind}`;
 const sum4 = (xs: number[]) => (xs.length ? (xs.slice(-4).reduce((a, b) => a + b, 0) * 4) / Math.min(4, xs.length) : 0);
 export const rivalGrowth = (r: Rival) => growthOf(r.revTTM);
 
@@ -187,10 +191,11 @@ export function rivalValuation(g: GameState, r: Rival, mix?: Partial<Record<Indu
   const ind = r.industries[0];
   const plant = r.offices.reduce((s, ro) => s + ro.cap * INDUSTRIES[ro.ind].capPerUnit * 1000 * g.macro.cpi, 0) * 0.5;
   const v = valueCompany({
-    rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), growth: rivalGrowth(r), mix: mix ?? rivalQuarter(g, r).mix,
+    rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), growth: growthOf(likeForLike(r.revTTM, r.ramp ?? [])), mix: mix ?? rivalQuarter(g, r).mix,
     tech: r.tech[ind] ?? INDUSTRIES[ind].startTech, brand: r.brand, reputation: 50, sentiment: g.macro.sentiment, rate: g.macro.rate,
     cash: r.cash, debt: r.debt, assets: 0.5 * plant + 0.6 * r.ar + 0.4 * r.inv,
-    // new plant at cost until a year of its sales is in the accounts, exactly as for the player
+    // new plant at cost until a year of its sales is in the accounts, and grid plant out of growth until it is
+    // like-for-like, exactly as for the player
     cip: (r.ramp ?? []).reduce((s, x) => s + x.cost * rampCarry(g, x), 0),
   });
   return { equity: r.isPublic ? v.equity : privateValue(v.equity, r.cash, r.debt), parts: v.parts };
@@ -269,7 +274,7 @@ export function rivalsDecide(g: GameState) {
         if (r.cash > cost + costs) {
           ro.cap += add;
           r.cash -= cost;
-          if (isCapital(ro.ind)) (r.ramp ??= []).push({ cost: add * def.capPerUnit * 1000 * m.cpi, done: g.turn });
+          if (isCapital(ro.ind)) (r.ramp ??= []).push(newPlant(ro.ind, add * def.capPerUnit * 1000 * m.cpi, g.turn));
         }
       } else if (util < 0.5 && !isCapital(ro.ind)) ro.cap *= 0.92;
       // price: personality anchor, nudged by how full they are; wars override
@@ -304,7 +309,8 @@ export function rivalsDecide(g: GameState) {
         const cost = cap * def.capPerUnit * 1000 * m.cpi + 150_000 * m.cpi;
         if (r.cash > cost + costs * 2) {
           r.cash -= cost;
-          if (isCapital(ind)) (r.ramp ??= []).push({ cost: cap * def.capPerUnit * 1000 * m.cpi, done: g.turn });
+          // a rival's office sells from its first quarter (it is not short of staff), so its plant's year starts now
+          if (isCapital(ind)) (r.ramp ??= []).push(newPlant(ind, cap * def.capPerUnit * 1000 * m.cpi, g.turn, { at: `${c.id}:${ind}` }));
           openRivalOffice(g, r, c.id, ind, 0);
           if ((g.discovered[c.id] ?? 0) >= 1) news(g, `${r.name} has opened in ${c.name}.`, 'rival');
           const mine = g.company.offices.find((o) => o.city === c.id && o.ind === ind);
@@ -391,9 +397,10 @@ export function rivalsFinancials(g: GameState) {
   const asked = acted;
   for (const r of alive(g)) {
     if (!r.alive) continue; // bought by a rival earlier in this loop: it no longer trades, borrows or moves
-    if (r.ramp) r.ramp = r.ramp.filter((x) => rampCarry(g, x) > 0);
+    if (r.ramp) r.ramp = r.ramp.filter((x) => plantStillNew(g, x));
     const pers = PERSONALITY[r.personality];
     const q = rivalQuarter(g, r);
+    for (const x of r.ramp ?? []) if (x.rev && x.at) x.rev.push(q.byOffice[x.at] ?? 0);
     const tax = countryTax(q.local, q.pretax, r.nolBy, { country: CITY[r.hq].country, rate: CITY[r.hq].tax });
     r.nolBy = tax.nolBy;
     r.profit = q.pretax - tax.tax;
