@@ -416,3 +416,16 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     the sound setting. It shares the sound effects' context, volume (Off, Soft or Normal: Off silences it too) and
     limiter, and holds the context awake while it plays. The quarter's cue follows the printer; when the heartbeat
     plays instead (a quarter closed in the red), the cue is left out. Details in [music.md](music.md).
+
+## After the bug audit
+
+99. **Retail's local independents are twice as strong (fringe 15 → 30).** The audit's rival fixes left retail just over
+    the Tough ceiling again (honest strategies won 80.2%; the band is 35–80%). The fringe turned out to be a weak lever
+    at that size: on four times the usual sample (768 honest games a setting) retail wins 79.8% at 15, 80.1% at 18 and
+    21 and 80.5% at 24, so the 14 → 15 of decision 88 had moved it only within noise. It starts to bite above about
+    25: 78% at 27, 77% at 30. At 30 retail wins 76% (Easy 85%, Normal 77%, Hard and Brutal 71%), one game in six goes
+    bankrupt (was one in nine), the median peak revenue is $118M (was $223M) and a Sprint wins 55% (was 61%). A new
+    company's first year is unchanged, share and margins alike; what gets harder is growing. A dearer cost of goods
+    (`varCost` 0.29 → 0.30, about 77%) was the alternative; it thins every quarter's margin from the first, costs
+    Sprints more (about 49% at 0.305), and in the report's grid it tipped the Raider probe's graded wins over the
+    shortcut line (23% against honest play's 17%).

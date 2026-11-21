@@ -1,5 +1,15 @@
 # Changelog
 
+## After the merge
+
+Design choice in decision 99.
+
+**Balance**
+- **Retail is Tough again.** The bug audit's rival fixes had lifted it just over the Tough band's 80% ceiling. Its local
+  independents are now twice as strong (fringe 15 → 30): honest strategies win about three retail games in four (76%;
+  Sprint 55%, was 61%). A new company's first year plays the same; growing is what gets harder. Other industries are
+  unchanged.
+
 ## Music
 
 Design choice in decision 98; how it works in [docs/music.md](docs/music.md).
