@@ -107,8 +107,7 @@ on('delSlot', (d) => {
 on('doDelSlot', async (d) => {
   await deleteSave(d.arg!);
   await refreshSaves();
-  sfx.toggle(false);
-  ui.modal = { kind: 'load' };
+  ui.modal = { kind: 'load' }; // back to the list: its pencil tap is the sound (a second one here doubled it)
   render();
 });
 on('saveMenu', async () => {

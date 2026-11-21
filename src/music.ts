@@ -100,7 +100,8 @@ export function musicSync(next: MusicState) {
 
 /** Plays a cue over the music. Returns false when music is off, so the caller can use its sound effect. */
 export function cue(name: Cue, delay = 0): boolean {
-  if (!enabled || isMuted()) return false;
+  // like the sound effects, nothing is queued while the game is hidden (it would play on return)
+  if (!enabled || isMuted() || document.hidden) return false;
   const a = ac();
   if (!a) return false;
   stingers[name](a, musicOut() ?? a.destination, a.currentTime + 0.02 + delay);
@@ -132,6 +133,6 @@ export function initMusic() {
   // up where it left off. Without music the context stays asleep until the next sound.
   document.addEventListener('visibilitychange', () => {
     const a = audioContext();
-    if (a && !document.hidden && cur && !isMuted()) void a.resume();
+    if (a && !document.hidden && cur && !isMuted()) void a.resume().catch(() => undefined);
   });
 }

@@ -173,7 +173,7 @@ export function initEvents() {
   });
   document.addEventListener('input', (e) => {
     const t = e.target as HTMLInputElement;
-    if (t.type === 'range') sfx.slide(t);
+    if (t.type === 'range' && !ui.busy) sfx.slide(t); // no notches for a change the quarter's result will discard
     if (t.type === 'range' && t.dataset.fmt) {
       const out = t.parentElement?.querySelector('output');
       if (out) out.textContent = fmtLive(t.dataset.fmt, Number(t.value));
