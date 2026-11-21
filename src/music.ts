@@ -98,6 +98,9 @@ export function musicSync(next: MusicState) {
   apply();
 }
 
+/** The most recent cues, newest last (exposed to automated checks as __gc.cues, beside the sound effects' __gc.heard). */
+export const cues: Cue[] = [];
+
 /** Plays a cue over the music. Returns false when music is off, so the caller can use its sound effect. */
 export function cue(name: Cue, delay = 0): boolean {
   // like the sound effects, nothing is queued while the game is hidden (it would play on return)
@@ -105,6 +108,8 @@ export function cue(name: Cue, delay = 0): boolean {
   const a = ac();
   if (!a) return false;
   stingers[name](a, musicOut() ?? a.destination, a.currentTime + 0.02 + delay);
+  cues.push(name);
+  if (cues.length > 40) cues.shift();
   return true;
 }
 
