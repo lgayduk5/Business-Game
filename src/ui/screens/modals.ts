@@ -3,7 +3,10 @@ import { TERM, canKeepPlaying, gameGrade, gradeRule, keepPlaying, money, needsAt
 import { esc } from '../kit';
 import { on, persist, render, runTurns, toast, ui } from '../store';
 import { modals } from '../shell';
-import { sfx } from '../../audio';
+import { isMuted, sfx } from '../../audio';
+import { cue } from '../../music';
+import { quarterCue } from '../../music/mood';
+import { musicButton } from '../soundtrack';
 import { soundRow } from './sound';
 
 /** Run after quarters resolve, with the start of each quarter a fast-forward passed on the way (see runQuarters). */
@@ -36,12 +39,14 @@ async function advance(turns: number) {
   for (const h of afterTurn) await h(ui.g, r.starts);
   const st = ui.g.status;
   if (st !== 'playing' && !ui.g.continued) {
-    st === 'won' ? sfx.win() : sfx.lose();
+    if (!cue(st === 'won' ? 'win' : 'lose')) st === 'won' ? sfx.win() : sfx.lose();
     ui.modal = { kind: 'over', data: { sticky: true } };
   } else {
     sfx.report();
-    // after the printer: a quarter that closed in the red is one away from insolvency (not in a sandbox)
+    // after the printer: a quarter that closed in the red is one away from insolvency (not in a sandbox);
+    // the heartbeat says so in place of the quarter's music cue, over the desk track's crisis arrangement
     if (ui.g.company.negCashTurns > 0 && !ui.g.settings.sandbox.noBankruptcy) sfx.warning(0.62);
+    else cue(quarterCue(ui.g), 0.62);
     ui.modal = { kind: 'report', data: { n: r.n, reason: turns > 1 ? r.reason : '' } };
   }
   render();
@@ -114,6 +119,7 @@ modals.menu = (g) => `<div class="spread"><h2>Menu</h2><button class="btn sm" da
     ${menuExtras.map((f) => f(g)).join('')}
     ${g ? `<button class="btn" data-a="toggleDelegate" title="Small cards: no crisis, no rival, nothing worth more than 4% of a quarter's sales. Your COO picks the safest option.">${g.settings.delegate ? 'Small decisions: your COO handles them' : 'Small decisions: you decide every one'}</button>` : ''}
     ${soundRow()}
+    ${isMuted() ? '' : musicButton()}
     <button class="btn" data-a="howTo">How to play</button>
     <button class="btn danger" data-a="askQuit">Quit to title</button>
   </div>

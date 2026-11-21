@@ -4,6 +4,7 @@ import { initEvents, render, setView, ui } from './ui/store';
 import { shell } from './ui/shell';
 import { registerServiceWorker } from './ui/update';
 import { heard, initAudio } from './audio';
+import { initMusic } from './music';
 import { title, wizard } from './ui/screens/title';
 import './ui/screens/hq';
 import './ui/screens/map';
@@ -23,10 +24,12 @@ import './ui/screens/modes';
 import './ui/screens/tutorial';
 import './ui/screens/modals';
 import './ui/screens/sound';
+import './ui/soundtrack';
 
 setView(() => (ui.screen === 'game' && ui.g ? shell(ui.g) : ui.screen === 'new' && ui.wizard ? wizard() : title()));
 initEvents();
 initAudio();
+initMusic();
 render(false);
 
 // Offline support: the service worker precaches the whole game on first visit, and offers a reload

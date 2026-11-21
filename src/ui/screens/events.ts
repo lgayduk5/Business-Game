@@ -5,6 +5,7 @@ import { on, render, ui } from '../store';
 import { modals, tabDots } from '../shell';
 import { nextPrompt } from './modals';
 import { sfx } from '../../audio';
+import { cue } from '../../music';
 
 const CAT: Record<string, string> = { macro: 'Economy', market: 'Market', operational: 'Operations', regulatory: 'Regulation', opportunity: 'Opportunity', stress: 'Crisis', rival: 'Rival' };
 
@@ -12,7 +13,8 @@ nextPrompt.open = (g: GameState) => {
   if (!g.queue.length) return false;
   ui.modal = { kind: 'event', data: { sticky: true } };
   const cat = viewEvent(g, g.queue[0]).def.cat;
-  cat === 'stress' ? sfx.crisis() : sfx.event();
+  if (cat === 'stress') sfx.crisis();
+  else if (!cue('decision')) sfx.event();
   render();
   return true;
 };
@@ -71,7 +73,7 @@ on('eventDone', () => {
   ui.modal = null;
   const g = ui.g!;
   if (g.status !== 'playing' && !g.continued) {
-    g.status === 'won' ? sfx.win() : sfx.lose();
+    if (!cue(g.status === 'won' ? 'win' : 'lose')) g.status === 'won' ? sfx.win() : sfx.lose();
     ui.modal = { kind: 'over', data: { sticky: true } };
     return render();
   }

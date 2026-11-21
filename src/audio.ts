@@ -26,6 +26,8 @@ const MAX_VOICES = 8;
 const IDLE_MS = 20_000;
 let voices = 0;
 let idleTimer = 0;
+/** Music is playing (src/music.ts): the context stays awake while the sound effects are quiet. */
+let held = false;
 /** The most recent sounds, newest last (exposed to automated checks as __gc.heard). */
 export const heard: SoundId[] = [];
 
@@ -70,7 +72,7 @@ function wake() {
 function sleepWhenIdle() {
   window.clearTimeout(idleTimer);
   idleTimer = window.setTimeout(() => {
-    if (ctx?.state === 'running' && voices === 0) void ctx.suspend().catch(() => undefined);
+    if (ctx?.state === 'running' && voices === 0 && !held) void ctx.suspend().catch(() => undefined);
   }, IDLE_MS);
 }
 
@@ -181,6 +183,28 @@ export function setSoundLevel(l: Level) {
     master.gain.setTargetAtTime(LEVELS[l], ctx.currentTime, 0.02);
     if (l === 'off') sleepWhenIdle();
   }
+}
+
+// ── for the music (src/music.ts), which shares the context, the volume and the limiter
+/** The shared context, created and woken on use; null while sound is Off. */
+export function ac(): AudioContext | null {
+  const a = context();
+  if (a) {
+    wake();
+    if (voices === 0) sleepWhenIdle();
+  }
+  return a;
+}
+/** The context if one exists, without creating it. */
+export const audioContext = () => ctx;
+/** Where music connects: through the player's volume and the soft limiter, like the sound effects. */
+export const musicOut = (): AudioNode | null => master;
+export const isMuted = () => level === 'off';
+/** Keeps the context awake while music plays, and lets it sleep again once it stops. */
+export function holdAwake(on: boolean) {
+  held = on;
+  if (on) wake();
+  else sleepWhenIdle();
 }
 
 /**

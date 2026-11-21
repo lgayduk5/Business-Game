@@ -45,6 +45,9 @@ each office shows a forecast of next quarter if nothing changes.
 **Sound** is light and can be set to *Off*, *Soft* or *Normal* in the menu (or from the title
 screen). *Menu → Sound → Hear every sound* plays each one and says where it is used.
 
+The music follows the company: brighter in a boom, sparser in a recession, tense when cash
+runs short, and quieter while an event card is open. Turn it off in the menu or on the title screen.
+
 **Other ways to play:** *Learn the ropes* (five short chapters, each opening one layer of
 the game), *Scenario challenges* (seven prepared situations with one goal and a
 deadline, each with bronze, silver and gold medals and a Brutal version), the *Daily
@@ -119,10 +122,10 @@ Actions**. All paths are relative, so the game works at `https://<user>.github.i
 | --- | --- |
 | `engine/` | Deterministic, seeded simulation engine. Pure TypeScript, no DOM, its own package. |
 | `data/` | All content as JSON — industries, cities, events, investments, scenarios, glossary — with schemas in `data/schemas/`. |
-| `src/` | The UI (plain DOM), sound synthesised from code (`sounds.ts`, played by `audio.ts`), IndexedDB saves, and the web worker that runs turns. |
+| `src/` | The UI (plain DOM), sound synthesised from code (`sounds.ts`, played by `audio.ts`), music (`music.ts`, `music/`), IndexedDB saves, and the web worker that runs turns. |
 | `tests/` | Headless tests: statements tie out, determinism, content schemas, every event option, scenarios, saves. |
 | `scripts/` | Icon generator, balance harness, invariant playtest, browser smoke test, JSON formatter. |
-| `docs/` | [Design](docs/design.md), [decision log](docs/decisions.md), [balance report](docs/balance.md), [content guide](docs/content-guide.md), [native-wrapper notes](docs/native-wrappers.md). |
+| `docs/` | [Design](docs/design.md), [decision log](docs/decisions.md), [balance report](docs/balance.md), [content guide](docs/content-guide.md), [music](docs/music.md), [native-wrapper notes](docs/native-wrappers.md). |
 
 To add events, investments or industries, edit the JSON in `data/` — see
 [docs/content-guide.md](docs/content-guide.md).
