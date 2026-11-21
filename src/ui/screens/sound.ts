@@ -2,7 +2,7 @@
 import { SOUNDS, SOUND_IDS, TIERS, type Level, type SoundId, type Tier } from '../../sounds';
 import { preview, setSoundLevel, sfx, soundLevel } from '../../audio';
 import { esc, seg } from '../kit';
-import { afterRender, on, render, ui } from '../store';
+import { afterRender, on, render, ui, type Modal } from '../store';
 import { modals } from '../shell';
 
 const LEVEL_LABEL: Record<Level, string> = { off: 'Off', soft: 'Soft', normal: 'Normal' };
@@ -45,10 +45,12 @@ on('sfxTry', (d) => {
 });
 
 // Opening a dialog is a soft pencil tap, unless it brings its own sound (a card, the report, the ending).
+// Going back to the dialog a glossary entry was opened from is closing one, which is silent.
 const OWN_SOUND = new Set(['event', 'report', 'over']);
-let shownModal = '';
+let shown: Modal | null = null;
 afterRender(() => {
   const kind = ui.modal?.kind ?? '';
-  if (kind && kind !== shownModal && !OWN_SOUND.has(kind)) sfx.tap();
-  shownModal = kind;
+  const back = !!ui.modal && shown?.data?.back === ui.modal;
+  if (kind && kind !== (shown?.kind ?? '') && !OWN_SOUND.has(kind) && !back) sfx.tap();
+  shown = ui.modal;
 });
