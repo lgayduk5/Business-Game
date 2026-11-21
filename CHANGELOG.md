@@ -10,6 +10,15 @@ Design choice in decision 99.
   Sprint 55%, was 61%). A new company's first year plays the same; growing is what gets harder. Other industries are
   unchanged.
 
+**Bugs**
+- **A glossary link in a card's result closed the card,** so a card that ended the game showed no end screen and the
+  next card waiting did not open. Closing the entry now goes back to the card (or whatever dialog it was opened from).
+- **Rivals were valued with plant they no longer had** after withdrawing from a city, spinning off or selling an office
+  (to another rival or to you), and a power company that left a city and came back took that plant's sales out of its
+  growth twice. Selling some of your own new plant also stops carrying that part at cost.
+- **With music on,** the first-game checklist's tick no longer lands in the middle of the quarter's cue, and *Hear every
+  sound* says which sounds the music's cues replace.
+
 ## Music
 
 Design choice in decision 98; how it works in [docs/music.md](docs/music.md).
