@@ -1,6 +1,6 @@
 {
   "full": {
-    "fingerprint": "bb11a435ee8a721d",
+    "fingerprint": "befff94a8e0771f6",
     "seeds": 12,
     "cells": {
       "saas": {
@@ -10,10 +10,10 @@
         "brutal": { "games": 48, "win": 0.33, "bankrupt": 0.04, "best": 0.67 }
       },
       "retail": {
-        "easy": { "games": 48, "win": 0.85, "bankrupt": 0.15, "best": 1 },
-        "normal": { "games": 48, "win": 0.83, "bankrupt": 0.08, "best": 0.92 },
-        "hard": { "games": 48, "win": 0.81, "bankrupt": 0.1, "best": 1 },
-        "brutal": { "games": 48, "win": 0.71, "bankrupt": 0.13, "best": 0.83 }
+        "easy": { "games": 48, "win": 0.81, "bankrupt": 0.17, "best": 1 },
+        "normal": { "games": 48, "win": 0.75, "bankrupt": 0.19, "best": 1 },
+        "hard": { "games": 48, "win": 0.79, "bankrupt": 0.15, "best": 1 },
+        "brutal": { "games": 48, "win": 0.67, "bankrupt": 0.17, "best": 0.92 }
       },
       "mfg": {
         "easy": { "games": 48, "win": 0.83, "bankrupt": 0.02, "best": 1 },
@@ -48,7 +48,7 @@
     }
   },
   "sprint": {
-    "fingerprint": "bb11a435ee8a721d",
+    "fingerprint": "befff94a8e0771f6",
     "seeds": 12,
     "cells": {
       "saas": {
@@ -58,10 +58,10 @@
         "brutal": { "games": 48, "win": 0.46, "bankrupt": 0, "best": 0.58 }
       },
       "retail": {
-        "easy": { "games": 48, "win": 0.77, "bankrupt": 0.02, "best": 1 },
-        "normal": { "games": 48, "win": 0.73, "bankrupt": 0, "best": 0.83 },
-        "hard": { "games": 48, "win": 0.56, "bankrupt": 0.04, "best": 0.75 },
-        "brutal": { "games": 48, "win": 0.4, "bankrupt": 0.02, "best": 0.5 }
+        "easy": { "games": 48, "win": 0.79, "bankrupt": 0, "best": 1 },
+        "normal": { "games": 48, "win": 0.65, "bankrupt": 0.02, "best": 0.92 },
+        "hard": { "games": 48, "win": 0.48, "bankrupt": 0.06, "best": 0.75 },
+        "brutal": { "games": 48, "win": 0.42, "bankrupt": 0.04, "best": 0.83 }
       },
       "mfg": {
         "easy": { "games": 48, "win": 0.77, "bankrupt": 0, "best": 0.92 },
