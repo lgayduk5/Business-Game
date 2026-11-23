@@ -73,7 +73,7 @@
     "organic": 0.22,
     "wages": { "ops": 8, "sales": 14, "rnd": 20, "admin": 12 },
     "opsOut": 27,
-    "varCost": 0.29,
+    "varCost": 0.295,
     "inputKey": "commodity",
     "capPerUnit": 1.4,
     "buildQ": 2,
