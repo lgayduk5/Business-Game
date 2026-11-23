@@ -4,7 +4,7 @@ import { initEvents, render, setView, ui } from './ui/store';
 import { shell } from './ui/shell';
 import { registerServiceWorker } from './ui/update';
 import { heard, initAudio } from './audio';
-import { initMusic } from './music';
+import { cues, initMusic } from './music';
 import { title, wizard } from './ui/screens/title';
 import './ui/screens/hq';
 import './ui/screens/map';
@@ -36,4 +36,4 @@ render(false);
 // when a new build has been downloaded.
 if (import.meta.env.PROD) registerServiceWorker();
 // Expose state for automated checks and curious players.
-(window as any).__gc = { ui, render, engine, heard };
+(window as any).__gc = { ui, render, engine, heard, cues };

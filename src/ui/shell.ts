@@ -1,7 +1,7 @@
 // App frame: top strip, navigation, modal host.
 import { quarterOf, yearOf, type GameState } from '@engine';
 import { ICON, esc, logo, toggleLine } from './kit';
-import { on, render, ui, type Tab } from './store';
+import { closeModal, on, render, ui, type Tab } from './store';
 import { cashTip } from './tips';
 import { sfx } from '../audio';
 
@@ -56,7 +56,7 @@ on('tab', (d) => {
   render(false);
 });
 on('close', () => {
-  ui.modal = null;
+  closeModal();
   render();
 });
 on('sub', (d) => {

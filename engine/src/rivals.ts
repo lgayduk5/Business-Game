@@ -11,7 +11,7 @@ import { feud } from './feud';
 import { DIFF } from './difficulty';
 import { makeOffice } from './newgame';
 import { companyHeadcount, cutPlan } from './people';
-import type { ActionResult, EventCtx, GameState, IndustryId, Office, Rival, RivalOffice } from './types';
+import type { ActionResult, EventCtx, GameState, IndustryId, NewPlant, Office, Rival, RivalOffice } from './types';
 import { chance, clamp, money, pick, rand, randInt, randRange, shuffle, weighted } from './util';
 
 /** How much sales and R&D effort each industry rewards (software = 1). Rivals and bots both use these. */
@@ -183,6 +183,18 @@ export function rivalQuarter(g: GameState, r: Rival): RivalQuarter {
 }
 
 const officeKey = (ro: RivalOffice) => `${ro.city}:${ro.ind}`;
+/**
+ * A rival's new plant is recorded against its office ("city:industry"), so the record goes with the office: plant the
+ * rival has sold, spun off, closed or lost to you is no longer carried at cost or kept out of its growth. A whole new
+ * office replaces any record an earlier office in the same place left behind (a rival that withdrew and came back), so
+ * its sales are not taken out of growth twice.
+ */
+function notePlant(r: Rival, at: string, p: NewPlant, office = false) {
+  r.ramp = (r.ramp ?? []).filter((x) => !office || x.at !== at);
+  r.ramp.push({ ...p, at });
+}
+/** The rival's records of new plant in offices it still has. */
+const ownPlant = (r: Rival) => (r.ramp ?? []).filter((x) => !x.at || r.offices.some((ro) => officeKey(ro) === x.at));
 const sum4 = (xs: number[]) => (xs.length ? (xs.slice(-4).reduce((a, b) => a + b, 0) * 4) / Math.min(4, xs.length) : 0);
 export const rivalGrowth = (r: Rival) => growthOf(r.revTTM);
 
@@ -190,13 +202,14 @@ export const rivalGrowth = (r: Rival) => growthOf(r.revTTM);
 export function rivalValuation(g: GameState, r: Rival, mix?: Partial<Record<IndustryId, number>>): { equity: number; parts: Record<string, number> } {
   const ind = r.industries[0];
   const plant = r.offices.reduce((s, ro) => s + ro.cap * INDUSTRIES[ro.ind].capPerUnit * 1000 * g.macro.cpi, 0) * 0.5;
+  const ramp = ownPlant(r);
   const v = valueCompany({
-    rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), growth: growthOf(likeForLike(r.revTTM, r.ramp ?? [])), mix: mix ?? rivalQuarter(g, r).mix,
+    rev: sum4(r.revTTM), ebitda: sum4(r.ebitdaTTM), growth: growthOf(likeForLike(r.revTTM, ramp)), mix: mix ?? rivalQuarter(g, r).mix,
     tech: r.tech[ind] ?? INDUSTRIES[ind].startTech, brand: r.brand, reputation: 50, sentiment: g.macro.sentiment, rate: g.macro.rate,
     cash: r.cash, debt: r.debt, assets: 0.5 * plant + 0.6 * r.ar + 0.4 * r.inv,
     // new plant at cost until a year of its sales is in the accounts, and grid plant out of growth until it is
     // like-for-like, exactly as for the player
-    cip: (r.ramp ?? []).reduce((s, x) => s + x.cost * rampCarry(g, x), 0),
+    cip: ramp.reduce((s, x) => s + x.cost * rampCarry(g, x), 0),
   });
   return { equity: r.isPublic ? v.equity : privateValue(v.equity, r.cash, r.debt), parts: v.parts };
 }
@@ -274,7 +287,7 @@ export function rivalsDecide(g: GameState) {
         if (r.cash > cost + costs) {
           ro.cap += add;
           r.cash -= cost;
-          if (isCapital(ro.ind)) (r.ramp ??= []).push(newPlant(ro.ind, add * def.capPerUnit * 1000 * m.cpi, g.turn));
+          if (isCapital(ro.ind)) notePlant(r, officeKey(ro), newPlant(ro.ind, add * def.capPerUnit * 1000 * m.cpi, g.turn));
         }
       } else if (util < 0.5 && !isCapital(ro.ind)) ro.cap *= 0.92;
       // price: personality anchor, nudged by how full they are; wars override
@@ -310,7 +323,7 @@ export function rivalsDecide(g: GameState) {
         if (r.cash > cost + costs * 2) {
           r.cash -= cost;
           // a rival's office sells from its first quarter (it is not short of staff), so its plant's year starts now
-          if (isCapital(ind)) (r.ramp ??= []).push(newPlant(ind, cap * def.capPerUnit * 1000 * m.cpi, g.turn, { at: `${c.id}:${ind}` }));
+          if (isCapital(ind)) notePlant(r, `${c.id}:${ind}`, newPlant(ind, cap * def.capPerUnit * 1000 * m.cpi, g.turn, {}), true);
           openRivalOffice(g, r, c.id, ind, 0);
           if ((g.discovered[c.id] ?? 0) >= 1) news(g, `${r.name} has opened in ${c.name}.`, 'rival');
           const mine = g.company.offices.find((o) => o.city === c.id && o.ind === ind);
@@ -397,7 +410,7 @@ export function rivalsFinancials(g: GameState) {
   const asked = acted;
   for (const r of alive(g)) {
     if (!r.alive) continue; // bought by a rival earlier in this loop: it no longer trades, borrows or moves
-    if (r.ramp) r.ramp = r.ramp.filter((x) => plantStillNew(g, x));
+    if (r.ramp) r.ramp = ownPlant(r).filter((x) => plantStillNew(g, x));
     const pers = PERSONALITY[r.personality];
     const q = rivalQuarter(g, r);
     for (const x of r.ramp ?? []) if (x.rev && x.at) x.rev.push(q.byOffice[x.at] ?? 0);

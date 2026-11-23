@@ -269,10 +269,11 @@ export function likeForLike(revs: number[], plants: readonly NewPlant[]): number
 /**
  * A record of new plant, the same for the player and rivals; `done` is the first quarter it can sell. A whole new
  * office in a grid industry (`office`) also tracks its sales for like-for-like growth; an expansion's sales cannot be
- * told apart from the rest of the office's, and it adds a fraction of what a new plant does.
+ * told apart from the rest of the office's, and it adds a fraction of what a new plant does. (A rival's record also
+ * names its office: see `notePlant` in rivals.ts.)
  */
-export function newPlant(ind: IndustryId, cost: number, done: number, office?: { at?: string }): NewPlant {
-  return office && INDUSTRIES[ind].grid ? { cost, done, rev: [], ...(office.at ? { at: office.at } : {}) } : { cost, done };
+export function newPlant(ind: IndustryId, cost: number, done: number, office?: object): NewPlant {
+  return office && INDUSTRIES[ind].grid ? { cost, done, rev: [] } : { cost, done };
 }
 
 /** Risk-adjusted value of staged R&D still in progress (mostly matters for biotech). */

@@ -19,6 +19,14 @@ export const ui = {
   saves: [] as { slot: string; name: string; turn: number; when: number; label: string; industry: string; gameId: string }[],
 };
 
+/**
+ * Close the open dialog. A dialog opened from another (a glossary entry from an event card's result, say) remembers
+ * it in `data.back` and goes back to it, so a card that ended the game, or the next card waiting, is not lost.
+ */
+export function closeModal() {
+  ui.modal = (ui.modal?.data?.back as Modal | undefined) ?? null;
+}
+
 type Handler = (d: DOMStringMap, el: HTMLElement) => void | Promise<void>;
 /** Called when the player does something for the first time in a game (the tutorial ticks its checklist). */
 export const markHooks: (() => void)[] = [];
@@ -160,7 +168,7 @@ export function initEvents() {
       return;
     }
     if (t.classList.contains('scrim') && ui.modal && !ui.modal.data?.sticky) {
-      ui.modal = null;
+      closeModal();
       render();
     }
   });
@@ -183,7 +191,7 @@ export function initEvents() {
     if (e.key === 'Escape') {
       hideTip();
       if (ui.modal && !ui.modal.data?.sticky) {
-        ui.modal = null;
+        closeModal();
         render();
       }
     }

@@ -143,7 +143,8 @@ modals.howTo = () => `<div class="spread"><h2>How to play</h2><button class="btn
 
 on('menu', () => { ui.modal = { kind: 'menu' }; render(); });
 on('howTo', () => { ui.modal = { kind: 'howTo' }; render(); });
-on('term', (d) => { ui.modal = { kind: 'term', data: { id: d.id } }; render(); });
+// a glossary entry opened from another dialog (an event card, the report, a tooltip in either) goes back to it on Close
+on('term', (d) => { ui.modal = { kind: 'term', data: { id: d.id, back: ui.modal?.kind === 'term' ? ui.modal.data?.back : ui.modal } }; render(); });
 on('toggleDelegate', () => {
   const g = ui.g!;
   g.settings.delegate = !g.settings.delegate;

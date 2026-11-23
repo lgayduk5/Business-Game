@@ -496,7 +496,7 @@ export interface NewPlant {
   done: number;
   /** New grid offices only: the office's sales each quarter from `done`, until it has two full years of them. */
   rev?: number[];
-  /** Rivals only: the office it belongs to, as "city:industry". */
+  /** Rivals only: the office it belongs to, as "city:industry". The record goes when the office does. */
   at?: string;
 }
 

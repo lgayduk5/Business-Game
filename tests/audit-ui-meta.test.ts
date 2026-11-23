@@ -2,7 +2,7 @@
 // modals): what these screens promise must match what the engine and the browser actually do.
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  CHALLENGES, dailyOpts, dailySetup, fromSaveFile, keepPlaying, newGame, scenarioStars, scoreCode, startScenario, toSaveFile, type GameState,
+  CHALLENGES, TERM, dailyOpts, dailySetup, fromSaveFile, keepPlaying, newGame, scenarioStars, scoreCode, startScenario, toSaveFile, type GameState,
 } from '../engine/src/index';
 import { opts, play } from './helpers';
 
@@ -176,5 +176,22 @@ describe('saves and the end screen', () => {
     expect(await S.loadFrom('slot2')).not.toBeNull();
     await run(ui.modal!.data.act, { arg: ui.modal!.data.arg });
     expect(await S.loadFrom('slot2')).toBeNull();
+  });
+});
+
+describe('a glossary entry opened from a dialog', () => {
+  it('goes back to that dialog on Close: an event card that ended the game, or with more cards waiting, is not lost', async () => {
+    const id = Object.keys(TERM)[0];
+    const card = { kind: 'event', data: { sticky: true, cat: 'Rival', result: { title: 'Sold', choice: 'Sell', text: '', effects: [], luck: 0, terms: [id] } } };
+    ui.modal = card;
+    await run('term', { id });
+    expect(ui.modal?.kind).toBe('term');
+    await run('close');
+    expect(ui.modal).toBe(card); // it used to close both, so eventDone (the end screen, the next card) never ran
+    // opened from a screen (a tooltip's link), Close just closes it
+    ui.modal = null;
+    await run('term', { id });
+    await run('close');
+    expect(ui.modal).toBeNull();
   });
 });

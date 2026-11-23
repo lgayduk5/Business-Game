@@ -44,6 +44,17 @@ try {
       await page.screenshot({ path: `shots/${name}-${n}.png`, fullPage: false });
     };
     const tap = async (sel) => { await page.locator(sel).first().click(); await page.waitForTimeout(120); };
+    // Ending a quarter prints the report, and with music on (the default) the quarter's cue follows it (the heartbeat in
+    // its place after a quarter in the red); a card already waiting opens instead, with its cue (a crisis with its alarm).
+    // Sound effects are logged as __gc.heard, music cues as __gc.cues.
+    const clearAudio = () => page.evaluate(() => { window.__gc.heard.length = 0; window.__gc.cues.length = 0; });
+    const quarterAudio = async (label) => {
+      await page.waitForTimeout(150);
+      const [got, cues] = await page.evaluate(() => [window.__gc.heard.slice(), window.__gc.cues.slice()]);
+      const closed = got.includes('report') && (got.includes('warning') || cues.some((c) => /quarter/i.test(c)));
+      if (!closed && !got.includes('crisis') && !cues.includes('decision'))
+        errors.push(`${name}: ${label} played ${got.join(', ') || 'no sound'} and the cues ${cues.join(', ') || 'none'}, expected the printer and the quarter's cue, or a card's`);
+    };
     await page.goto(`http://localhost:${PORT}/`);
     await page.waitForSelector('.title');
     await shot('01-title');
@@ -72,8 +83,10 @@ try {
     await page.waitForSelector('.shell');
     await shot('05-hq-start');
     for (let i = 0; i < 3; i++) {
+      if (i === 0) await clearAudio();
       await tap('[data-a=endTurn]');
       await page.waitForSelector('.modal', { timeout: 15000 });
+      if (i === 0) await quarterAudio('ending the first quarter');
       if (i === 0) await shot('06-report');
       // keyboard: End quarter keeps focus behind the report; Enter there must not play another quarter
       if (i === 0) {
@@ -96,6 +109,12 @@ try {
       await tap('[data-a=endTurn]'); await page.waitForSelector('.modal'); await shot('07a-event');
       await tap('.modal [data-a=choose]'); await shot('07b-event-result'); await tap('.modal [data-a=eventDone]');
     } else errors.push(`${name}: could not queue the data_breach card, so no event was played through`);
+    // with music on (the default) an ordinary card brings the decision cue in place of the desk bell (a crisis keeps its alarm)
+    await page.evaluate(() => { const { ui, render, engine, cues } = window.__gc; cues.length = 0; engine.queueEvent(ui.g, 'inflation_spike', {}); render(); });
+    await tap('[data-a=endTurn]'); await page.waitForSelector('.modal [data-a=choose]');
+    const cardCues = await page.evaluate(() => window.__gc.cues.slice());
+    if (!cardCues.includes('decision')) errors.push(`${name}: a decision card with music on played the cues ${cardCues.join(', ') || 'none'}, expected decision`);
+    await tap('.modal [data-a=choose]'); await tap('.modal [data-a=eventDone]');
     await page.locator('.n').first().click(); await page.waitForTimeout(150); await shot('08-tooltip');
     await page.mouse.click(5, 300);
     // keyboard: five steps on the price slider must move it five steps (focus survives each re-render)
@@ -148,7 +167,9 @@ try {
     await tap('[data-a=menu]'); await tap('.modal [data-a=soundLevel][data-v=normal]'); await tap('.modal [data-a=sounds]'); await shot('16-sound-test');
     await sound('the sound test', () => tap('.modal [data-a=sfxTry][data-id=cash]'), 'cash');
     await page.keyboard.press('Escape');
-    await sound('ending a quarter', async () => { await tap('[data-a=endTurn]'); await page.waitForSelector('.modal', { timeout: 15000 }); }, ['report', 'event', 'crisis']);
+    await clearAudio();
+    await tap('[data-a=endTurn]'); await page.waitForSelector('.modal', { timeout: 15000 });
+    await quarterAudio('ending a quarter');
     await ctx.close();
   }
   // ── PWA: manifest is installable, every path is relative, and the game runs with the network off
