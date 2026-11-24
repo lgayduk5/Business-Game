@@ -7,7 +7,7 @@ import { covenantStatus, newPlant, payTaxes, plantDebtService, plantStillNew, re
 import { stepInvestments } from './invest';
 import { stepTargets } from './mna';
 import { inputIndex, stepMacro, fxOf } from './macro';
-import { globalShare, localPrice, marketUnits, priceIndex, resolveMarkets } from './market';
+import { globalShare, localPrice, marketingSplit, marketUnits, priceIndex, resolveMarkets, type MarketSeat } from './market';
 import { invSum, news, tempMod } from './mods';
 import { grantOptions, stepFranchises, stepGuidance, stepHedge } from './mechanics';
 import { companyHeadcount, execBonus, headcount, payroll, personLeaves, prepOffice, stepKeyPeople, stepPeople, type Prep } from './people';
@@ -112,8 +112,29 @@ function stepCulture(g: GameState, prevHead: number) {
   c.esg = clamp(c.esg + 0.02 * (45 + 30 * green - c.esg) + invSum(g, 'esg') + 0.1 * resilient, 0, 100);
 }
 
+/** Where a player's quarter starts from: read before anything moves, needed when the quarter closes. */
+export interface QuarterOpen { prevQ?: Quarter; prevHead: number; prevVal: number; cashStart: number }
+/** What companyClose hands on to companyWrap. */
+export interface QuarterClose extends QuarterOpen { q: Quarter }
+
+/**
+ * End of quarter. The stages are the units Head-to-Head runs once for the world or once per player (docs/duel.md);
+ * solo play runs them in this order, which is the order of every random draw.
+ */
 export function endTurn(g: GameState): void {
   if (g.status !== 'playing' && !g.continued) return;
+  const open = seatOpen(g);
+  worldStart(g);
+  markets(g);
+  const closed = companyClose(g, open);
+  worldEnd(g);
+  companyWrap(g, closed);
+  g.turn++;
+  rollOver(g);
+}
+
+/** Per player: note where the quarter starts and bring finished plant and market studies into service. */
+export function seatOpen(g: GameState): QuarterOpen {
   const c = g.company;
   const prevQ: Quarter | undefined = c.quarters[c.quarters.length - 1];
   const prevHead = prevQ?.headcount ?? companyHeadcount(c);
@@ -121,16 +142,36 @@ export function endTurn(g: GameState): void {
   // from the cash shown in the last report: IPO proceeds and waiver fees land after the books close, so the opening
   // balance sheet would count them again
   const cashStart = g.report?.cash ?? c.open.cash;
-
   completeBuilds(g);
+  return { prevQ, prevHead, prevVal, cashStart };
+}
+
+/** Once for the world: the economy moves, new rivals appear, rivals make their pre-market decisions. */
+export function worldStart(g: GameState) {
   stepMacro(g);
   rivalsForDivisions(g);
   maybeEntrant(g);
   rivalsDecide(g);
+}
 
-  const preps = new Map<string, Prep>();
-  for (const o of c.offices) preps.set(o.id, prepOffice(g, o));
-  resolveMarkets(g, preps);
+/** A player as the markets see them this quarter; `run` puts the player's seat in place (solo: runs directly). */
+export function marketSeat(g: GameState, run: MarketSeat['run'] = (fn) => fn()): MarketSeat {
+  return run(() => {
+    const preps = new Map<string, Prep>();
+    for (const o of g.company.offices) preps.set(o.id, prepOffice(g, o));
+    return { run, offices: g.company.offices, preps, split: marketingSplit(g) };
+  });
+}
+
+/** Once for the world: every market resolves with all its competitors, players included. */
+export function markets(g: GameState, seats: MarketSeat[] = [marketSeat(g)]) {
+  resolveMarkets(g, seats);
+}
+
+/** Per player: the quarter's costs, cash, tax and books, then technology, brand, culture and value. */
+export function companyClose(g: GameState, open: QuarterOpen): QuarterClose {
+  const c = g.company;
+  const { prevQ, prevHead } = open;
 
   // ── offices: costs, people, inventory
   const growing = prevQ && c.quarters.length >= 2 ? prevQ.pnl.revenue / Math.max(1, c.quarters[c.quarters.length - 2].pnl.revenue) - 1 : 0.05;
@@ -286,9 +327,19 @@ export function endTurn(g: GameState): void {
   revalue(g);
   stepIPO(g);
   stepGuidance(g);
+  return { ...open, q };
+}
+
+/** Once for the world: rivals close their books, then rivals are born, merge and die. */
+export function worldEnd(g: GameState) {
   rivalsFinancials(g);
   rivalLifeEvents(g);
+}
 
+/** Per player, after the world's close: covenants, cash crises, key people, history, the report, advice, the end. */
+export function companyWrap(g: GameState, closed: QuarterClose) {
+  const c = g.company;
+  const { prevQ, prevVal, cashStart, q } = closed;
   const cov = covenantStatus(g);
   for (const br of cov.breaches) {
     br.loan.breaches++;
@@ -327,9 +378,10 @@ export function endTurn(g: GameState): void {
     g.continued = false;
     g.queue = [];
   }
+}
 
-  // ── roll into the next quarter
-  g.turn++;
+/** Per player, once g.turn has moved on: expire modifiers, refresh offers and candidates, deal the new cards. */
+export function rollOver(g: GameState) {
   g.mods = g.mods.filter((m) => m.until >= g.turn);
   if (g.status === 'playing') {
     refreshLoanOffers(g);
@@ -337,6 +389,6 @@ export function endTurn(g: GameState): void {
     if (g.turn % 4 === 0 || !g.candidates.length) refreshCandidates(g);
     drawEvents(g);
     const done = autoDelegate(g);
-    if (done.length) g.report.delegated = done.map((r) => ({ title: r.title, choice: r.choice, text: r.text }));
+    if (done.length && g.report) g.report.delegated = done.map((r) => ({ title: r.title, choice: r.choice, text: r.text }));
   }
 }

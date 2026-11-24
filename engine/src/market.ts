@@ -110,21 +110,34 @@ export function rivalAttract(g: GameState, r: Rival, ro: RivalOffice): number {
   return m * q * b * ro.price ** -def.elast * pres;
 }
 
+/** One player in the markets this quarter (Head-to-Head has two): offices made ready, read under the player's seat. */
+export interface MarketSeat {
+  /** Runs fn with this player's fields in place (withSeat in Head-to-Head; directly in solo). */
+  run: <T>(fn: () => T) => T;
+  offices: Office[];
+  preps: Map<string, Prep>;
+  /** marketingSplit for this player. */
+  split: Map<string, number>;
+}
+
 interface Mkt {
   city: string;
   ind: IndustryId;
-  player?: Office;
+  /** The human players' offices here, with their index into the seats passed in. */
+  players: { o: Office; seat: number }[];
   rivals: [Rival, RivalOffice][];
 }
-export function listMarkets(g: GameState): Mkt[] {
+export function listMarkets(g: GameState, seats: { offices: Office[] }[] = [{ offices: g.company.offices }]): Mkt[] {
   const map = new Map<string, Mkt>();
   const get = (city: string, ind: IndustryId) => {
     const k = mkKey(city, ind);
     let m = map.get(k);
-    if (!m) map.set(k, (m = { city, ind, rivals: [] }));
+    if (!m) map.set(k, (m = { city, ind, players: [], rivals: [] }));
     return m;
   };
-  for (const o of g.company.offices) get(o.city, o.ind).player = o;
+  seats.forEach((s, seat) => {
+    for (const o of s.offices) get(o.city, o.ind).players.push({ o, seat });
+  });
   for (const r of g.rivals) if (r.alive) for (const ro of r.offices) get(ro.city, ro.ind).rivals.push([r, ro]);
   return [...map.values()];
 }
@@ -147,33 +160,38 @@ export function marketingSplit(g: GameState): Map<string, number> {
 
 const emptyWages = () => ({ ops: 0, sales: 0, rnd: 0, admin: 0 });
 
-export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
-  const split = marketingSplit(g);
-  for (const mk of listMarkets(g)) {
+/**
+ * Shares and sales in every market, for the rivals and each player at once (one pass over all competitors, so the
+ * named shares of a market can never add up to more than the market). Solo play passes one seat.
+ */
+export function resolveMarkets(g: GameState, seats: MarketSeat[]) {
+  for (const mk of listMarkets(g, seats)) {
     const def = INDUSTRIES[mk.ind];
     const F = market(g, mk.city, mk.ind).f;
-    const o = mk.player;
+    const ps = mk.players.map(({ o, seat }) => ({ o, s: seats[seat], px: seats[seat].run(() => priceIndex(g, o)) }));
     // The average price level moves the size of the whole market a little.
     let named = 0, pw = 0;
-    if (o) { named += o.share; pw += o.share * priceIndex(g, o); }
+    for (const p of ps) { named += p.o.share; pw += p.o.share * p.px; }
     for (const [, ro] of mk.rivals) { named += ro.share; pw += ro.share * ro.price; }
     const avgP = pw + Math.max(0, 1 - named);
     const D = marketUnits(g, mk.city, mk.ind) * avgP ** -def.mktElast;
 
-    const pa = o ? playerAttract(g, o, D, split.get(o.id) ?? 1) : undefined;
+    const pas = ps.map((p) => p.s.run(() => ({ pa: playerAttract(g, p.o, D, p.s.split.get(p.o.id) ?? 1), tech: g.company.tech[mk.ind] ?? 0 })));
     const ra = mk.rivals.map(([r, ro]) => rivalAttract(g, r, ro));
-    const total = F + (pa?.A ?? 0) + ra.reduce((a, b) => a + b, 0);
+    let total = F;
+    for (const x of pas) total += x.pa.A;
+    total += ra.reduce((a, b) => a + b, 0);
 
     // Grid industries sell into a wholesale market: a plant priced at or below the going rate sells most of its
     // output — unless the city's plants together offer more than it needs, when they share what there is.
     const rawGrid = (capShare: number, px: number) => (def.grid ? capShare * 0.9 * clamp(2 - px, 0, 1) ** def.elast : 0);
-    const offered = def.grid ? (o ? rawGrid((preps.get(o.id)?.capacity ?? 0) / D, priceIndex(g, o)) : 0) + mk.rivals.reduce((s2, [, ro]) => s2 + rawGrid(ro.cap / D, ro.price), 0) : 0;
+    const offered = def.grid ? ps.reduce((s2, p) => s2 + rawGrid((p.s.preps.get(p.o.id)?.capacity ?? 0) / D, p.px), 0) + mk.rivals.reduce((s2, [, ro]) => s2 + rawGrid(ro.cap / D, ro.price), 0) : 0;
     const room = offered > 0.85 ? 0.85 / offered : 1;
     const grid = (capShare: number, px: number) => rawGrid(capShare, px) * room;
     // Product churn (software): customers of a product that trails the best one in the market leave each quarter,
     // more of them the further behind it is and the harder the level. It applies to rivals exactly as to you.
     const churnRate = (def.productChurn ?? 0) * DIFF[g.difficulty].churn;
-    const bestTech = churnRate > 0 ? Math.max(o ? g.company.tech[mk.ind] ?? 0 : 0, ...mk.rivals.map(([r]) => r.tech[mk.ind] ?? 0)) : 0;
+    const bestTech = churnRate > 0 ? Math.max(...(pas.length ? pas.map((x) => x.tech) : [0]), ...mk.rivals.map(([r]) => r.tech[mk.ind] ?? 0)) : 0;
     const churnOf = (tech: number) => (churnRate > 0 ? churnRate * clamp((bestTech - tech) / PRODUCT_GAP, 0, 1) : 0);
     mk.rivals.forEach(([r, ro], i) => {
       const capShare = ro.cap / D;
@@ -183,8 +201,9 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
       ro.share *= 1 - churnOf(r.tech[mk.ind] ?? 0);
     });
 
-    if (o && pa) {
-      const prep = preps.get(o.id)!;
+    ps.forEach(({ o, s }, k) => s.run(() => {
+      const pa = pas[k].pa;
+      const prep = s.preps.get(o.id)!;
       pa.total = total;
       const inv = hasInventory(o.ind);
       const avail = prep.capacity + (inv ? o.inventory : 0);
@@ -217,7 +236,7 @@ export function resolveMarkets(g: GameState, preps: Map<string, Prep>) {
         contribution: 0, lost: Math.max(0, Math.min(potential, D) - sold) * price * (bind === 'demand' ? 0 : 1), bind, attract: pa,
         attrRate: 0, quits: 0, hires: 0, moraleTarget: o.morale, moraleParts: {}, prodMult: prep.prodMult, prodParts: prep.prodParts, unitCost: 0,
       };
-    }
+    }));
   }
 }
 

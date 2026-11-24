@@ -15,6 +15,7 @@ export * from './newgame';
 export * from './history';
 export * from './forecast';
 export * from './turn';
+export * from './seats';
 export * from './invest';
 export * from './mna';
 export * from './events';
