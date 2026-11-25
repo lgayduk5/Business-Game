@@ -364,7 +364,7 @@ export const SPECIALS: Record<string, Special> = {
     const n = retireShares(co.cap, Math.min(amt / co.cap.price, outsideShares(co.cap) * 0.3));
     if (n <= 0) return null;
     B.buyback(co, n * co.cap.price);
-    return `${money(n * co.cap.price)} of shares bought back cheaply`;
+    return `${money(n * co.cap.price)} of shares bought back`;
   },
 };
 SPECIALS.startDividend = (g) => {
