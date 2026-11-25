@@ -11,7 +11,7 @@
     "opts": [
       {
         "label": "Cut early",
-        "hint": "Freeze hiring and trim spending now. Protects cash; you will be short-handed when the recovery comes.",
+        "hint": "Freeze hiring and trim spending now to protect cash.",
         "out": [
           {
             "text": "You moved before the numbers forced you to. The team is rattled.",
@@ -70,7 +70,7 @@
     "id": "rate_cut",
     "cat": "macro",
     "title": "Emergency rate cut",
-    "text": "With the economy sliding, the central bank has cut rates sharply and promised more.",
+    "text": "With the economy sliding, the central bank has cut rates sharply.",
     "cond": { "macro": "recession" },
     "terms": ["interestRate"],
     "opts": [
@@ -131,15 +131,15 @@
       },
       {
         "label": "Buy covenant headroom",
-        "hint": "Pay a fee now for three quarters of relief.",
+        "hint": "Pay a fee now to secure three quarters of optionality.",
         "out": [{ "text": "The bank agrees, for a price.", "fx": [["spread", 2], ["cost", 0.02, "other"], ["waive"]] }]
       },
       {
         "label": "Trust your bank",
         "hint": "You have a relationship. Surely that counts.",
         "out": [
-          { "w": 0.55, "text": "Your banker keeps the line open.", "fx": [["spread", 2]] },
-          { "w": 0.45, "text": "Your banker is very sorry. The line is cut in half.", "fx": [["spread", 2], ["special", "cutRevolver"]] }
+          { "w": 0.45, "text": "Your banker keeps the line open.", "fx": [["spread", 2]] },
+          { "w": 0.55, "text": "Your banker is very sorry. The line is cut in half.", "fx": [["spread", 2], ["special", "cutRevolver"]] }
         ]
       }
     ],
@@ -225,8 +225,10 @@
       {
         "label": "Blame the economy",
         "hint": "Everyone else does.",
-        "out": [{ "text": "Nobody is fooled.", "fx": [["valuation", -12, 4], ["rep", -3]] }]
-      }
+          "out": [
+          { "w": 0.80, "text": "Nobody is fooled.", "fx": [["valuation", -12, 4], ["rep", -3]] }] },
+          { "w": 0.20, "text": "Analysts will be more scrutinizing next time.", "fx": [["valuation", 1], ["rep", -2]] }
+        ]      }
     ],
     "lesson": "Guidance is a promise. Markets forgive a bad quarter faster than a broken one."
   },
@@ -271,10 +273,10 @@
         "label": "Chase public contracts",
         "hint": "Spend on bids. Good odds of a long stretch of extra demand.",
         "out": [
-          { "w": 0.6, "text": "You win a framework contract.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"], ["demand", 8, 6, "all"]] },
-          { "w": 0.4, "text": "The incumbents win everything.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"]] }
+          { "w": 0.65, "text": "You win a framework contract.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"], ["demand", 8, 6, "all"]] },
+          { "w": 0.35, "text": "The incumbents win everything.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"]] }
         ]
-      },
+      },5
       {
         "label": "Hire ahead of the boom",
         "hint": "Open positions now, before wages rise.",
@@ -345,7 +347,7 @@
         ]
       }
     ],
-    "lesson": "Technology shifts are when market leadership changes hands. The question is not whether to respond but how much to stake on being early."
+    "lesson": "Technology shifts are when market leadership changes hands. How much risk are you willing to take to be early?"
   },
   {
     "id": "pandemic",
