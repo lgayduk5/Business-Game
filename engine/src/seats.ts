@@ -53,8 +53,9 @@ export function withSeat<T>(g: GameState, i: 0 | 1, fn: () => T, opts: SeatOpts 
     return fn();
   } finally {
     inSeat.delete(g);
-    // rivals that entered while the seat was in have no standing with the other seat yet: they start level with it
-    for (const r of g.rivals) if (!r.vs && !rivals.some(([x]) => x === r)) r.vs = [pickRel(r), pickRel(r)];
+    // rivals that entered while the seat was in have no standing with either seat yet: both start from what the
+    // entry left at the top level (Phase 2: give the other seat a fresh standing, e.g. known only to this seat)
+    for (const r of g.rivals) if (!r.vs) r.vs = [pickRel(r), pickRel(r)];
     for (const [r, parkedR] of rivals) swapOut(r as unknown as Bag, r.vs![i] as unknown as Bag, parkedR, RIVAL_SEAT_KEYS);
     d.seats[i].delegate = g.settings.delegate;
     g.settings.delegate = delegate;

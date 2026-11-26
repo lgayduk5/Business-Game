@@ -58,6 +58,8 @@ data/duel-*.json (decision 100): put duel-only code there. If shared engine file
 - [x] 1. Seats refactor, no behaviour change: types.ts (SEAT_KEYS, SeatState, DuelState, RivalSeatRel, Rival.vs),
   seats.ts (withSeat, pickRel), turn.ts stages, market.ts `MarketSeat` + `marketSeat()`. tests/duel-seats.test.ts.
   Full and sprint grids re-ran identical.
+- Phase 2 notes: a rival that enters inside withSeat(i) gets `vs` copied from seat i's view for both seats (`known`
+  too); give seat j a fresh standing. withSeat leaves explicit `undefined` own props for absent optional fields.
 - [ ] 2. Headless duel: newDuel, duelQuarter, focus seat + r.vs, endings incl. AI wins, saves, scripts/duel-sim.ts.
   Tests: determinism; named shares ≤ 1; same macro; books balance per seat; private rng isolation.
 - [ ] 3. Interaction + variety: direct moves, inbox, distress sales, world cards, agendas, auctions (+ schemas).
