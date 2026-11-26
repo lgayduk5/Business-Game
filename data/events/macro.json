@@ -225,10 +225,11 @@
       {
         "label": "Blame the economy",
         "hint": "Everyone else does.",
-          "out": [
-          { "w": 0.80, "text": "Nobody is fooled.", "fx": [["valuation", -12, 4], ["rep", -3]] }] },
-          { "w": 0.20, "text": "Analysts will be more scrutinizing next time.", "fx": [["valuation", 1], ["rep", -2]] }
-        ]      }
+        "out": [
+          { "w": 0.8, "text": "Nobody is fooled.", "fx": [["valuation", -12, 4], ["rep", -3]] },
+          { "w": 0.2, "text": "Analysts will be more scrutinizing next time.", "fx": [["valuation", 1, 4], ["rep", -2]] }
+        ]
+      }
     ],
     "lesson": "Guidance is a promise. Markets forgive a bad quarter faster than a broken one."
   },
@@ -276,7 +277,7 @@
           { "w": 0.65, "text": "You win a framework contract.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"], ["demand", 8, 6, "all"]] },
           { "w": 0.35, "text": "The incumbents win everything.", "fx": [["gap", 1.5], ["infl", 0.4], ["cost", 0.02, "sm"]] }
         ]
-      },5
+      },
       {
         "label": "Hire ahead of the boom",
         "hint": "Open positions now, before wages rise.",
