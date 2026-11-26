@@ -429,3 +429,11 @@ Design decisions made while building, newest milestone last. Each entry: what, a
     (`varCost` 0.29 → 0.30, about 77%) was the alternative; it thins every quarter's margin from the first, costs
     Sprints more (about 49% at 0.305), and in the report's grid it tipped the Raider probe's graded wins over the
     shortcut line (23% against honest play's 17%).
+
+## Head-to-Head
+
+100. **The balance fingerprint leaves out Head-to-Head's own files** (`engine/src/duel*.ts`, `data/duel-*.json`). The
+    fingerprint hashes source, so any engine edit made `sim:check` fail even when solo play is untouched. Duel-only
+    files cannot change solo play, and `tests/duel-solo-replay.test.ts` replays three full solo games quarter by quarter
+    (state hash and rng) to hold that. When a duel change does touch shared engine files, both grids are re-run and the
+    reports committed only if the diff is the fingerprint line alone (docs/duel.md).

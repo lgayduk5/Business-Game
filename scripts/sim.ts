@@ -66,8 +66,11 @@ function fingerprint(): string {
   const walk = (d: string): string[] => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
   // paths relative to the repository with forward slashes, so the same commit gives the same hash on every machine
   const rel = (f: string) => f.slice(root.length).split('\\').join('/');
-  // data/winrates.json is written by this harness, so it cannot be part of what the harness measures
-  const files = [...walk(join(root, 'engine/src')), ...walk(join(root, 'data')).filter((f) => f.endsWith('.json') && !rel(f).startsWith('data/schemas/') && rel(f) !== 'data/winrates.json'), join(root, 'scripts/sim.ts')].sort((a, b) => (rel(a) < rel(b) ? -1 : 1));
+  // data/winrates.json is written by this harness, so it cannot be part of what the harness measures. Head-to-Head's
+  // own files (engine/src/duel*.ts, data/duel-*.json) cannot change solo play, which tests/duel-solo-replay.test.ts holds.
+  const duelOnly = (f: string) => /^engine\/src\/duel[^/]*\.ts$|^data\/duel-[^/]*\.json$/.test(rel(f));
+  const files = [...walk(join(root, 'engine/src')), ...walk(join(root, 'data')).filter((f) => f.endsWith('.json') && !rel(f).startsWith('data/schemas/') && rel(f) !== 'data/winrates.json'), join(root, 'scripts/sim.ts')]
+    .filter((f) => !duelOnly(f)).sort((a, b) => (rel(a) < rel(b) ? -1 : 1));
   const h = createHash('sha1');
   for (const f of files) h.update(rel(f)).update(readFileSync(f, 'utf8').replace(/\r\n/g, '\n'));
   return h.digest('hex').slice(0, 16);

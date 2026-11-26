@@ -808,7 +808,12 @@ export interface Rival {
   feud?: { turn: number; who: 'you' | 'them'; text: string }[];
   /** Plant bought recently, valued partly at cost until its sales are in the accounts (as for the player). */
   ramp?: NewPlant[];
+  /** Head-to-Head only: its standing with each seat, swapped into the fields above by withSeat (seats.ts). */
+  vs?: [RivalSeatRel, RivalSeatRel];
 }
+
+/** What a rival feels about one human player (Head-to-Head keeps one per seat). */
+export type RivalSeatRel = Pick<Rival, 'relation' | 'hostility' | 'pactUntil' | 'pact' | 'lastMove' | 'grievances' | 'known' | 'feud'>;
 
 export interface Macro {
   gap: number;
@@ -981,6 +986,28 @@ export interface GameState {
   report?: TurnReport;
   counters: Record<string, number>;
   created: number;
+  /** Head-to-Head: the two players' seats (absent in solo play). */
+  duel?: DuelState;
+}
+
+/** The GameState fields that belong to one player; in Head-to-Head each seat keeps its own (docs/duel.md). */
+export const SEAT_KEYS = ['rng', 'company', 'discovered', 'scouting', 'queue', 'scheduled', 'fired', 'eventLog', 'flags', 'mods', 'news', 'advisor',
+  'history', 'attribution', 'targets', 'candidates', 'loanOffers', 'equityOffer', 'status', 'outcome', 'continued', 'streaks', 'report', 'counters'] as const;
+export type SeatKey = (typeof SEAT_KEYS)[number];
+
+/** One human player's private part of the world. */
+export type SeatState = Pick<GameState, SeatKey> & {
+  /** Settings that are a matter of taste for each player. */
+  delegate?: boolean;
+};
+
+export interface DuelState {
+  seats: [SeatState, SeatState];
+  /** The seat whose decisions the device is showing. */
+  active: 0 | 1;
+  phase: 'plan' | 'cover' | 'resolve' | 'over';
+  /** Which seats have sealed their orders this quarter. */
+  sealed: [boolean, boolean];
 }
 
 export interface GameRules {
